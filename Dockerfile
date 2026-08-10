@@ -5,7 +5,7 @@ WORKDIR /app
 
 # 先装依赖（利用层缓存，package.json 不变时不用重装）
 COPY package.json ./
-RUN npm install --production --registry=https://registry.npmmirror.com
+RUN npm install --production
 
 # 复制源码
 COPY . .

@@ -271,6 +271,14 @@ app.get('/api/poll', async (req, res) => {
   }
 });
 
+// ========== 健康检查（供云托管探活） ==========
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'classroom-poll', time: Date.now() });
+});
+app.get('/healthz', (req, res) => {
+  res.status(200).send('ok');
+});
+
 // ========== 启动 ==========
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
