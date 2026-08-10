@@ -281,6 +281,42 @@ app.get('/api/poll', async (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 数据备份（数据无价） =================
+// 导出完整数据：浏览器直接下载带时间戳的 JSON 文件
+app.get('/api/backup/export', (req, res) => {
+  try {
+    const data = store.exportAll();
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="classroom-backup-${ts}.json"`);
+    res.send(JSON.stringify(data, null, 2));
+  } catch (e) { res.status(500).json(fail('导出失败: ' + e.message)); }
+});
+
+// 云端创建快照（保存在持久卷 backups/，防服务器误删）
+app.post('/api/backup/snapshot', (req, res) => {
+  try {
+    const name = store.snapshot();
+    res.json({ ok: true, name });
+  } catch (e) { res.status(500).json(fail('快照失败: ' + e.message)); }
+});
+
+// 列出云端快照
+app.get('/api/backup/snapshots', (req, res) => {
+  try { res.json(store.listSnapshots()); } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+// 从快照恢复（覆盖当前数据，不可撤销）
+app.post('/api/backup/restore', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name) return res.status(400).json(fail('缺少快照名'));
+    const ok = store.restoreSnapshot(name);
+    if (!ok) return res.status(404).json(fail('快照不存在'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json(fail('恢复失败: ' + e.message)); }
+});
+
 // ========== 启动 ==========
 const port = parseInt(process.env.PORT, 10) || 80;
 app.listen(port, () => console.log(`在线答题系统 running on port ${port}`));

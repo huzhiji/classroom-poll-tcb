@@ -93,6 +93,7 @@
     <button data-tab="classroom">课堂模式</button>
     <button data-tab="records">学生记录</button>
     <button data-tab="export">错题导出</button>
+    <button data-tab="backup">数据备份</button>
   </nav>
 </header>
 
@@ -238,6 +239,23 @@
     </div>
     <div class="card hidden" id="exp-print"></div>
   </section>
+
+  <!-- ========== 数据备份 ========== -->
+  <section id="tab-backup" class="hidden">
+    <div class="card">
+      <h2>数据备份 <span class="tag">数据无价</span></h2>
+      <p class="muted">所有数据（题库 / 考试 / 学生记录与错题 / 课堂）保存在服务端。建议定期备份到本地电脑，避免意外丢失。</p>
+      <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn" onclick="downloadBackup()">⬇️ 下载完整数据到本地</button>
+        <button class="btn ghost" onclick="createSnapshot()">☁️ 在云端创建快照</button>
+      </div>
+      <p class="muted" style="margin-top:12px">说明：①「下载到本地」会把全部数据存成 JSON 文件到你的电脑，最安全；②「云端快照」只保存在服务器持久卷，用于防服务器误删/快速回滚，<b>不等于本地备份</b>。要实现「定期自动存到本地」，请用项目里的 <code>backup-to-local.ps1</code> 配合 Windows 任务计划（详见说明）。</p>
+    </div>
+    <div class="card">
+      <h2>云端快照列表</h2>
+      <div id="snap-list"></div>
+    </div>
+  </section>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -257,6 +275,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab==='questions')loadQuestions();
   if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
   if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
+  if(b.dataset.tab==='backup')loadSnapshots();
 });
 
 // ---- 题型切换影响选项与答案 ----
@@ -419,6 +438,26 @@ async function loadWrong(){
   }catch(e){toast(e.message,'err');}
 }
 async function removeWrong(key,qid){try{await api('/api/wrong/remove',{method:'POST',body:JSON.stringify({studentKey:key,qid})});toast('已从错题库移除','ok');loadWrong();}catch(e){toast(e.message,'err');}}
+
+// ---- 数据备份 ----
+function downloadBackup(){
+  // 直接触发浏览器下载（GET 接口返回带附件名的 JSON）
+  toast('正在下载完整数据…','ok');
+  window.location.href='/api/backup/export';
+}
+async function createSnapshot(){try{const d=await api('/api/backup/snapshot',{method:'POST',body:'{}'});toast('云端快照已创建：'+d.name,'ok');loadSnapshots();}catch(e){toast(e.message,'err');}}
+async function loadSnapshots(){
+  try{
+    const list=await api('/api/backup/snapshots');
+    const box=$('#snap-list');
+    if(!list.length){box.innerHTML='<div class="muted" style="padding:14px">暂无快照。点上方「在云端创建快照」生成第一份。</div>';return;}
+    box.innerHTML=list.map(s=>`<div class="qitem"><div class="qtitle"><div><b>${esc(s.name)}</b></div><div class="meta">${s.size} 字节 · ${new Date(s.mtime).toLocaleString()}</div></div><button class="btn ghost sm" onclick="restoreSnapshot('${esc(s.name)}')">恢复</button></div>`).join('');
+  }catch(e){toast(e.message,'err');}
+}
+async function restoreSnapshot(name){
+  if(!confirm('确认用该快照覆盖当前所有数据？此操作不可撤销（当前数据不会被自动保留）。'))return;
+  try{await api('/api/backup/restore',{method:'POST',body:JSON.stringify({name})});toast('已从快照恢复：'+name,'ok');}catch(e){toast(e.message,'err');}
+}
 
 // 初始化
 loadQuestions();
