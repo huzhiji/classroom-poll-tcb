@@ -3,937 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>课堂答题 - 教师端</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<title>在线答题系统 · 教师端</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; height: 100vh; display: flex; flex-direction: column; }
-
-/* 顶部栏 */
-.topbar {
-  background: linear-gradient(135deg, #1a73e8, #1557b0);
-  color: #fff;
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  flex-shrink: 0;
-}
-.topbar h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
-.topbar .room-info { display: flex; align-items: center; gap: 16px; }
-.room-code {
-  background: rgba(255,255,255,0.2);
-  padding: 6px 16px;
-  border-radius: 8px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  font-family: 'Courier New', monospace;
-}
-.student-badge {
-  background: rgba(255,255,255,0.2);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  display: flex; align-items: center; gap: 6px;
-}
-.student-badge .count { font-weight: 700; font-size: 16px; }
-.btn-qr { background: rgba(255,255,255,0.25); border: none; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: .2s; }
-.btn-qr:hover { background: rgba(255,255,255,0.4); }
-
-/* 主布局 */
-.main { display: flex; flex: 1; overflow: hidden; }
-
-/* 左侧面板 - 题目列表 */
-.sidebar {
-  width: 260px;
-  background: #fff;
-  border-right: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-.sidebar-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid #eee;
-  font-weight: 600;
-  font-size: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #555;
-}
-.btn-small {
-  background: #1a73e8;
-  color: #fff;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: .2s;
-}
-.btn-small:hover { background: #1557b0; }
-.btn-small.danger { background: #e74c3c; }
-.btn-small.danger:hover { background: #c0392b; }
-.btn-small.success { background: #27ae60; }
-.btn-small.success:hover { background: #219a52; }
-.btn-small.warn { background: #f39c12; }
-.btn-small.warn:hover { background: #e67e22; }
-
-.question-list { flex: 1; overflow-y: auto; padding: 8px; }
-.q-item {
-  padding: 10px 12px;
-  margin: 4px 0;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: .15s;
-  font-size: 13px;
-  position: relative;
-}
-.q-item:hover { background: #f5f7fa; }
-.q-item.active { border-color: #1a73e8; background: #e8f0fe; }
-.q-item.current { border-color: #27ae60; background: #eafaf1; }
-.q-item .q-num { font-weight: 700; color: #1a73e8; }
-.q-item .q-title { color: #555; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.q-item .q-badge { position: absolute; right: 8px; top: 8px; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
-.q-badge.published { background: #e8f5e9; color: #2e7d32; }
-.q-badge.ended { background: #e3f2fd; color: #1565c0; }
-
-/* 中央面板 */
-.center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
-}
-.panel { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
-.panel h2 { font-size: 16px; color: #555; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
-
-/* 题目编辑区 */
-.q-editor { display: none; }
-.q-editor.visible { display: block; }
-.form-group { margin-bottom: 12px; }
-.form-group label { display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 4px; }
-.form-group input, .form-group textarea {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
-  transition: .2s;
-}
-.form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
-.form-group textarea { resize: vertical; min-height: 60px; }
-.option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.option-row .opt-label {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.opt-label.a { background: #e74c3c; }
-.opt-label.b { background: #3498db; }
-.opt-label.c { background: #f39c12; }
-.opt-label.d { background: #27ae60; }
-.option-row input { flex: 1; }
-.correct-toggle {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  border: 2px solid #ccc;
-  cursor: pointer;
-  transition: .2s;
-  flex-shrink: 0;
-}
-.correct-toggle.selected { background: #27ae60; border-color: #27ae60; }
-.editor-actions { display: flex; gap: 8px; margin-top: 14px; }
-.editor-actions button {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: .2s;
-}
-.btn-primary { background: #1a73e8; color: #fff; }
-.btn-primary:hover { background: #1557b0; }
-.btn-cancel { background: #eee; color: #666; }
-.btn-cancel:hover { background: #ddd; }
-
-/* 控制区 */
-.control-area { text-align: center; }
-.control-area .q-preview {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: #333;
-  line-height: 1.5;
-}
-.control-area .q-options-preview { margin-bottom: 20px; }
-.control-area .opt-preview-item {
-  display: inline-block;
-  padding: 8px 20px;
-  margin: 4px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-}
-.control-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.btn-big {
-  padding: 10px 28px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: .2s;
-}
-.btn-publish { background: #27ae60; color: #fff; }
-.btn-publish:hover { background: #219a52; }
-.btn-end { background: #e74c3c; color: #fff; }
-.btn-end:hover { background: #c0392b; }
-.btn-reset { background: #f39c12; color: #fff; }
-.btn-reset:hover { background: #e67e22; }
-.btn-next { background: #1a73e8; color: #fff; }
-.btn-next:hover { background: #1557b0; }
-.btn-big:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* 右侧面板 - 统计 */
-.right-panel {
-  width: 320px;
-  background: #fff;
-  border-left: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  overflow-y: auto;
-}
-.stats-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid #eee;
-  font-weight: 600;
-  font-size: 15px;
-  color: #555;
-}
-.stats-content { padding: 16px; flex: 1; }
-.stats-summary { display: flex; gap: 12px; margin-bottom: 16px; }
-.stat-card {
-  flex: 1;
-  text-align: center;
-  padding: 12px 8px;
-  border-radius: 8px;
-  background: #f5f7fa;
-}
-.stat-card .value { font-size: 28px; font-weight: 700; color: #1a73e8; }
-.stat-card .label { font-size: 11px; color: #888; margin-top: 2px; }
-.stat-card.answered .value { color: #27ae60; }
-.chart-container { position: relative; height: 220px; margin-bottom: 16px; }
-.stats-detail { font-size: 13px; }
-.stats-detail .bar-row { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
-.stats-detail .bar-label {
-  width: 24px; height: 24px; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.stats-detail .bar-track { flex: 1; height: 24px; background: #eee; border-radius: 6px; overflow: hidden; position: relative; }
-.stats-detail .bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
-.stats-detail .bar-text { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 600; }
-.stats-detail .bar-count { font-size: 12px; color: #888; width: 30px; text-align: right; flex-shrink: 0; }
-.no-stats { text-align: center; color: #aaa; padding: 40px 0; font-size: 14px; }
-
-/* 批量导入弹窗 */
-.modal-overlay {
-  display: none;
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5); z-index: 100;
-  justify-content: center; align-items: center;
-}
-.modal-overlay.show { display: flex; }
-.modal {
-  background: #fff; border-radius: 12px; padding: 24px;
-  width: 500px; max-height: 80vh; overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-}
-.modal h3 { margin-bottom: 14px; color: #333; }
-.modal textarea {
-  width: 100%; height: 200px;
-  border: 1px solid #ddd; border-radius: 6px;
-  padding: 10px; font-family: 'Courier New', monospace; font-size: 12px;
-  resize: vertical;
-}
-.modal .help { font-size: 12px; color: #888; margin: 8px 0 14px; line-height: 1.6; }
-.import-btns { display: flex; gap: 8px; justify-content: flex-end; }
-
-/* 状态标签 */
-.state-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.state-tag.waiting { background: #e0e0e0; color: #666; }
-.state-tag.answering { background: #e8f5e9; color: #2e7d32; animation: pulse 1.5s infinite; }
-.state-tag.showing { background: #e3f2fd; color: #1565c0; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-
-/* 提示消息 */
-.toast {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  background: #333; color: #fff; padding: 10px 24px; border-radius: 8px;
-  font-size: 14px; z-index: 200; opacity: 0; transition: opacity .3s;
-}
-.toast.show { opacity: 1; }
-
-/* 预设题目模板按钮 */
-.template-section { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
-.btn-template { background: #f0f0f0; border: 1px solid #ddd; color: #555; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: .2s; }
-.btn-template:hover { background: #e0e0e0; }
+  :root{
+    --primary:#4f46e5; --primary-d:#4338ca; --bg:#f5f7fb; --card:#fff;
+    --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --ok:#16a34a; --warn:#f59e0b; --err:#dc2626;
+    --shadow:0 4px 16px rgba(15,23,42,.06); --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  header{background:linear-gradient(135deg,var(--primary),#7c3aed);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow)}
+  header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+  header .sub{font-size:13px;opacity:.85}
+  .nav{display:flex;gap:6px;flex-wrap:wrap}
+  .nav button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:8px 16px;border-radius:999px;cursor:pointer;font-size:14px;transition:.2s}
+  .nav button:hover{background:rgba(255,255,255,.28)}
+  .nav button.active{background:#fff;color:var(--primary);font-weight:600}
+  main{max-width:1080px;margin:24px auto;padding:0 16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+  .card h2{font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .card h2 .tag{font-size:12px;background:var(--primary);color:#fff;padding:2px 8px;border-radius:6px;font-weight:500}
+  .hidden{display:none!important}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  textarea{resize:vertical;min-height:90px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:140px}
+  button.btn{background:var(--primary);color:#fff;border:none;padding:11px 18px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:.18s}
+  button.btn:hover{background:var(--primary-d)}
+  button.btn.ghost{background:#eef2ff;color:var(--primary)}
+  button.btn.ghost:hover{background:#e0e7ff}
+  button.btn.sm{padding:6px 12px;font-size:13px}
+  button.btn.danger{background:var(--err)}
+  button.btn.danger:hover{background:#b91c1c}
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;z-index:99;opacity:0;transition:.25s;pointer-events:none;box-shadow:var(--shadow)}
+  .toast.show{opacity:1}
+  .toast.err{background:var(--err)}
+  .toast.ok{background:var(--ok)}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:13px;background:#f8fafc}
+  tr:hover td{background:#f8fafc}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .badge.choice{background:#e0e7ff;color:var(--primary)}
+  .badge.judge{background:#dcfce7;color:var(--ok)}
+  .muted{color:var(--muted);font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;padding:4px 10px;border-radius:999px;font-size:13px;margin:3px}
+  .opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .opt-row{display:flex;align-items:center;gap:8px}
+  .opt-row input[type=text]{flex:1}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:8px}
+  .stat-box{background:#f8fafc;border-radius:12px;padding:16px;text-align:center}
+  .stat-box .num{font-size:28px;font-weight:700;color:var(--primary)}
+  .stat-box .lbl{font-size:13px;color:var(--muted);margin-top:4px}
+  .qlist{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:10px}
+  .qitem{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:14px}
+  .qitem:last-child{border-bottom:none}
+  .qitem .qtitle{flex:1}
+  .qitem .meta{font-size:12px;color:var(--muted)}
+  .live-stats{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0}
+  .live-stats .s{background:#f8fafc;border-radius:12px;padding:14px 18px;text-align:center;min-width:90px}
+  .live-stats .s .n{font-size:24px;font-weight:700}
+  .bar{height:26px;background:#eef2ff;border-radius:8px;display:flex;overflow:hidden;margin-top:4px;font-size:12px;color:#fff}
+  .bar span{display:flex;align-items:center;justify-content:center}
+  .linkbox{background:#f8fafc;border:1px dashed var(--border);border-radius:10px;padding:12px;font-size:14px;word-break:break-all;margin-top:8px}
+  .tabs-mini{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tabs-mini button{background:#eef2ff;color:var(--primary);border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  .tabs-mini button.active{background:var(--primary);color:#fff}
+  .print-area{background:#fff;padding:24px}
+  .print-area h3{margin:14px 0 8px;border-left:4px solid var(--primary);padding-left:10px}
+  .pq{border:1px solid #ddd;border-radius:8px;padding:12px;margin:10px 0}
+  .pq .pa{margin:4px 0;font-size:14px}
+  .pq .pa.right{color:var(--ok);font-weight:600}
+  .pq .ana{font-size:13px;color:var(--muted);margin-top:6px}
+  @media print{.no-print{display:none!important}.card,.card.shadow{box-shadow:none}}
+  @media(max-width:640px){.opts-grid{grid-template-columns:1fr}.nav button{padding:7px 12px;font-size:13px}}
 </style>
 </head>
 <body>
-
-<!-- 顶部栏 -->
-<div class="topbar">
-  <h1>🎓 课堂实时答题系统</h1>
-  <div class="room-info" id="roomInfo" style="display:none;">
-    <span style="font-size:13px;opacity:0.9;">房间号</span>
-    <span class="room-code" id="roomCode">----</span>
-    <span class="student-badge">👥 <span class="count" id="studentCount">0</span> 人在线</span>
-    <button class="btn-qr" onclick="showQR()">📱 二维码</button>
-    <span class="state-tag waiting" id="stateTag">等待中</span>
+<header>
+  <div>
+    <h1>📝 在线答题系统</h1>
+    <div class="sub">教师工作台 · 题库 / 考试 / 课堂 / 记录 / 错题</div>
   </div>
-</div>
+  <nav class="nav">
+    <button data-tab="questions" class="active">题库管理</button>
+    <button data-tab="exams">考试管理</button>
+    <button data-tab="classroom">课堂模式</button>
+    <button data-tab="records">学生记录</button>
+    <button data-tab="export">错题导出</button>
+  </nav>
+</header>
 
-<!-- 主布局 -->
-<div class="main">
-  <!-- 左侧：题目列表 -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      📋 题目列表 <span id="qCount">0</span> 题
-      <div style="display:flex;gap:4px;">
-        <button class="btn-small" onclick="addQuestion()" title="添加题目">＋</button>
-        <button class="btn-small warn" onclick="showImportModal()" title="批量导入">📥</button>
-        <button class="btn-small danger" onclick="clearQuestions()" title="清空">🗑</button>
-      </div>
-    </div>
-    <div class="question-list" id="questionList">
-      <div style="text-align:center;color:#bbb;padding:30px 0;font-size:13px;">暂无题目<br>点击 ＋ 添加或 📥 批量导入</div>
-    </div>
-  </div>
-
-  <!-- 中央面板 -->
-  <div class="center">
-    <!-- 题目编辑器 -->
-    <div class="panel q-editor" id="questionEditor">
-      <h2 id="editorTitle">添加题目</h2>
-      <div class="form-group">
-        <label>题目内容</label>
-        <textarea id="qTitle" placeholder="输入题目内容..."></textarea>
-      </div>
-      <div class="form-group"><label>选项（点击圆圈设置正确答案）</label></div>
-      <div id="optionsContainer">
-        <div class="option-row">
-          <span class="opt-label a">A</span>
-          <input type="text" id="optA" placeholder="选项A">
-          <span class="correct-toggle" data-opt="0" onclick="toggleCorrect(this)" title="设为正确答案"></span>
+<main>
+  <!-- ========== 题库管理 ========== -->
+  <section id="tab-questions">
+    <div class="card">
+      <h2>录入题目 <span class="tag">单题</span></h2>
+      <div class="row">
+        <div>
+          <label>题型</label>
+          <select id="q-type">
+            <option value="choice">选择题</option>
+            <option value="judge">判断题</option>
+          </select>
         </div>
-        <div class="option-row">
-          <span class="opt-label b">B</span>
-          <input type="text" id="optB" placeholder="选项B">
-          <span class="correct-toggle" data-opt="1" onclick="toggleCorrect(this)" title="设为正确答案"></span>
-        </div>
-        <div class="option-row">
-          <span class="opt-label c">C</span>
-          <input type="text" id="optC" placeholder="选项C">
-          <span class="correct-toggle" data-opt="2" onclick="toggleCorrect(this)" title="设为正确答案"></span>
-        </div>
-        <div class="option-row">
-          <span class="opt-label d">D</span>
-          <input type="text" id="optD" placeholder="选项D">
-          <span class="correct-toggle" data-opt="3" onclick="toggleCorrect(this)" title="设为正确答案"></span>
+        <div>
+          <label>专题（用于分类统计）</label>
+          <input id="q-topic" placeholder="如：地理、民法、高数…">
         </div>
       </div>
-      <div class="form-group">
-        <label>答题限时（秒，0=不限时）</label>
-        <input type="number" id="qTimeLimit" value="0" min="0" max="300" style="width:100px;">
+      <label>题干</label>
+      <textarea id="q-title" placeholder="请输入题目内容"></textarea>
+      <label>选项（选择题） / 固定为「对、错」（判断题）</label>
+      <div class="opts-grid" id="q-opts">
+        <div class="opt-row"><b>A</b><input data-i="0" value="A"></div>
+        <div class="opt-row"><b>B</b><input data-i="1" value="B"></div>
+        <div class="opt-row"><b>C</b><input data-i="2" value="C"></div>
+        <div class="opt-row"><b>D</b><input data-i="3" value="D"></div>
       </div>
-      <div class="editor-actions">
-        <button class="btn-primary" id="btnSaveQ" onclick="saveQuestion()">保存题目</button>
-        <button class="btn-cancel" onclick="cancelEdit()">取消</button>
-      </div>
-    </div>
-
-    <!-- 控制区 -->
-    <div class="panel control-area" id="controlArea">
-      <div id="controlWaiting" style="color:#999;padding:30px 0;">
-        选择左侧一道题目，点击"发布"开始答题
-      </div>
-      <div id="controlActive" style="display:none;">
-        <div class="q-preview" id="qPreviewTitle"></div>
-        <div class="q-options-preview" id="qPreviewOptions"></div>
-        <div class="reveal-toggle" style="margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#666;">
-            <input type="checkbox" id="revealAnswer" checked onchange="updateEndBtnText()">
-            向学生公布正确答案
-          </label>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>正确答案</label>
+          <select id="q-answer"></select>
         </div>
-        <div class="control-btns">
-          <button class="btn-big btn-publish" id="btnPublish" onclick="publishQuestion()">🚀 发布本题</button>
-          <button class="btn-big btn-end" id="btnEnd" onclick="endQuestion()" disabled>⏹ 结束答题并公布答案</button>
-          <button class="btn-big btn-reset" id="btnReset" onclick="resetQuestion()" disabled>🔄 重新发布</button>
+        <div>
+          <label>答案解析（可选）</label>
+          <input id="q-analysis" placeholder="讲解 / 考点说明">
         </div>
       </div>
+      <div style="margin-top:14px"><button class="btn" onclick="addQuestion()">保存题目</button></div>
     </div>
 
-    <!-- 连接状态 -->
-    <div class="panel" id="connectPanel">
-      <h2>🔌 连接</h2>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <button class="btn-big btn-primary" id="btnCreate" onclick="createRoom()">创建房间</button>
-        <span id="connectStatus" style="font-size:14px;color:#999;">未连接</span>
+    <div class="card">
+      <h2>批量导入 <span class="tag">文本 / JSON</span></h2>
+      <p class="muted">支持两种格式，题与题之间用空行分隔：</p>
+      <details style="margin:8px 0">
+        <summary class="muted" style="cursor:pointer">查看文本格式模板</summary>
+        <pre style="background:#f8fafc;padding:12px;border-radius:8px;font-size:13px;margin-top:8px;white-space:pre-wrap">题目：中国的首都是哪里？
+选项：A.北京 B.上海 C.广州 D.深圳
+答案：A
+解析：北京是中华人民共和国首都。
+专题：地理
+
+题目：地球是平的吗？
+选项：A.对 B.错
+答案：B
+解析：地球是近似球体。
+专题：常识</pre>
+      </details>
+      <textarea id="batch-text" placeholder="在此粘贴题目文本或 JSON 数组…"></textarea>
+      <div style="margin-top:10px"><button class="btn" onclick="batchImport()">解析并导入</button></div>
+    </div>
+
+    <div class="card">
+      <h2>题目库 <span class="tag" id="q-count">0</span></h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>按题型筛选</label><select id="f-type"><option value="">全部</option><option value="choice">选择题</option><option value="judge">判断题</option></select></div>
+        <div><label>按专题筛选</label><select id="f-topic"><option value="">全部</option></select></div>
+        <div><button class="btn ghost" onclick="loadQuestions()">刷新</button></div>
+      </div>
+      <div class="qlist" id="q-list"></div>
+    </div>
+  </section>
+
+  <!-- ========== 考试管理 ========== -->
+  <section id="tab-exams" class="hidden">
+    <div class="card">
+      <h2>创建考试 / 专题 <span class="tag">组卷</span></h2>
+      <label>考试标题</label>
+      <input id="exam-title" placeholder="如：第一章单元测试 / 民法典专题">
+      <label>从题库选题（勾选加入试卷）</label>
+      <div class="qlist" id="exam-pick" style="max-height:300px"></div>
+      <div style="margin-top:14px"><button class="btn" onclick="createExam()">生成考试</button></div>
+    </div>
+    <div class="card">
+      <h2>考试列表</h2>
+      <div id="exam-list"></div>
+    </div>
+  </section>
+
+  <!-- ========== 课堂模式 ========== -->
+  <section id="tab-classroom" class="hidden">
+    <div class="card" id="cr-create">
+      <h2>课堂答题 <span class="tag">即时发布</span></h2>
+      <p class="muted">创建房间后，从题库选题即时发布，学生扫码/链接即可作答，实时查看统计。</p>
+      <div style="margin-top:12px"><button class="btn" onclick="createRoom()">创建课堂房间</button></div>
+    </div>
+    <div class="card hidden" id="cr-panel">
+      <h2>课堂控制面板 <span class="tag" id="cr-id"></span></h2>
+      <div class="linkbox" id="cr-link"></div>
+      <label>从题库选择本堂题目（勾选后加载）</label>
+      <div class="qlist" id="cr-pick" style="max-height:260px"></div>
+      <div style="margin-top:10px"><button class="btn ghost sm" onclick="loadRoomQuestions()">加载选中题目到房间</button> <button class="btn danger sm" onclick="closeRoom()">关闭房间</button></div>
+      <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+      <h2 style="font-size:15px">当前题目发布</h2>
+      <div id="cr-current" class="muted">尚未发布题目</div>
+      <div class="live-stats" id="cr-stats"></div>
+      <div id="cr-controls" class="hidden" style="margin-top:6px">
+        <button class="btn sm" onclick="publishNext(-1)">发布上一题</button>
+        <button class="btn sm" onclick="publishNext(1)">发布下一题</button>
+        <button class="btn sm ghost" id="cr-reveal" onclick="endQuestion()">结束并公布答案</button>
+        <button class="btn sm ghost" id="cr-hide" onclick="endQuestion(false)">结束但不公布</button>
+        <button class="btn sm ghost" onclick="resetQuestion()">重置本题作答</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- 右侧：实时统计 -->
-  <div class="right-panel" id="rightPanel">
-    <div class="stats-header">📊 实时统计</div>
-    <div class="stats-content">
-      <div class="no-stats" id="noStats">等待发布题目...</div>
-      <div id="statsArea" style="display:none;">
-        <div class="stats-summary">
-          <div class="stat-card"><div class="value" id="statTotal">0</div><div class="label">总人数</div></div>
-          <div class="stat-card answered"><div class="value" id="statAnswered">0</div><div class="label">已作答</div></div>
-          <div class="stat-card"><div class="value" id="statPercent">0%</div><div class="label">参与率</div></div>
-        </div>
-        <div class="chart-container"><canvas id="statsChart"></canvas></div>
-        <div class="stats-detail" id="statsDetail"></div>
+  <!-- ========== 学生记录 ========== -->
+  <section id="tab-records" class="hidden">
+    <div class="card">
+      <h2>查询学生记录</h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>学生姓名 / 学号</label><input id="rec-key" placeholder="输入学生标识"></div>
+        <div style="flex:0"><button class="btn" onclick="loadStudent()">查询</button></div>
       </div>
+      <div id="rec-result"></div>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- 批量导入弹窗 -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal">
-    <h3>📥 批量导入题目</h3>
-    <textarea id="importText" placeholder="每行一题，格式：题目|A选项|B选项|C选项|D选项|正确答案(0-3)"></textarea>
-    <div class="help">
-      格式说明：每行一题，用竖线 <b>|</b> 分隔<br>
-      示例：<br>
-      <code>1+1等于几？|1|2|3|4|1</code><br>
-      <code>中国的首都是？|北京|上海|广州|深圳|0</code><br>
-      正确答案：0=A, 1=B, 2=C, 3=D
+  <!-- ========== 错题导出 ========== -->
+  <section id="tab-export" class="hidden">
+    <div class="card no-print">
+      <h2>错题导出（可打印）</h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>学生姓名 / 学号</label><input id="exp-key" placeholder="输入学生标识"></div>
+        <div style="flex:0"><button class="btn" onclick="loadWrong()">加载错题</button></div>
+      </div>
+      <div id="exp-result"></div>
     </div>
-    <div class="template-section">
-      <span style="font-size:11px;color:#888;">快捷模板：</span>
-      <button class="btn-template" onclick="loadTemplate('math')">小学数学</button>
-      <button class="btn-template" onclick="loadTemplate('general')">常识问答</button>
-      <button class="btn-template" onclick="loadTemplate('english')">英语选择</button>
+    <div class="card hidden no-print" id="exp-actions">
+      <button class="btn" onclick="window.print()">🖨️ 打印 / 另存为 PDF</button>
     </div>
-    <div class="import-btns">
-      <button class="btn-cancel" onclick="closeImportModal()">取消</button>
-      <button class="btn-primary" onclick="doImport()">导入</button>
-    </div>
-  </div>
-</div>
+    <div class="card hidden" id="exp-print"></div>
+  </section>
+</main>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ========== 全局状态 ==========
-let roomId = null;
-let questions = [];
-let currentQuestionIndex = -1;
-let editingIndex = -1;
-let editingCorrect = 0;
-let roomState = 'waiting';
-let chart = null;
-let pollTimer = null;
-let lastSeq = 0;
-let lastPollState = null;
+const $=(s)=>document.querySelector(s);
+function toast(msg,type){const t=$('#toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.className='toast',2200);}
+async function api(url,opt){const r=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},opt));const d=await r.json();if(d&&d._error)throw new Error(d.message);return d;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-// ========== API 通信 ==========
-const API = '/api';
+// ---- Tab 切换 ----
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
+  $('#tab-'+b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='questions')loadQuestions();
+  if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
+  if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
+});
 
-async function apiPost(endpoint, data) {
-  try {
-    const res = await fetch(`${API}/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const body = await res.json().catch(() => null);
-    if (body && body.type === 'error') {
-      toast('⚠ ' + (body.message || '服务器错误'), true);
-      return body;
-    }
-    if (!res.ok) {
-      toast('⚠ 服务器返回异常 (' + res.status + ')', true);
-      return body;
-    }
-    return body;
-  } catch (e) {
-    toast('网络错误，请检查连接（无法连接到服务器）', true);
-    return null;
+// ---- 题型切换影响选项与答案 ----
+function refreshAnswerOptions(){
+  const type=$('#q-type').value;
+  const sel=$('#q-answer');sel.innerHTML='';
+  if(type==='judge'){
+    $('#q-opts').querySelectorAll('input').forEach(inp=>{inp.value=inp.dataset.i==='0'?'对':'错';inp.disabled=true;});
+    [['0','对'],['1','错']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o);});
+  }else{
+    $('#q-opts').querySelectorAll('input').forEach((inp,i)=>{inp.value=['A','B','C','D'][i];inp.disabled=false;});
+    ['A','B','C','D'].forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t;sel.appendChild(o);});
   }
 }
+$('#q-type').onchange=refreshAnswerOptions;refreshAnswerOptions();
 
-async function apiGet(endpoint, params = {}) {
-  try {
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`${API}/${endpoint}?${qs}`);
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+// ---- 题目增删查 ----
+async function addQuestion(){
+  const type=$('#q-type').value;
+  const options=type==='judge'?['对','错']:[...$('#q-opts').querySelectorAll('input')].map(i=>i.value.trim());
+  const body={type,title:$('#q-title').value.trim(),options,correctAnswer:Number($('#q-answer').value),analysis:$('#q-analysis').value.trim(),topic:$('#q-topic').value.trim()||'未分类'};
+  if(!body.title){toast('题干不能为空','err');return;}
+  if(options.some(o=>!o)){toast('选项不能为空','err');return;}
+  try{await api('/api/questions',{method:'POST',body:JSON.stringify(body)});toast('题目已保存','ok');$('#q-title').value='';$('#q-analysis').value='';loadQuestions();}catch(e){toast(e.message,'err');}
+}
+async function batchImport(){
+  const text=$('#batch-text').value.trim();
+  if(!text){toast('请粘贴题目内容','err');return;}
+  try{const d=await api('/api/questions/batch',{method:'POST',body:JSON.stringify({text})});toast('成功导入 '+d.created+' 题','ok');$('#batch-text').value='';loadQuestions();}catch(e){toast(e.message,'err');}
+}
+async function loadQuestions(){
+  try{
+    let list=await api('/api/questions?'+new URLSearchParams({type:$('#f-type').value,topic:$('#f-topic').value}));
+    $('#q-count').textContent=list.length;
+    // 专题下拉
+    const topics=await api('/api/topics');
+    const ft=$('#f-topic');const cur=ft.value;[...ft.querySelectorAll('option:not(:first-child)')].forEach(o=>o.remove());
+    topics.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o);});ft.value=cur;
+    const box=$('#q-list');
+    if(!list.length){box.innerHTML='<div class="muted" style="padding:14px">题库为空，请先录入或导入题目。</div>';return;}
+    box.innerHTML=list.map(q=>`
+      <div class="qitem">
+        <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span>
+        <div class="qtitle"><div>${esc(q.title)}</div><div class="meta">专题：${esc(q.topic)} · 答案：${esc(q.options[q.correctAnswer])}</div></div>
+        <button class="btn danger sm" onclick="delQuestion('${q.id}')">删除</button>
+      </div>`).join('');
+  }catch(e){toast(e.message,'err');}
+}
+async function delQuestion(id){if(!confirm('确认删除该题？'))return;try{await api('/api/questions/'+id,{method:'DELETE'});toast('已删除','ok');loadQuestions();}catch(e){toast(e.message,'err');}}
+$('#f-type').onchange=loadQuestions;$('#f-topic').onchange=loadQuestions;
+
+// ---- 考试 ----
+async function createExam(){
+  const title=$('#exam-title').value.trim();
+  if(!title){toast('请输入考试标题','err');return;}
+  const ids=[...document.querySelectorAll('#exam-pick input:checked')].map(c=>c.value);
+  if(!ids.length){toast('请至少勾选一道题','err');return;}
+  try{const e=await api('/api/exams',{method:'POST',body:JSON.stringify({title,questionIds:ids})});toast('考试已生成','ok');$('#exam-title').value='';loadExams();}catch(e){toast(e.message,'err');}
+}
+async function loadExams(){
+  try{
+    const exams=await api('/api/exams');
+    const list=await api('/api/questions');
+    const map={};list.forEach(q=>map[q.id]=q);
+    const box=$('#exam-list');
+    if(!exams.length){box.innerHTML='<div class="muted" style="padding:14px">暂无考试。</div>';return;}
+    box.innerHTML=exams.map(e=>{
+      const qs=(e.questionIds||[]).map(id=>map[id]).filter(Boolean);
+      const link=location.origin+'/student.html#exam='+e.id;
+      return `<div class="qitem"><div class="qtitle"><div><b>${esc(e.title)}</b> · ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()}</div>
+        <div class="meta">${qs.slice(0,3).map(q=>esc(q.title)).join(' / ')}${qs.length>3?' …':''}</div></div>
+        <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
+        <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button></div>`;
+    }).join('');
+  }catch(e){toast(e.message,'err');}
+}
+function copyLink(l){navigator.clipboard.writeText(l).then(()=>toast('链接已复制','ok'),()=>prompt('复制以下链接发给学生：',l));}
+async function delExam(id){if(!confirm('确认删除该考试？'))return;try{await api('/api/exams/'+id,{method:'DELETE'});toast('已删除','ok');loadExams();}catch(e){toast(e.message,'err');}}
+
+// 考试选题列表（复用题库）
+async function loadExamPick(){
+  const list=await api('/api/questions');
+  $('#exam-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" value="${q.id}"><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';
 }
 
-// ========== 轮询 ==========
-function startPolling() {
-  document.getElementById('connectStatus').textContent = '已连接 (Vercel)';
-  document.getElementById('connectStatus').style.color = '#27ae60';
-  pollTimer = setInterval(doPoll, 1500);
+// ---- 课堂模式 ----
+let crRoomId=null,crQuestions=[],crIdx=-1;
+async function createRoom(){try{const d=await api('/api/create-room',{method:'POST',body:'{}'});crRoomId=d.roomId;$('#cr-create').classList.add('hidden');$('#cr-panel').classList.remove('hidden');$('#cr-id').textContent='房间号 '+crRoomId;$('#cr-link').innerHTML='学生进入：<b>'+location.origin+'/student.html#room='+crRoomId+'</b>';loadRoomPick();}catch(e){toast(e.message,'err');}}
+async function loadRoomPick(){const list=await api('/api/questions');$('#cr-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" class="crq" value="${q.id}" data-q='${esc(JSON.stringify({title:q.title,options:q.options,correctAnswer:q.correctAnswer}))}'><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';}
+async function loadRoomQuestions(){
+  const picked=[...document.querySelectorAll('.crq:checked')].map(c=>JSON.parse(c.dataset.q));
+  if(!picked.length){toast('请勾选题目','err');return;}
+  try{await api('/api/load-questions',{method:'POST',body:JSON.stringify({roomId:crRoomId,questions:picked})});crQuestions=picked;crIdx=-1;$('#cr-controls').classList.remove('hidden');toast('已加载 '+picked.length+' 题','ok');pollLoop();}catch(e){toast(e.message,'err');}
+}
+async function publishNext(step){
+  const ni=crIdx+step;
+  if(ni<0||ni>=crQuestions.length){toast('已是首/末题','err');return;}
+  crIdx=ni;
+  try{const d=await api('/api/publish',{method:'POST',body:JSON.stringify({roomId:crRoomId,questionIndex:crIdx})});showCurrent(d);}catch(e){toast(e.message,'err');}
+}
+function showCurrent(d){
+  const q=crQuestions[crIdx];
+  $('#cr-current').innerHTML=`<div style="font-size:16px;font-weight:600">第 ${crIdx+1} 题：${esc(q.title)}</div><div class="muted">${q.options.map((o,i)=>(i)+'. '+esc(o)).join('　')}</div>`;
+  renderStats(d.stats);
+}
+function renderStats(stats){
+  if(!stats){$('#cr-stats').innerHTML='';return;}
+  let html=`<div class="s"><div class="n">${stats.answered}/${stats.totalStudents}</div><div class="lbl">已答/总人数</div></div>`;
+  stats.counts.forEach((c,i)=>{html+=`<div class="s"><div class="n">${stats.percentages[i]}%</div><div class="lbl">${i}. ${esc(crQuestions[crIdx].options[i])}</div></div>`;});
+  $('#cr-stats').innerHTML=html;
+}
+async function endQuestion(reveal=true){try{const d=await api('/api/end-question',{method:'POST',body:JSON.stringify({roomId:crRoomId,revealAnswer:reveal})});renderStats(d.stats);toast(reveal?'已公布答案':'已结束（不公布）','ok');}catch(e){toast(e.message,'err');}}
+async function resetQuestion(){try{const d=await api('/api/reset-question',{method:'POST',body:JSON.stringify({roomId:crRoomId})});renderStats(d.stats);toast('已重置','ok');}catch(e){toast(e.message,'err');}}
+async function closeRoom(){try{await api('/api/close-room',{method:'POST',body:JSON.stringify({roomId:crRoomId})});toast('房间已关闭','ok');location.reload();}catch(e){toast(e.message,'err');}}
+let pollTimer=null;
+async function pollLoop(){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{const d=await api('/api/poll?roomId='+crRoomId+'&for=teacher');if(d.type==='room-closed'){clearInterval(pollTimer);return;}if(d.state!=='waiting'&&d.stats)renderStats(d.stats);}catch(e){}
+  },1500);
 }
 
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-}
-
-async function doPoll() {
-  if (!roomId) return;
-  const data = await apiGet('poll', { roomId, for: 'teacher', seq: lastSeq });
-  if (!data) return;
-
-  if (data.type === 'room-closed') {
-    stopPolling();
-    toast('房间已关闭');
-    return;
-  }
-
-  lastSeq = data.seq || 0;
-
-  // 检测状态变化
-  const prev = lastPollState;
-  lastPollState = data;
-
-  if (!prev) {
-    // 首次轮询，全量同步
-    document.getElementById('studentCount').textContent = data.studentCount || 0;
-    if (data.currentQuestion >= 0 && data.question) {
-      currentQuestionIndex = data.currentQuestion;
-      roomState = data.state;
-      updateStateTag();
-      if (data.stats) { showStats(); updateStats(data.stats); }
-      renderQuestionList();
-    }
-    return;
-  }
-
-  // 增量更新
-  if (data.studentCount !== prev.studentCount) {
-    document.getElementById('studentCount').textContent = data.studentCount || 0;
-  }
-
-  if (data.state !== prev.state || data.currentQuestion !== prev.currentQuestion) {
-    roomState = data.state;
-    currentQuestionIndex = data.currentQuestion;
-    updateStateTag();
-    renderQuestionList();
-  }
-
-  if (data.stats) {
-    showStats();
-    updateStats(data.stats);
-    if (data.question && (data.state === 'answering' || data.state === 'showing')) {
-      document.getElementById('btnPublish').disabled = (data.state !== 'waiting');
-      document.getElementById('btnEnd').disabled = (data.state !== 'answering');
-      document.getElementById('btnReset').disabled = (data.state === 'waiting');
-    }
-  }
-
-  if (data.state === 'showing') {
-    document.getElementById('btnEnd').disabled = true;
-  }
-}
-
-// ========== 房间操作 ==========
-async function createRoom() {
-  const res = await apiPost('create-room', {});
-  if (!res || res.type !== 'room-created') return;
-  roomId = res.roomId;
-  document.getElementById('roomCode').textContent = roomId;
-  document.getElementById('roomInfo').style.display = 'flex';
-  document.getElementById('btnCreate').textContent = '关闭房间';
-  document.getElementById('btnCreate').className = 'btn-big btn-end';
-  document.getElementById('btnCreate').onclick = closeRoom;
-  lastSeq = 0;
-  lastPollState = null;
-  startPolling();
-  toast('房间已创建！学生输入房间号 ' + roomId + ' 即可加入');
-}
-
-async function closeRoom() {
-  if (!confirm('确定关闭房间？')) return;
-  stopPolling();
-  await apiPost('close-room', { roomId });
-  roomId = null;
-  document.getElementById('roomInfo').style.display = 'none';
-  document.getElementById('btnCreate').textContent = '创建房间';
-  document.getElementById('btnCreate').className = 'btn-big btn-primary';
-  document.getElementById('btnCreate').onclick = createRoom;
-  document.getElementById('studentCount').textContent = '0';
-  document.getElementById('noStats').style.display = 'block';
-  document.getElementById('statsArea').style.display = 'none';
-  currentQuestionIndex = -1;
-  roomState = 'waiting';
-  updateStateTag();
-  document.getElementById('controlActive').style.display = 'none';
-  document.getElementById('controlWaiting').style.display = 'block';
-}
-
-// ========== 题目管理 ==========
-function renderQuestionList() {
-  const container = document.getElementById('questionList');
-  document.getElementById('qCount').textContent = questions.length;
-  if (questions.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#bbb;padding:30px 0;font-size:13px;">暂无题目<br>点击 ＋ 添加或 📥 批量导入</div>';
-    return;
-  }
-  container.innerHTML = questions.map((q, i) => {
-    let cls = 'q-item';
-    let badge = '';
-    if (i === currentQuestionIndex && roomState === 'answering') {
-      cls += ' current';
-      badge = '<span class="q-badge published">答题中</span>';
-    } else if (i === currentQuestionIndex && roomState === 'showing') {
-      cls += ' current';
-      badge = '<span class="q-badge ended">已结束</span>';
-    } else if (editingIndex === i) {
-      cls += ' active';
-    }
-    return `<div class="${cls}" onclick="selectQuestion(${i})">
-      <span class="q-num">#${i + 1}</span>${badge}
-      <div class="q-title">${escHtml(q.title) || '(空题目)'}</div>
+// ---- 学生记录 ----
+async function loadStudent(){
+  const key=$('#rec-key').value.trim();if(!key){toast('请输入学生标识','err');return;}
+  try{
+    const stats=await api('/api/students/'+encodeURIComponent(key)+'/stats');
+    const records=await api('/api/students/'+encodeURIComponent(key)+'/records');
+    let html=`<div class="stat-grid">
+      <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
+      <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题数</div></div>
+      <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">参与考试数</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--err)">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div>
     </div>`;
-  }).join('');
+    const topics=Object.keys(stats.byTopic);
+    if(topics.length){html+='<h2 style="font-size:15px;margin-top:16px">按专题正确率</h2><div class="stat-grid">';topics.forEach(t=>{const b=stats.byTopic[t];html+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});html+='</div>';}
+    html+='<h2 style="font-size:15px;margin-top:16px">历史记录</h2><div class="qlist" style="max-height:300px">';
+    if(!records.length)html+='<div class="muted" style="padding:14px">暂无答题记录。</div>';
+    records.forEach(r=>{html+=`<div class="qitem"><div class="qtitle"><div><b>${esc(r.refTitle)}</b> · ${new Date(r.date).toLocaleString()}</div><div class="meta">得分 ${r.correct}/${r.total}（${r.total?Math.round(r.correct/r.total*100):0}%）</div></div></div>`;});
+    html+='</div>';
+    $('#rec-result').innerHTML=html;
+  }catch(e){toast(e.message,'err');}
 }
 
-function addQuestion() {
-  editingIndex = -1;
-  editingCorrect = 0;
-  document.getElementById('editorTitle').textContent = '添加题目';
-  document.getElementById('qTitle').value = '';
-  document.getElementById('optA').value = '';
-  document.getElementById('optB').value = '';
-  document.getElementById('optC').value = '';
-  document.getElementById('optD').value = '';
-  document.getElementById('qTimeLimit').value = '0';
-  document.querySelectorAll('.correct-toggle').forEach(el => el.classList.remove('selected'));
-  document.querySelector('.correct-toggle[data-opt="0"]').classList.add('selected');
-  document.getElementById('questionEditor').classList.add('visible');
-  document.getElementById('btnSaveQ').textContent = '保存题目';
-  renderQuestionList();
+// ---- 错题导出 ----
+async function loadWrong(){
+  const key=$('#exp-key').value.trim();if(!key){toast('请输入学生标识','err');return;}
+  try{
+    const list=await api('/api/students/'+encodeURIComponent(key)+'/wrong');
+    if(!list.length){$('#exp-result').innerHTML='<div class="muted" style="padding:14px">该学生暂无错题。</div>';$('#exp-actions').classList.add('hidden');$('#exp-print').classList.add('hidden');return;}
+    let html='<p class="muted">共 '+list.length+' 道错题。可点击「移除」标记已掌握。</p><div class="qlist" style="max-height:300px">';
+    list.forEach(q=>{html+=`<div class="qitem"><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)} · 答案：${esc(q.options[q.correctAnswer])}</div></div><button class="btn danger sm" onclick="removeWrong('${esc(key)}','${q.id}')">移除</button></div>`;});
+    html+='</div>';
+    $('#exp-result').innerHTML=html;
+    // 打印视图
+    let p='<div class="print-area"><h2>'+esc(key)+' 的错题集（'+list.length+' 题）</h2><p class="muted">生成时间：'+new Date().toLocaleString()+'</p>';
+    list.forEach((q,i)=>{p+=`<div class="pq"><div><b>第${i+1}题.</b> ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span></div>`;q.options.forEach((o,j)=>{p+=`<div class="pa ${j===q.correctAnswer?'right':''}">${j}. ${esc(o)} ${j===q.correctAnswer?'(正确答案)':''}</div>`;});if(q.analysis)p+=`<div class="ana">解析：${esc(q.analysis)}</div>`;p+='</div>';});
+    p+='</div>';
+    $('#exp-print').innerHTML=p;$('#exp-actions').classList.remove('hidden');$('#exp-print').classList.remove('hidden');
+  }catch(e){toast(e.message,'err');}
 }
+async function removeWrong(key,qid){try{await api('/api/wrong/remove',{method:'POST',body:JSON.stringify({studentKey:key,qid})});toast('已从错题库移除','ok');loadWrong();}catch(e){toast(e.message,'err');}}
 
-function selectQuestion(index) {
-  if (editingIndex === index) { cancelEdit(); return; }
-  editingIndex = index;
-  const q = questions[index];
-  document.getElementById('editorTitle').textContent = '编辑题目 #' + (index + 1);
-  document.getElementById('qTitle').value = q.title;
-  document.getElementById('optA').value = q.options[0] || '';
-  document.getElementById('optB').value = q.options[1] || '';
-  document.getElementById('optC').value = q.options[2] || '';
-  document.getElementById('optD').value = q.options[3] || '';
-  document.getElementById('qTimeLimit').value = q.timeLimit || 0;
-  editingCorrect = q.correctAnswer;
-  document.querySelectorAll('.correct-toggle').forEach(el => {
-    el.classList.toggle('selected', parseInt(el.dataset.opt) === editingCorrect);
-  });
-  document.getElementById('questionEditor').classList.add('visible');
-  document.getElementById('btnSaveQ').textContent = '更新题目';
-  updateControlPreview(index);
-  renderQuestionList();
-}
-
-function updateControlPreview(index) {
-  const q = questions[index];
-  document.getElementById('qPreviewTitle').textContent = q.title;
-  const colors = ['#e74c3c', '#3498db', '#f39c12', '#27ae60'];
-  document.getElementById('qPreviewOptions').innerHTML = q.options.map((opt, i) =>
-    `<span class="opt-preview-item" style="background:${colors[i]}">${opt}</span>`
-  ).join(' ');
-  document.getElementById('controlActive').style.display = 'block';
-  document.getElementById('controlWaiting').style.display = 'none';
-  document.getElementById('btnPublish').disabled = false;
-  document.getElementById('btnEnd').disabled = true;
-  document.getElementById('btnReset').disabled = true;
-}
-
-function toggleCorrect(el) {
-  document.querySelectorAll('.correct-toggle').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected');
-  editingCorrect = parseInt(el.dataset.opt);
-}
-
-async function saveQuestion() {
-  const title = document.getElementById('qTitle').value.trim();
-  if (!title) { toast('请输入题目内容', true); return; }
-  const options = [
-    document.getElementById('optA').value.trim() || 'A',
-    document.getElementById('optB').value.trim() || 'B',
-    document.getElementById('optC').value.trim() || 'C',
-    document.getElementById('optD').value.trim() || 'D',
-  ];
-  const timeLimit = parseInt(document.getElementById('qTimeLimit').value) || 0;
-  const q = { title, options, correctAnswer: editingCorrect, timeLimit };
-
-  if (editingIndex >= 0) {
-    questions[editingIndex] = q;
-  } else {
-    questions.push(q);
-  }
-
-  if (roomId) await apiPost('load-questions', { roomId, questions });
-  cancelEdit();
-  toast(editingIndex >= 0 ? '题目已更新' : '题目已添加');
-}
-
-function cancelEdit() {
-  editingIndex = -1;
-  document.getElementById('questionEditor').classList.remove('visible');
-  renderQuestionList();
-}
-
-async function clearQuestions() {
-  if (!confirm('确定清空所有题目？')) return;
-  questions = [];
-  if (roomId) await apiPost('load-questions', { roomId, questions: [] });
-  cancelEdit();
-  document.getElementById('controlActive').style.display = 'none';
-  document.getElementById('controlWaiting').style.display = 'block';
-  renderQuestionList();
-}
-
-// ========== 题目发布控制 ==========
-async function publishQuestion() {
-  if (editingIndex < 0 || editingIndex >= questions.length) {
-    toast('请先在左侧选择一道题目', true);
-    return;
-  }
-  if (!roomId) { toast('请先创建房间', true); return; }
-  const res = await apiPost('publish', { roomId, questionIndex: editingIndex });
-  if (!res || res.type !== 'question-published') return;
-  currentQuestionIndex = res.questionIndex;
-  roomState = 'answering';
-  updateStateTag();
-  document.getElementById('btnPublish').disabled = true;
-  document.getElementById('btnEnd').disabled = false;
-  document.getElementById('btnReset').disabled = false;
-  if (res.stats) { showStats(); updateStats(res.stats); }
-  renderQuestionList();
-}
-
-async function endQuestion() {
-  if (!roomId || currentQuestionIndex < 0) return;
-  const reveal = document.getElementById('revealAnswer').checked;
-  const res = await apiPost('end-question', { roomId, revealAnswer: reveal });
-  if (!res) return;
-  roomState = 'showing';
-  updateStateTag();
-  document.getElementById('btnEnd').disabled = true;
-  if (res.stats) updateStats(res.stats);
-  renderQuestionList();
-}
-
-function updateEndBtnText() {
-  const reveal = document.getElementById('revealAnswer').checked;
-  const btn = document.getElementById('btnEnd');
-  btn.textContent = reveal ? '⏹ 结束答题并公布答案' : '⏹ 结束答题（不公布答案）';
-}
-
-async function resetQuestion() {
-  if (!roomId || currentQuestionIndex < 0) return;
-  if (!confirm('确定重新发布本题？所有学生的答案将被清除。')) return;
-  await apiPost('reset-question', { roomId });
-  document.getElementById('btnPublish').disabled = true;
-  document.getElementById('btnEnd').disabled = false;
-  document.getElementById('btnReset').disabled = true;
-  roomState = 'answering';
-  updateStateTag();
-}
-
-// ========== 统计更新 ==========
-function showStats() {
-  document.getElementById('noStats').style.display = 'none';
-  document.getElementById('statsArea').style.display = 'block';
-}
-
-function updateStats(stats) {
-  if (!stats) return;
-  showStats();
-  document.getElementById('statTotal').textContent = stats.totalStudents;
-  document.getElementById('statAnswered').textContent = stats.answered;
-  const pct = stats.totalStudents > 0 ? Math.round((stats.answered / stats.totalStudents) * 100) : 0;
-  document.getElementById('statPercent').textContent = pct + '%';
-
-  const labels = ['A', 'B', 'C', 'D'];
-  const colors = ['#e74c3c', '#3498db', '#f39c12', '#27ae60'];
-  const bgColors = colors.map((c, i) => {
-    const isCorrect = i === stats.correctAnswer;
-    return isCorrect ? c : c + '55';
-  });
-
-  const ctx = document.getElementById('statsChart').getContext('2d');
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: stats.counts,
-        backgroundColor: bgColors,
-        borderColor: colors,
-        borderWidth: 2,
-        borderRadius: 6,
-        barThickness: 40,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.raw} 人 (${stats.percentages[ctx.dataIndex]}%)`,
-          },
-        },
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f0f0f0' } },
-        x: { ticks: { font: { size: 13, weight: 'bold' } }, grid: { display: false } },
-      },
-    },
-  });
-
-  document.getElementById('statsDetail').innerHTML = labels.map((label, i) => {
-    const color = colors[i];
-    const isCorrect = i === stats.correctAnswer;
-    return `<div class="bar-row">
-      <span class="bar-label" style="background:${color}">${label}</span>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${stats.percentages[i]}%;background:${color}"></div>
-        <span class="bar-text" style="color:${stats.percentages[i] > 40 ? '#fff' : '#333'}">${stats.percentages[i]}%</span>
-      </div>
-      <span class="bar-count">${stats.counts[i]}人</span>
-      ${isCorrect ? '<span style="font-size:12px;color:#27ae60;">✓</span>' : ''}
-    </div>`;
-  }).join('');
-}
-
-// ========== 批量导入 ==========
-function showImportModal() { document.getElementById('importModal').classList.add('show'); }
-function closeImportModal() { document.getElementById('importModal').classList.remove('show'); }
-
-async function doImport() {
-  const text = document.getElementById('importText').value.trim();
-  if (!text) { toast('请输入题目内容', true); return; }
-  const lines = text.split('\n').filter(l => l.trim());
-  const newQuestions = [];
-  for (const line of lines) {
-    const parts = line.split('|').map(s => s.trim());
-    if (parts.length < 6) continue;
-    newQuestions.push({
-      title: parts[0],
-      options: [parts[1], parts[2], parts[3], parts[4]],
-      correctAnswer: Math.min(3, Math.max(0, parseInt(parts[5]) || 0)),
-      timeLimit: 0,
-    });
-  }
-  if (newQuestions.length === 0) { toast('未能解析到有效题目，请检查格式', true); return; }
-  questions = questions.concat(newQuestions);
-  if (roomId) await apiPost('load-questions', { roomId, questions });
-  closeImportModal();
-  document.getElementById('importText').value = '';
-  toast(`成功导入 ${newQuestions.length} 道题目`);
-}
-
-function loadTemplate(type) {
-  const templates = {
-    math: [
-      '1 + 1 = ?|1|2|3|4|1',
-      '5 × 6 = ?|25|30|35|40|1',
-      '100 ÷ 4 = ?|20|25|30|35|1',
-      '3² = ?|6|8|9|12|2',
-      '最小的质数是？|0|1|2|3|2',
-    ],
-    general: [
-      '中国的首都是？|北京|上海|广州|深圳|0',
-      '地球绕太阳一周约需？|30天|365天|100天|7天|1',
-      '水的化学式是？|CO₂|H₂O|NaCl|O₂|1',
-      '光年是什么的单位？|时间|距离|速度|质量|1',
-      '世界上最长的河流是？|长江|尼罗河|亚马逊河|密西西比河|1',
-    ],
-    english: [
-      'The past tense of "go" is?|goed|went|gone|going|1',
-      'Which word means "快乐"?|sad|angry|happy|tired|2',
-      '"Apple" is a kind of?|animal|fruit|color|country|1',
-      'Choose the correct sentence:|He go to school|He goes to school|He going to school|He gone to school|1',
-      'The opposite of "big" is?|large|huge|small|tall|2',
-    ],
-  };
-  document.getElementById('importText').value = (templates[type] || []).join('\n');
-}
-
-// ========== 二维码 ==========
-function showQR() {
-  const studentUrl = `${location.protocol}//${location.host}/student.html`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
-  const w = window.open('', 'qrcode', 'width=320,height=380');
-  w.document.write(`
-    <html><head><title>学生端二维码</title>
-    <style>body{font-family:sans-serif;text-align:center;padding:20px;background:#fff;}</style></head>
-    <body>
-      <h3 style="color:#1a73e8;">扫码进入答题</h3>
-      <p style="font-size:14px;color:#666;">或输入房间号：<b style="font-size:24px;color:#1a73e8;letter-spacing:3px;">${roomId}</b></p>
-      <img src="${qrUrl}" style="width:200px;height:200px;margin:10px auto;display:block;">
-    </body></html>
-  `);
-}
-
-// ========== 工具函数 ==========
-function toast(msg, isError) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.background = isError ? '#e74c3c' : '#333';
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-function escHtml(s) {
-  const div = document.createElement('div');
-  div.textContent = s || '';
-  return div.innerHTML;
-}
-
-function updateStateTag() {
-  const tag = document.getElementById('stateTag');
-  tag.textContent = roomState === 'answering' ? '答题中' : roomState === 'showing' ? '已结束' : '等待中';
-  tag.className = 'state-tag ' + roomState;
-}
-
-// ========== 初始化 ==========
-startPolling();
+// 初始化
+loadQuestions();
+loadExamPick&&loadExamPick();
 </script>
 </body>
 </html>

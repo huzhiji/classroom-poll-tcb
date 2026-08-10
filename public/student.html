@@ -2,541 +2,264 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>课堂答题 - 学生端</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在线答题系统 · 学生端</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-/* 卡片容器 */
-.card {
-  background: #fff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  padding: 28px 24px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  transition: all 0.3s;
-}
-
-/* 头部 */
-.header { text-align: center; margin-bottom: 24px; }
-.header .icon { font-size: 42px; margin-bottom: 8px; }
-.header h1 { font-size: 20px; color: #333; font-weight: 700; }
-.header .sub { font-size: 13px; color: #999; margin-top: 4px; }
-
-/* 加入房间 */
-.join-section { }
-.input-group { margin-bottom: 14px; }
-.input-group label { display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 6px; }
-.input-group input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 16px;
-  text-align: center;
-  font-weight: 600;
-  letter-spacing: 2px;
-  transition: .2s;
-  font-family: inherit;
-}
-.input-group input:focus { outline: none; border-color: #667eea; }
-.input-group input.name-input { text-align: left; letter-spacing: normal; font-weight: 400; }
-
-.btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: .2s;
-  font-family: inherit;
-}
-.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-/* 等待状态 */
-.waiting-section { text-align: center; display: none; }
-.waiting-section .pulse {
-  width: 60px; height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  margin: 0 auto 16px;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(102,126,234,0.5); }
-  70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(102,126,234,0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(102,126,234,0); }
-}
-.waiting-section .wait-title { font-size: 18px; font-weight: 600; color: #333; }
-.waiting-section .wait-sub { font-size: 14px; color: #999; margin-top: 6px; }
-.waiting-section .room-badge {
-  display: inline-block;
-  margin-top: 12px;
-  padding: 6px 16px;
-  background: #f0f0f0;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #666;
-  font-weight: 600;
-}
-
-/* 答题状态 */
-.answer-section { display: none; }
-.answer-section .q-counter { font-size: 12px; color: #999; margin-bottom: 8px; text-align: center; }
-.answer-section .q-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #333;
-  text-align: center;
-  margin-bottom: 20px;
-  line-height: 1.5;
-  padding: 14px;
-  background: #f8f9ff;
-  border-radius: 10px;
-}
-
-.option-btn {
-  display: block;
-  width: 100%;
-  padding: 14px 18px;
-  margin-bottom: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  background: #fff;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  font-family: inherit;
-  position: relative;
-}
-.option-btn:hover { border-color: #667eea; background: #f8f9ff; }
-.option-btn:active { transform: scale(0.98); }
-.option-btn.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea15, #764ba215);
-  box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
-}
-.option-btn .opt-letter {
-  display: inline-block;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 28px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  margin-right: 10px;
-}
-.opt-a { background: #e74c3c; }
-.opt-b { background: #3498db; }
-.opt-c { background: #f39c12; }
-.opt-d { background: #27ae60; }
-
-.option-btn .check-mark {
-  display: none;
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #667eea;
-  font-size: 18px;
-  font-weight: 700;
-}
-.option-btn.selected .check-mark { display: inline; }
-
-.submit-btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: .2s;
-  font-family: inherit;
-}
-.submit-btn.enabled { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
-.submit-btn.enabled:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(39,174,96,0.4); }
-.submit-btn.disabled { background: #e0e0e0; color: #aaa; cursor: not-allowed; }
-.submit-btn.submitted { background: #3498db; color: #fff; }
-
-/* 结果展示 */
-.result-section { display: none; text-align: center; }
-.result-section .result-icon { font-size: 56px; margin-bottom: 10px; }
-.result-section .result-text { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-.result-section .result-detail { font-size: 14px; color: #888; }
-.result-bar {
-  margin: 16px 0;
-  padding: 10px;
-  background: #f8f9ff;
-  border-radius: 10px;
-  text-align: left;
-}
-.result-bar .bar-row { display: flex; align-items: center; margin: 6px 0; gap: 8px; font-size: 13px; }
-.result-bar .bar-label { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
-.result-bar .bar-track { flex: 1; height: 16px; background: #eee; border-radius: 8px; overflow: hidden; }
-.result-bar .bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s; }
-.result-bar .bar-pct { font-size: 11px; color: #666; width: 36px; text-align: right; flex-shrink: 0; }
-
-.wait-next { margin-top: 14px; font-size: 13px; color: #999; animation: pulseText 2s infinite; }
-@keyframes pulseText { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-
-/* 错误提示 */
-.error-msg { color: #e74c3c; font-size: 13px; text-align: center; margin-top: 8px; display: none; }
-
-/* 已断开 */
-.disconnected { text-align: center; padding: 20px; display: none; }
-.disconnected .icon { font-size: 40px; margin-bottom: 10px; }
-.disconnected .msg { font-size: 15px; color: #888; }
-.disconnected .btn { margin-top: 16px; }
-
-/* 响应式 */
-@media (max-width: 380px) {
-  .card { padding: 20px 16px; }
-  .option-btn { padding: 12px 14px; font-size: 14px; }
-  .header .icon { font-size: 32px; }
-  .header h1 { font-size: 18px; }
-}
+  :root{--primary:#4f46e5;--primary-d:#4338ca;--bg:#f5f7fb;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ok:#16a34a;--err:#dc2626;--shadow:0 4px 16px rgba(15,23,42,.06);--radius:14px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  header{background:linear-gradient(135deg,#0ea5e9,#4f46e5);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:var(--shadow)}
+  header h1{font-size:19px;font-weight:700}
+  .who{font-size:13px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:999px}
+  .who b{font-weight:700}
+  .who button{background:rgba(255,255,255,.25);border:none;color:#fff;padding:3px 9px;border-radius:6px;cursor:pointer;font-size:12px}
+  .nav{display:flex;gap:6px;flex-wrap:wrap;max-width:1080px;margin:16px auto 0;padding:0 16px}
+  .nav button{background:#fff;color:var(--primary);border:1px solid var(--border);padding:9px 16px;border-radius:999px;cursor:pointer;font-size:14px;font-weight:600}
+  .nav button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  main{max-width:1080px;margin:16px auto;padding:0 16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+  .card h2{font-size:17px;margin-bottom:12px}
+  .hidden{display:none!important}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;background:#fff}
+  input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  button.btn{background:var(--primary);color:#fff;border:none;padding:12px 20px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;transition:.18s}
+  button.btn:hover{background:var(--primary-d)}
+  button.btn.ghost{background:#eef2ff;color:var(--primary)}
+  button.btn.sm{padding:7px 14px;font-size:13px}
+  button.btn.danger{background:var(--err)}
+  .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;z-index:99;opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1}.toast.err{background:var(--err)}.toast.ok{background:var(--ok)}
+  .exam-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+  .exam-card .info b{font-size:15px}.exam-card .info .meta{font-size:13px;color:var(--muted)}
+  .q{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  .q .qt{font-size:16px;font-weight:600;margin-bottom:10px}
+  .opt{display:block;padding:12px 14px;border:2px solid var(--border);border-radius:10px;margin:8px 0;cursor:pointer;font-size:15px;transition:.15s;background:#fff}
+  .opt:hover{border-color:var(--primary)}
+  .opt.sel{border-color:var(--primary);background:#eef2ff}
+  .opt.correct{border-color:var(--ok);background:#dcfce7}
+  .opt.wrong{border-color:var(--err);background:#fee2e2}
+  .opt .mk{float:right;font-weight:700}
+  .result-head{text-align:center;padding:18px;background:linear-gradient(135deg,#eef2ff,#f5f3ff);border-radius:12px;margin-bottom:16px}
+  .result-head .score{font-size:40px;font-weight:800;color:var(--primary)}
+  .ana{font-size:13px;color:var(--muted);margin-top:8px;padding:8px 10px;background:#fff;border-radius:8px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+  .stat-box{background:#f8fafc;border-radius:12px;padding:16px;text-align:center}
+  .stat-box .num{font-size:26px;font-weight:700;color:var(--primary)}
+  .stat-box .lbl{font-size:13px;color:var(--muted);margin-top:4px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .badge.choice{background:#e0e7ff;color:var(--primary)}.badge.judge{background:#dcfce7;color:var(--ok)}
+  .live{position:fixed;bottom:18px;right:18px;background:#1e293b;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow)}
+  .pill{display:inline-flex;gap:6px;background:#f1f5f9;padding:5px 12px;border-radius:999px;font-size:13px;margin:4px}
+  .center{text-align:center}
+  .muted{color:var(--muted);font-size:14px}
+  @media(max-width:640px){.opt{padding:14px}}
 </style>
 </head>
 <body>
+<header>
+  <h1>📝 在线答题系统</h1>
+  <div class="who" id="who">身份：<b id="who-name">未设置</b> <button onclick="editName()">修改</button></div>
+</header>
 
-<div class="card" id="card">
-  <!-- === 加入房间 === -->
-  <div class="join-section" id="joinSection">
-    <div class="header">
-      <div class="icon">🎓</div>
-      <h1>课堂答题</h1>
-      <div class="sub">输入房间号加入互动</div>
-    </div>
-    <div class="input-group">
-      <label>房间号</label>
-      <input type="text" id="roomCodeInput" placeholder="输入4位房间号" maxlength="4" autocomplete="off">
-    </div>
-    <div class="input-group">
-      <label>你的名字</label>
-      <input type="text" id="nameInput" class="name-input" placeholder="输入你的名字" maxlength="20" autocomplete="off">
-    </div>
-    <div class="error-msg" id="joinError"></div>
-    <button class="btn btn-primary" id="btnJoin" onclick="joinRoom()">加入房间</button>
-    <div style="text-align:center;margin-top:10px;font-size:11px;color:#bbb;">
-      教师创建房间后，输入房间号即可加入
-    </div>
-  </div>
-
-  <!-- === 等待题目 === -->
-  <div class="waiting-section" id="waitingSection">
-    <div class="pulse"></div>
-    <div class="wait-title">已加入房间</div>
-    <div class="wait-sub">等待教师发布题目...</div>
-    <div class="room-badge" id="waitingRoomBadge"></div>
-  </div>
-
-  <!-- === 答题 === -->
-  <div class="answer-section" id="answerSection">
-    <div class="q-counter" id="qCounter"></div>
-    <div class="q-title" id="qTitleDisplay"></div>
-    <div id="optionsContainer"></div>
-    <button class="submit-btn disabled" id="btnSubmit" onclick="submitAnswer()">请选择答案</button>
-    <div class="error-msg" id="answerError"></div>
-  </div>
-
-  <!-- === 结果 === -->
-  <div class="result-section" id="resultSection">
-    <div class="result-icon" id="resultIcon"></div>
-    <div class="result-text" id="resultText"></div>
-    <div class="result-detail" id="resultDetail"></div>
-    <div class="result-bar" id="resultBars"></div>
-    <div class="wait-next">等待下一题...</div>
-  </div>
-
-  <!-- === 已断开 === -->
-  <div class="disconnected" id="disconnectedSection">
-    <div class="icon">🔌</div>
-    <div class="msg">连接已断开</div>
-    <button class="btn btn-primary" onclick="location.reload()">重新连接</button>
-  </div>
+<div class="nav">
+  <button data-tab="exam" class="active">考试答题</button>
+  <button data-tab="classroom">课堂练习</button>
+  <button data-tab="wrong">错题练习</button>
+  <button data-tab="mine">我的记录</button>
 </div>
 
+<main>
+  <!-- 考试 -->
+  <section id="tab-exam">
+    <div class="card" id="exam-list-card"><h2>可参加的考试 / 专题</h2><div id="exam-list"></div></div>
+    <div class="card hidden" id="exam-do-card"><div id="exam-do"></div></div>
+  </section>
+
+  <!-- 课堂 -->
+  <section id="tab-classroom" class="hidden">
+    <div class="card" id="cr-join"><h2>加入课堂</h2>
+      <label>课堂房间号</label><input id="cr-room" placeholder="教师提供的 4 位房间号">
+      <div style="margin-top:12px"><button class="btn" onclick="joinRoom()">加入课堂</button></div>
+      <div id="cr-msg" class="muted" style="margin-top:10px"></div>
+    </div>
+    <div class="card hidden" id="cr-live"><h2>课堂答题 <span class="tag" id="cr-live-id"></span></h2>
+      <div id="cr-live-body" class="muted">等待教师发布题目…</div>
+      <div id="cr-live-stats" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- 错题练习 -->
+  <section id="tab-wrong" class="hidden">
+    <div class="card"><h2>错题练习</h2>
+      <p class="muted">从你的错题库随机抽取题目演练，答对即视为掌握并自动移除。</p>
+      <div style="margin-top:12px"><button class="btn" onclick="startPractice()">开始练习（全部错题）</button> <button class="btn ghost" onclick="startPractice(10)">抽取 10 题</button></div>
+    </div>
+    <div class="card hidden" id="wrong-do"><div id="wrong-do-body"></div></div>
+  </section>
+
+  <!-- 我的记录 -->
+  <section id="tab-mine" class="hidden">
+    <div class="card"><h2>我的答题记录</h2><div id="mine-body"></div></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="live hidden" id="live-dot">● 实时连接中</div>
+
 <script>
-// ========== 状态 ==========
-let studentId = null;
-let roomId = null;
-let selectedAnswer = null;
-let submitted = false;
-let currentQuestionIndex = -1;
-let pollTimer = null;
-let lastSeq = 0;
-let lastPollState = null;
+const $=(s)=>document.querySelector(s);
+function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2200);}
+async function api(u,o){const r=await fetch(u,Object.assign({headers:{'Content-Type':'application/json'}},o));const d=await r.json();if(d&&d._error)throw new Error(d.message);return d;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-// ========== API 通信 ==========
-const API = '/api';
+// ---- 身份 ----
+let studentKey=localStorage.getItem('quiz_student_key')||'';
+function showWho(){if(studentKey){$('#who-name').textContent=studentKey;$('#who').style.display='flex';}else{$('#who-name').textContent='未设置';}}
+function editName(){const n=prompt('输入你的姓名或学号：',studentKey);if(n&&n.trim()){studentKey=n.trim();localStorage.setItem('quiz_student_key',studentKey);showWho();toast('身份已设置','ok');if(!$('#tab-exam').classList.contains('hidden'))loadExamList();}}
+showWho();
 
-async function apiPost(endpoint, data) {
-  try {
-    const res = await fetch(`${API}/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+// ---- Tab ----
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
+  $('#tab-'+b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='exam')loadExamList();
+  if(b.dataset.tab==='mine')loadMine();
+});
+
+// ---- 考试列表 ----
+async function loadExamList(){
+  if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点击右上角「修改」设置你的姓名/学号。</p>';return;}
+  try{const exams=await api('/api/exams');const box=$('#exam-list');
+    if(!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
+    box.innerHTML=exams.map(e=>`<div class="exam-card"><div class="info"><b>${esc(e.title)}</b><div class="meta">${(e.questionIds||[]).length} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button></div>`).join('');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ---- 考试答题 ----
+let examData=null,examAnswers={};
+async function enterExam(id){
+  try{examData=await api('/api/exams/'+id);examAnswers={};
+    let h=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${esc(examData.title)}</h2><span class="muted">${examData.questions.length} 题</span></div><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
+    examData.questions.forEach((q,i)=>{
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)}</div>`;
+      q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickOpt('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});
+      h+=`</div>`;
     });
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+    h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitExam('${id}')">交卷看成绩</button></div>`;
+    $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
+    window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
 }
-
-async function apiGet(endpoint, params = {}) {
-  try {
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`${API}/${endpoint}?${qs}`);
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+function pickOpt(qid,j,el){examAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+async function submitExam(id){
+  const unanswered=examData.questions.filter(q=>examAnswers[q.id]===undefined).length;
+  if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
+  try{const r=await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers})});
+    let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded.length?` · 新增 ${r.wrongAdded.length} 道错题`:''}</div></div>`;
+    r.details.forEach((d,i)=>{
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 错误</span>'}</div>`;
+      d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});
+      if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
+      h+=`</div>`;
+    });
+    h+=`<div class="center"><button class="btn ghost" onclick="backToExams()">返回考试列表</button></div>`;
+    $('#exam-do').innerHTML=h;window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
 }
+function backToExams(){$('#exam-list-card').classList.remove('hidden');$('#exam-do-card').classList.add('hidden');loadExamList();loadMine();}
 
-// ========== 轮询 ==========
-function startPolling() {
-  pollTimer = setInterval(doPoll, 1500);
+// ---- 课堂 ----
+let crRoomId=null,crStudentId=null,crPollTimer=null,crAnswered={};
+async function joinRoom(){
+  const id=$('#cr-room').value.trim().toUpperCase();if(!id){toast('请输入房间号','err');return;}
+  try{const d=await api('/api/join-room',{method:'POST',body:JSON.stringify({roomId:id,name:studentKey||'同学'})});
+    crRoomId=id;crStudentId=d.studentId;$('#cr-join').classList.add('hidden');$('#cr-live').classList.remove('hidden');$('#cr-live-id').textContent=id;$('#live-dot').classList.remove('hidden');pollLoop();
+  }catch(e){$('#cr-msg').textContent='加入失败：'+e.message;$('#cr-msg').className='err';}
 }
-
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+async function pollLoop(){
+  if(crPollTimer)clearInterval(crPollTimer);
+  crPollTimer=setInterval(async()=>{
+    try{const d=await api('/api/poll?roomId='+crRoomId+'&studentId='+crStudentId+'&for=student');
+      if(d.type==='room-closed'){$('#cr-live-body').innerHTML='<p class="muted">课堂已结束。</p>';clearInterval(crPollTimer);$('#live-dot').classList.add('hidden');return;}
+      renderLive(d);
+    }catch(e){}
+  },1500);
 }
-
-async function doPoll() {
-  if (!roomId || !studentId) return;
-  const data = await apiGet('poll', { roomId, studentId, for: 'student', seq: lastSeq });
-  if (!data) return;
-
-  if (data.type === 'room-closed') {
-    stopPolling();
-    showSection('disconnected');
-    document.getElementById('disconnectedSection').querySelector('.msg').textContent = '教师已关闭房间';
-    return;
-  }
-
-  lastSeq = data.seq || 0;
-  const prev = lastPollState;
-  lastPollState = data;
-
-  // 首次或状态变化时处理
-  if (!prev || prev.state !== data.state || prev.currentQuestion !== data.currentQuestion) {
-    if (data.state === 'answering' && data.question && !submitted) {
-      // 新题目
-      currentQuestionIndex = data.question.index;
-      selectedAnswer = null;
-      submitted = false;
-      document.getElementById('qCounter').textContent = `第 ${data.question.index + 1} 题`;
-      document.getElementById('qTitleDisplay').textContent = data.question.title;
-      renderOptions(data.question.options);
-      updateSubmitBtn();
-      document.getElementById('answerError').style.display = 'none';
-      showSection('answer');
-    } else if (data.state === 'showing' && prev && prev.state === 'answering') {
-      // 题目结束
-      const endedMsg = {
-        type: 'question-ended',
-        questionIndex: data.currentQuestion,
-        correctAnswer: data.question ? data.question.correctAnswer : -1,
-        revealAnswer: data.question ? (data.question.correctAnswer !== undefined && data.question.correctAnswer >= 0) : false,
-        stats: data.stats,
-      };
-      showResult(endedMsg);
-    } else if (data.state === 'waiting') {
-      document.getElementById('waitingRoomBadge').textContent = '房间号: ' + roomId;
-      showSection('waiting');
-    }
-  }
-}
-
-// ========== 加入房间 ==========
-async function joinRoom() {
-  const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-  const name = document.getElementById('nameInput').value.trim();
-
-  document.getElementById('joinError').style.display = 'none';
-
-  if (code.length !== 4) {
-    showError('joinError', '请输入4位房间号');
-    return;
-  }
-  if (!name) {
-    showError('joinError', '请输入你的名字');
-    return;
-  }
-
-  document.getElementById('btnJoin').disabled = true;
-  document.getElementById('btnJoin').textContent = '正在加入...';
-
-  roomId = code;
-  const res = await apiPost('join-room', { roomId: code, name });
-
-  if (!res) {
-    document.getElementById('btnJoin').disabled = false;
-    document.getElementById('btnJoin').textContent = '加入房间';
-    showError('joinError', '网络错误，请重试');
-    return;
-  }
-
-  if (res.type === 'joined') {
-    studentId = res.studentId;
-    document.getElementById('waitingRoomBadge').textContent = '房间号: ' + roomId;
-    lastSeq = res.seq || 0;
-    lastPollState = null;
-    showSection('waiting');
-    startPolling();
-  } else if (res.type === 'error') {
-    document.getElementById('btnJoin').disabled = false;
-    document.getElementById('btnJoin').textContent = '加入房间';
-    showError('joinError', res.message);
-  }
-}
-
-// ========== 渲染选项 ==========
-function renderOptions(options) {
-  const letters = ['A', 'B', 'C', 'D'];
-  const colors = ['opt-a', 'opt-b', 'opt-c', 'opt-d'];
-  const container = document.getElementById('optionsContainer');
-  container.innerHTML = options.map((opt, i) => `
-    <button class="option-btn" data-index="${i}" onclick="selectOption(${i})">
-      <span class="opt-letter ${colors[i]}">${letters[i]}</span>
-      ${escHtml(opt)}
-      <span class="check-mark">✓</span>
-    </button>
-  `).join('');
-}
-
-function selectOption(index) {
-  if (submitted) return;
-  selectedAnswer = index;
-  document.querySelectorAll('.option-btn').forEach(btn => {
-    btn.classList.toggle('selected', parseInt(btn.dataset.index) === index);
+function renderLive(d){
+  $('#cr-live-body').innerHTML='';
+  if(d.state==='waiting'){$('#cr-live-body').innerHTML='<p class="muted">等待教师发布题目…</p>';return;}
+  if(!d.question){$('#cr-live-body').innerHTML='<p class="muted">等待教师发布题目…</p>';return;}
+  const q=d.question;
+  let h=`<div class="q"><div class="qt">${esc(q.title)}</div>`;
+  q.options.forEach((o,j)=>{
+    let cls='opt';let mk='';
+    if(d.state==='showing'&&d.question.correctAnswer===j){cls+=' correct';mk='<span class="mk">✓</span>';}
+    if(crAnswered[q.index]===j&&d.state==='showing'&&d.question.correctAnswer!==j){cls+=' wrong';mk='<span class="mk">✗</span>';}
+    h+=`<div class="${cls}" ${d.state==='answering'?`onclick="sendAnswer(${q.index},${j},this)"`:''}>${j}. ${esc(o)} ${mk}</div>`;
   });
-  updateSubmitBtn();
+  if(d.state==='answering')h+=`<div class="muted" style="margin-top:8px">点击选项作答，可修改。</div>`;
+  if(d.state==='showing')h+=`<div class="ana">${d.question.correctAnswer>=0?('正确答案：'+d.question.options[d.question.correctAnswer]):''}</div>`;
+  h+=`</div>`;
+  $('#cr-live-body').innerHTML=h;
+  // 统计
+  if(d.stats){let s=`<div class="pill">已答 ${d.stats.answered}/${d.stats.totalStudents}</div>`;d.stats.counts.forEach((c,i)=>{if(d.question.options[i]!==undefined)s+=`<div class="pill">${d.question.options[i]}: ${d.stats.percentages[i]}%</div>`;});$('#cr-live-stats').innerHTML=s;}
+}
+async function sendAnswer(idx,j,el){
+  if(crAnswered[idx]!==undefined){[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));}
+  crAnswered[idx]=j;el.classList.add('sel');
+  try{await api('/api/submit-answer',{method:'POST',body:JSON.stringify({roomId:crRoomId,studentId:crStudentId,answer:j})});}catch(e){toast(e.message,'err');}
 }
 
-function updateSubmitBtn() {
-  const btn = document.getElementById('btnSubmit');
-  if (submitted) {
-    btn.textContent = '已提交 ✓';
-    btn.className = 'submit-btn submitted';
-    btn.disabled = true;
-  } else if (selectedAnswer !== null) {
-    btn.textContent = '提交答案';
-    btn.className = 'submit-btn enabled';
-    btn.disabled = false;
-  } else {
-    btn.textContent = '请选择答案';
-    btn.className = 'submit-btn disabled';
-    btn.disabled = true;
-  }
+// ---- 错题练习 ----
+let wrongData=null,wrongAnswers={};
+async function startPractice(count){
+  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  try{const d=await api('/api/wrong-practice/start',{method:'POST',body:JSON.stringify({studentKey,count})});
+    if(!d.questions.length){toast('暂无错题，太棒了！','ok');return;}
+    wrongData=d.questions;wrongAnswers={};
+    let h=`<h2>错题练习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
+    d.questions.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span></div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickWrong('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitPractice()">提交练习</button></div>`;
+    $('#wrong-do-body').innerHTML=h;$('#wrong-do').classList.remove('hidden');window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+function pickWrong(qid,j,el){wrongAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+async function submitPractice(){
+  try{const r=await api('/api/wrong-practice/submit',{method:'POST',body:JSON.stringify({studentKey,answers:wrongAnswers})});
+    let h=`<div class="result-head"><div class="score">${Math.round(r.correct/r.total*100)}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题${r.removed.length?` · 已掌握移除 ${r.removed.length} 题`:''}</div></div>`;
+    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`;d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});h+=`</div>`;});
+    h+=`<div class="center"><button class="btn ghost" onclick="startPractice()">再练一次</button></div>`;
+    $('#wrong-do-body').innerHTML=h;window.scrollTo(0,0);loadMine();
+  }catch(e){toast(e.message,'err');}
 }
 
-async function submitAnswer() {
-  if (selectedAnswer === null || submitted) return;
-  submitted = true;
-  updateSubmitBtn();
-  await apiPost('submit-answer', { studentId, roomId, answer: selectedAnswer });
+// ---- 我的记录 ----
+async function loadMine(){
+  if(!studentKey){$('#mine-body').innerHTML='<p class="muted">请先设置姓名/学号。</p>';return;}
+  try{const stats=await api('/api/students/'+encodeURIComponent(studentKey)+'/stats');
+    const records=await api('/api/students/'+encodeURIComponent(studentKey)+'/records');
+    let h=`<div class="stat-grid">
+      <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
+      <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题</div></div>
+      <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">考试次数</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--err)">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div></div>`;
+    const topics=Object.keys(stats.byTopic);
+    if(topics.length){h+='<h2 style="font-size:15px;margin:16px 0 8px">按专题正确率</h2><div class="stat-grid">';topics.forEach(t=>{const b=stats.byTopic[t];h+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});h+='</div>';}
+    h+='<h2 style="font-size:15px;margin:16px 0 8px">历史记录</h2>';
+    if(!records.length)h+='<p class="muted">暂无记录。</p>';
+    records.forEach(r=>{h+=`<div class="exam-card"><div class="info"><b>${esc(r.refTitle)}</b><div class="meta">${new Date(r.date).toLocaleString()} · 得分 ${r.correct}/${r.total}</div></div></div>`;});
+    $('#mine-body').innerHTML=h;
+  }catch(e){toast(e.message,'err');}
 }
 
-function showSection(name) {
-  ['join', 'waiting', 'answer', 'result', 'disconnected'].forEach(s => {
-    document.getElementById(s + 'Section').style.display = 'none';
-  });
-  const el = document.getElementById(name + 'Section');
-  if (el) el.style.display = 'block';
-}
-
-// ========== 显示结果 ==========
-function showResult(msg) {
-  const revealAnswer = msg.revealAnswer !== false;
-  const labels = ['A', 'B', 'C', 'D'];
-  const colors = ['#e74c3c', '#3498db', '#f39c12', '#27ae60'];
-
-  if (revealAnswer) {
-    const isCorrect = selectedAnswer === msg.correctAnswer;
-    document.getElementById('resultIcon').textContent = isCorrect ? '✅' : '❌';
-    document.getElementById('resultText').textContent = isCorrect ? '回答正确！' : '回答错误';
-    document.getElementById('resultDetail').textContent =
-      `正确答案是 ${labels[msg.correctAnswer]}，你的答案：${selectedAnswer !== null ? labels[selectedAnswer] : '未作答'}`;
-    document.getElementById('resultText').style.color = isCorrect ? '#27ae60' : '#e74c3c';
-  } else {
-    document.getElementById('resultIcon').textContent = '📊';
-    document.getElementById('resultText').textContent = '答题结束';
-    document.getElementById('resultText').style.color = '#333';
-    document.getElementById('resultDetail').textContent =
-      `你的选择：${selectedAnswer !== null ? labels[selectedAnswer] : '未作答'} | 共 ${msg.stats.totalStudents} 人参与`;
-  }
-
-  document.getElementById('resultBars').innerHTML = msg.stats.counts.map((count, i) => {
-    const pct = msg.stats.percentages[i];
-    const isAns = i === selectedAnswer;
-    const isCor = revealAnswer && i === msg.correctAnswer;
-    return `<div class="bar-row">
-      <span class="bar-label" style="background:${colors[i]}">${labels[i]}</span>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${pct}%;background:${colors[i]}"></div>
-      </div>
-      <span class="bar-pct">${pct}%</span>
-      ${isCor ? '<span style="font-size:12px;color:#27ae60;">✓</span>' : ''}
-      ${isAns && !isCor ? '<span style="font-size:12px;color:#e74c3c;">你</span>' : ''}
-    </div>`;
-  }).join('');
-
-  showSection('result');
-}
-
-// ========== 工具 ==========
-function showError(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-function escHtml(s) {
-  const div = document.createElement('div');
-  div.textContent = s || '';
-  return div.innerHTML;
-}
-
-// ========== 键盘快捷键 ==========
-document.addEventListener('keydown', (e) => {
-  if (submitted) return;
-  const section = document.getElementById('answerSection');
-  if (section.style.display === 'none') return;
-  const map = { '1': 0, '2': 1, '3': 2, '4': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
-  const idx = map[e.key.toLowerCase()];
-  if (idx !== undefined) selectOption(idx);
-  if (e.key === 'Enter' && selectedAnswer !== null) submitAnswer();
-});
-
-// ========== 初始化 ==========
-// 自动聚焦
-document.getElementById('roomCodeInput').addEventListener('input', function() {
-  if (this.value.length === 4) document.getElementById('nameInput').focus();
-});
-
-document.getElementById('nameInput').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') joinRoom();
-});
+// ---- URL 深链 ----
+(function(){
+  const h=location.hash;
+  if(h.startsWith('#exam=')){const id=h.slice(6);if(studentKey){enterExam(id);document.querySelector('.nav button[data-tab=exam]').click();}else{toast('请先设置姓名/学号','err');}}
+  else if(h.startsWith('#room=')){$('#cr-room').value=h.slice(6).toUpperCase();document.querySelector('.nav button[data-tab=classroom]').click();}
+})();
 </script>
 </body>
 </html>
