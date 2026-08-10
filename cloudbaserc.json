@@ -1,0 +1,13 @@
+{
+  "$schema": "https://cloudbase.net/schema.json",
+  "envId": "your-env-id",
+  "functions": [
+    {
+      "name": "classroom-poll",
+      "runtime": "Nodejs16.13",
+      "serviceType": "web",
+      "installDependency": true,
+      "entry": "index.js"
+    }
+  ]
+}

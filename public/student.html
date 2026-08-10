@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>课堂答题 - 学生端</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* 卡片容器 */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  transition: all 0.3s;
+}
+
+/* 头部 */
+.header { text-align: center; margin-bottom: 24px; }
+.header .icon { font-size: 42px; margin-bottom: 8px; }
+.header h1 { font-size: 20px; color: #333; font-weight: 700; }
+.header .sub { font-size: 13px; color: #999; margin-top: 4px; }
+
+/* 加入房间 */
+.join-section { }
+.input-group { margin-bottom: 14px; }
+.input-group label { display: block; font-size: 13px; font-weight: 600; color: #666; margin-bottom: 6px; }
+.input-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 16px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 2px;
+  transition: .2s;
+  font-family: inherit;
+}
+.input-group input:focus { outline: none; border-color: #667eea; }
+.input-group input.name-input { text-align: left; letter-spacing: normal; font-weight: 400; }
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+  font-family: inherit;
+}
+.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* 等待状态 */
+.waiting-section { text-align: center; display: none; }
+.waiting-section .pulse {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  margin: 0 auto 16px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(102,126,234,0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(102,126,234,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(102,126,234,0); }
+}
+.waiting-section .wait-title { font-size: 18px; font-weight: 600; color: #333; }
+.waiting-section .wait-sub { font-size: 14px; color: #999; margin-top: 6px; }
+.waiting-section .room-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 16px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+/* 答题状态 */
+.answer-section { display: none; }
+.answer-section .q-counter { font-size: 12px; color: #999; margin-bottom: 8px; text-align: center; }
+.answer-section .q-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  padding: 14px;
+  background: #f8f9ff;
+  border-radius: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-family: inherit;
+  position: relative;
+}
+.option-btn:hover { border-color: #667eea; background: #f8f9ff; }
+.option-btn:active { transform: scale(0.98); }
+.option-btn.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
+}
+.option-btn .opt-letter {
+  display: inline-block;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 28px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 10px;
+}
+.opt-a { background: #e74c3c; }
+.opt-b { background: #3498db; }
+.opt-c { background: #f39c12; }
+.opt-d { background: #27ae60; }
+
+.option-btn .check-mark {
+  display: none;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #667eea;
+  font-size: 18px;
+  font-weight: 700;
+}
+.option-btn.selected .check-mark { display: inline; }
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: .2s;
+  font-family: inherit;
+}
+.submit-btn.enabled { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
+.submit-btn.enabled:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(39,174,96,0.4); }
+.submit-btn.disabled { background: #e0e0e0; color: #aaa; cursor: not-allowed; }
+.submit-btn.submitted { background: #3498db; color: #fff; }
+
+/* 结果展示 */
+.result-section { display: none; text-align: center; }
+.result-section .result-icon { font-size: 56px; margin-bottom: 10px; }
+.result-section .result-text { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.result-section .result-detail { font-size: 14px; color: #888; }
+.result-bar {
+  margin: 16px 0;
+  padding: 10px;
+  background: #f8f9ff;
+  border-radius: 10px;
+  text-align: left;
+}
+.result-bar .bar-row { display: flex; align-items: center; margin: 6px 0; gap: 8px; font-size: 13px; }
+.result-bar .bar-label { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.result-bar .bar-track { flex: 1; height: 16px; background: #eee; border-radius: 8px; overflow: hidden; }
+.result-bar .bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s; }
+.result-bar .bar-pct { font-size: 11px; color: #666; width: 36px; text-align: right; flex-shrink: 0; }
+
+.wait-next { margin-top: 14px; font-size: 13px; color: #999; animation: pulseText 2s infinite; }
+@keyframes pulseText { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* 错误提示 */
+.error-msg { color: #e74c3c; font-size: 13px; text-align: center; margin-top: 8px; display: none; }
+
+/* 已断开 */
+.disconnected { text-align: center; padding: 20px; display: none; }
+.disconnected .icon { font-size: 40px; margin-bottom: 10px; }
+.disconnected .msg { font-size: 15px; color: #888; }
+.disconnected .btn { margin-top: 16px; }
+
+/* 响应式 */
+@media (max-width: 380px) {
+  .card { padding: 20px 16px; }
+  .option-btn { padding: 12px 14px; font-size: 14px; }
+  .header .icon { font-size: 32px; }
+  .header h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <!-- === 加入房间 === -->
+  <div class="join-section" id="joinSection">
+    <div class="header">
+      <div class="icon">🎓</div>
+      <h1>课堂答题</h1>
+      <div class="sub">输入房间号加入互动</div>
+    </div>
+    <div class="input-group">
+      <label>房间号</label>
+      <input type="text" id="roomCodeInput" placeholder="输入4位房间号" maxlength="4" autocomplete="off">
+    </div>
+    <div class="input-group">
+      <label>你的名字</label>
+      <input type="text" id="nameInput" class="name-input" placeholder="输入你的名字" maxlength="20" autocomplete="off">
+    </div>
+    <div class="error-msg" id="joinError"></div>
+    <button class="btn btn-primary" id="btnJoin" onclick="joinRoom()">加入房间</button>
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:#bbb;">
+      教师创建房间后，输入房间号即可加入
+    </div>
+  </div>
+
+  <!-- === 等待题目 === -->
+  <div class="waiting-section" id="waitingSection">
+    <div class="pulse"></div>
+    <div class="wait-title">已加入房间</div>
+    <div class="wait-sub">等待教师发布题目...</div>
+    <div class="room-badge" id="waitingRoomBadge"></div>
+  </div>
+
+  <!-- === 答题 === -->
+  <div class="answer-section" id="answerSection">
+    <div class="q-counter" id="qCounter"></div>
+    <div class="q-title" id="qTitleDisplay"></div>
+    <div id="optionsContainer"></div>
+    <button class="submit-btn disabled" id="btnSubmit" onclick="submitAnswer()">请选择答案</button>
+    <div class="error-msg" id="answerError"></div>
+  </div>
+
+  <!-- === 结果 === -->
+  <div class="result-section" id="resultSection">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-text" id="resultText"></div>
+    <div class="result-detail" id="resultDetail"></div>
+    <div class="result-bar" id="resultBars"></div>
+    <div class="wait-next">等待下一题...</div>
+  </div>
+
+  <!-- === 已断开 === -->
+  <div class="disconnected" id="disconnectedSection">
+    <div class="icon">🔌</div>
+    <div class="msg">连接已断开</div>
+    <button class="btn btn-primary" onclick="location.reload()">重新连接</button>
+  </div>
+</div>
+
+<script>
+// ========== 状态 ==========
+let studentId = null;
+let roomId = null;
+let selectedAnswer = null;
+let submitted = false;
+let currentQuestionIndex = -1;
+let pollTimer = null;
+let lastSeq = 0;
+let lastPollState = null;
+
+// ========== API 通信 ==========
+const API = '/api';
+
+async function apiPost(endpoint, data) {
+  try {
+    const res = await fetch(`${API}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function apiGet(endpoint, params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${API}/${endpoint}?${qs}`);
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// ========== 轮询 ==========
+function startPolling() {
+  pollTimer = setInterval(doPoll, 1500);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function doPoll() {
+  if (!roomId || !studentId) return;
+  const data = await apiGet('poll', { roomId, studentId, for: 'student', seq: lastSeq });
+  if (!data) return;
+
+  if (data.type === 'room-closed') {
+    stopPolling();
+    showSection('disconnected');
+    document.getElementById('disconnectedSection').querySelector('.msg').textContent = '教师已关闭房间';
+    return;
+  }
+
+  lastSeq = data.seq || 0;
+  const prev = lastPollState;
+  lastPollState = data;
+
+  // 首次或状态变化时处理
+  if (!prev || prev.state !== data.state || prev.currentQuestion !== data.currentQuestion) {
+    if (data.state === 'answering' && data.question && !submitted) {
+      // 新题目
+      currentQuestionIndex = data.question.index;
+      selectedAnswer = null;
+      submitted = false;
+      document.getElementById('qCounter').textContent = `第 ${data.question.index + 1} 题`;
+      document.getElementById('qTitleDisplay').textContent = data.question.title;
+      renderOptions(data.question.options);
+      updateSubmitBtn();
+      document.getElementById('answerError').style.display = 'none';
+      showSection('answer');
+    } else if (data.state === 'showing' && prev && prev.state === 'answering') {
+      // 题目结束
+      const endedMsg = {
+        type: 'question-ended',
+        questionIndex: data.currentQuestion,
+        correctAnswer: data.question ? data.question.correctAnswer : -1,
+        revealAnswer: data.question ? (data.question.correctAnswer !== undefined && data.question.correctAnswer >= 0) : false,
+        stats: data.stats,
+      };
+      showResult(endedMsg);
+    } else if (data.state === 'waiting') {
+      document.getElementById('waitingRoomBadge').textContent = '房间号: ' + roomId;
+      showSection('waiting');
+    }
+  }
+}
+
+// ========== 加入房间 ==========
+async function joinRoom() {
+  const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  const name = document.getElementById('nameInput').value.trim();
+
+  document.getElementById('joinError').style.display = 'none';
+
+  if (code.length !== 4) {
+    showError('joinError', '请输入4位房间号');
+    return;
+  }
+  if (!name) {
+    showError('joinError', '请输入你的名字');
+    return;
+  }
+
+  document.getElementById('btnJoin').disabled = true;
+  document.getElementById('btnJoin').textContent = '正在加入...';
+
+  roomId = code;
+  const res = await apiPost('join-room', { roomId: code, name });
+
+  if (!res) {
+    document.getElementById('btnJoin').disabled = false;
+    document.getElementById('btnJoin').textContent = '加入房间';
+    showError('joinError', '网络错误，请重试');
+    return;
+  }
+
+  if (res.type === 'joined') {
+    studentId = res.studentId;
+    document.getElementById('waitingRoomBadge').textContent = '房间号: ' + roomId;
+    lastSeq = res.seq || 0;
+    lastPollState = null;
+    showSection('waiting');
+    startPolling();
+  } else if (res.type === 'error') {
+    document.getElementById('btnJoin').disabled = false;
+    document.getElementById('btnJoin').textContent = '加入房间';
+    showError('joinError', res.message);
+  }
+}
+
+// ========== 渲染选项 ==========
+function renderOptions(options) {
+  const letters = ['A', 'B', 'C', 'D'];
+  const colors = ['opt-a', 'opt-b', 'opt-c', 'opt-d'];
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = options.map((opt, i) => `
+    <button class="option-btn" data-index="${i}" onclick="selectOption(${i})">
+      <span class="opt-letter ${colors[i]}">${letters[i]}</span>
+      ${escHtml(opt)}
+      <span class="check-mark">✓</span>
+    </button>
+  `).join('');
+}
+
+function selectOption(index) {
+  if (submitted) return;
+  selectedAnswer = index;
+  document.querySelectorAll('.option-btn').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.index) === index);
+  });
+  updateSubmitBtn();
+}
+
+function updateSubmitBtn() {
+  const btn = document.getElementById('btnSubmit');
+  if (submitted) {
+    btn.textContent = '已提交 ✓';
+    btn.className = 'submit-btn submitted';
+    btn.disabled = true;
+  } else if (selectedAnswer !== null) {
+    btn.textContent = '提交答案';
+    btn.className = 'submit-btn enabled';
+    btn.disabled = false;
+  } else {
+    btn.textContent = '请选择答案';
+    btn.className = 'submit-btn disabled';
+    btn.disabled = true;
+  }
+}
+
+async function submitAnswer() {
+  if (selectedAnswer === null || submitted) return;
+  submitted = true;
+  updateSubmitBtn();
+  await apiPost('submit-answer', { studentId, roomId, answer: selectedAnswer });
+}
+
+function showSection(name) {
+  ['join', 'waiting', 'answer', 'result', 'disconnected'].forEach(s => {
+    document.getElementById(s + 'Section').style.display = 'none';
+  });
+  const el = document.getElementById(name + 'Section');
+  if (el) el.style.display = 'block';
+}
+
+// ========== 显示结果 ==========
+function showResult(msg) {
+  const revealAnswer = msg.revealAnswer !== false;
+  const labels = ['A', 'B', 'C', 'D'];
+  const colors = ['#e74c3c', '#3498db', '#f39c12', '#27ae60'];
+
+  if (revealAnswer) {
+    const isCorrect = selectedAnswer === msg.correctAnswer;
+    document.getElementById('resultIcon').textContent = isCorrect ? '✅' : '❌';
+    document.getElementById('resultText').textContent = isCorrect ? '回答正确！' : '回答错误';
+    document.getElementById('resultDetail').textContent =
+      `正确答案是 ${labels[msg.correctAnswer]}，你的答案：${selectedAnswer !== null ? labels[selectedAnswer] : '未作答'}`;
+    document.getElementById('resultText').style.color = isCorrect ? '#27ae60' : '#e74c3c';
+  } else {
+    document.getElementById('resultIcon').textContent = '📊';
+    document.getElementById('resultText').textContent = '答题结束';
+    document.getElementById('resultText').style.color = '#333';
+    document.getElementById('resultDetail').textContent =
+      `你的选择：${selectedAnswer !== null ? labels[selectedAnswer] : '未作答'} | 共 ${msg.stats.totalStudents} 人参与`;
+  }
+
+  document.getElementById('resultBars').innerHTML = msg.stats.counts.map((count, i) => {
+    const pct = msg.stats.percentages[i];
+    const isAns = i === selectedAnswer;
+    const isCor = revealAnswer && i === msg.correctAnswer;
+    return `<div class="bar-row">
+      <span class="bar-label" style="background:${colors[i]}">${labels[i]}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%;background:${colors[i]}"></div>
+      </div>
+      <span class="bar-pct">${pct}%</span>
+      ${isCor ? '<span style="font-size:12px;color:#27ae60;">✓</span>' : ''}
+      ${isAns && !isCor ? '<span style="font-size:12px;color:#e74c3c;">你</span>' : ''}
+    </div>`;
+  }).join('');
+
+  showSection('result');
+}
+
+// ========== 工具 ==========
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s || '';
+  return div.innerHTML;
+}
+
+// ========== 键盘快捷键 ==========
+document.addEventListener('keydown', (e) => {
+  if (submitted) return;
+  const section = document.getElementById('answerSection');
+  if (section.style.display === 'none') return;
+  const map = { '1': 0, '2': 1, '3': 2, '4': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+  const idx = map[e.key.toLowerCase()];
+  if (idx !== undefined) selectOption(idx);
+  if (e.key === 'Enter' && selectedAnswer !== null) submitAnswer();
+});
+
+// ========== 初始化 ==========
+// 自动聚焦
+document.getElementById('roomCodeInput').addEventListener('input', function() {
+  if (this.value.length === 4) document.getElementById('nameInput').focus();
+});
+
+document.getElementById('nameInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') joinRoom();
+});
+</script>
+</body>
+</html>

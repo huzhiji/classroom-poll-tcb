@@ -1,0 +1,14 @@
+{
+  "name": "classroom-poll-cloudbase",
+  "version": "1.0.0",
+  "description": "课堂实时答题系统 - 腾讯云 CloudBase 版",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.7.0",
+    "express": "^4.19.2"
+  }
+}
