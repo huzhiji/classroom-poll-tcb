@@ -280,7 +280,8 @@ app.get('/healthz', (req, res) => {
 });
 
 // ========== 启动 ==========
-const port = process.env.PORT || 3000;
+// 云托管固定探活容器 80 端口；若平台注入 PORT 则用之，否则默认 80。
+const port = parseInt(process.env.PORT, 10) || 80;
 app.listen(port, () => {
   console.log(`课堂答题系统 running on port ${port}`);
 });
