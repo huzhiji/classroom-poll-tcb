@@ -317,6 +317,47 @@ app.post('/api/backup/restore', (req, res) => {
   } catch (e) { res.status(500).json(fail('恢复失败: ' + e.message)); }
 });
 
+// ================= 间隔记忆（SRS） =================
+// 开启记忆模式：把指定题目加入该学生的记忆计划
+app.post('/api/memory/enable', (req, res) => {
+  try {
+    const { studentKey, qids } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    if (!Array.isArray(qids) || !qids.length) return res.status(400).json(fail('请选择要加入的题目'));
+    const added = store.enableMemory(studentKey, qids);
+    res.json({ added, stats: store.getMemoryStats(studentKey) });
+  } catch (e) { res.status(500).json(fail('开启失败: ' + e.message)); }
+});
+
+// 今日到期题目 + 统计（不含答案）
+app.get('/api/memory/due', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const now = req.query.now ? Number(req.query.now) : Date.now();
+    res.json({ questions: store.getMemoryDue(key, now), stats: store.getMemoryStats(key) });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.get('/api/memory/stats', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json(store.getMemoryStats(key));
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+// 提交记忆复习（逐题更新间隔）
+app.post('/api/memory/review', (req, res) => {
+  try {
+    const { studentKey, answers } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const r = store.reviewMemory(studentKey, answers);
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
+});
+
 // ========== 启动 ==========
 const port = parseInt(process.env.PORT, 10) || 80;
 app.listen(port, () => console.log(`在线答题系统 running on port ${port}`));

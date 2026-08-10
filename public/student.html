@@ -66,6 +66,7 @@
   <button data-tab="exam" class="active">考试答题</button>
   <button data-tab="classroom">课堂练习</button>
   <button data-tab="wrong">错题练习</button>
+  <button data-tab="memory">记忆模式</button>
   <button data-tab="mine">我的记录</button>
 </div>
 
@@ -98,6 +99,27 @@
     <div class="card hidden" id="wrong-do"><div id="wrong-do-body"></div></div>
   </section>
 
+  <!-- 记忆模式 -->
+  <section id="tab-memory" class="hidden">
+    <div class="card">
+      <h2>记忆模式 <span class="badge" style="background:#e0e7ff;color:var(--primary)">艾宾浩斯</span></h2>
+      <p class="muted">开启后，系统按遗忘规律自动安排每道题的复习时间，每天把该复习的题推给你，越记越牢（类似 Anki）。答错会自动缩短间隔、明天再来。</p>
+      <div class="stat-grid" id="mem-stats" style="margin-top:12px">
+        <div class="stat-box"><div class="num" id="mem-due" style="color:var(--err)">0</div><div class="lbl">今日待复习</div></div>
+        <div class="stat-box"><div class="num" id="mem-learning">0</div><div class="lbl">学习中</div></div>
+        <div class="stat-box"><div class="num" id="mem-mastered">0</div><div class="lbl">已掌握</div></div>
+        <div class="stat-box"><div class="num" id="mem-total">0</div><div class="lbl">记忆卡总数</div></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="enableMemory('wrong')">＋ 把我的错题加入记忆</button>
+        <button class="btn ghost sm" onclick="enableMemory('all')">＋ 把所有题目加入记忆</button>
+        <button class="btn" id="mem-start" onclick="startMemory()">开始今日复习</button>
+      </div>
+      <p class="muted" style="margin-top:10px">提示：每天打开本页即自动显示「今日待复习」，按时复习即可。</p>
+    </div>
+    <div class="card hidden" id="mem-do"><div id="mem-do-body"></div></div>
+  </section>
+
   <!-- 我的记录 -->
   <section id="tab-mine" class="hidden">
     <div class="card"><h2>我的答题记录</h2><div id="mine-body"></div></div>
@@ -126,6 +148,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   $('#tab-'+b.dataset.tab).classList.remove('hidden');
   if(b.dataset.tab==='exam')loadExamList();
   if(b.dataset.tab==='mine')loadMine();
+  if(b.dataset.tab==='memory')loadMemory();
 });
 
 // ---- 考试列表 ----
@@ -234,6 +257,63 @@ async function submitPractice(){
     $('#wrong-do-body').innerHTML=h;window.scrollTo(0,0);loadMine();
   }catch(e){toast(e.message,'err');}
 }
+
+// ---- 记忆模式（SRS） ----
+let memData=null,memAnswers={};
+async function loadMemory(){
+  if(!studentKey){$('#mem-stats').innerHTML='<p class="muted">请先设置姓名/学号。</p>';return;}
+  try{
+    const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
+    $('#mem-due').textContent=d.stats.due;
+    $('#mem-learning').textContent=d.stats.learning;
+    $('#mem-mastered').textContent=d.stats.mastered;
+    $('#mem-total').textContent=d.stats.total;
+    $('#mem-start').textContent='开始今日复习'+(d.stats.due?`（${d.stats.due}）`:'');
+    $('#mem-start').style.opacity=d.stats.due?'1':'.5';
+  }catch(e){toast(e.message,'err');}
+}
+async function enableMemory(source){
+  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  try{
+    let qids=[];
+    if(source==='wrong'){const list=await api('/api/students/'+encodeURIComponent(studentKey)+'/wrong');qids=list.map(q=>q.id);}
+    else{const list=await api('/api/questions');qids=list.map(q=>q.id);}
+    if(!qids.length){toast('没有可加入的题目','err');return;}
+    const d=await api('/api/memory/enable',{method:'POST',body:JSON.stringify({studentKey,qids})});
+    toast('已加入记忆计划：新增 '+d.added+' 张卡','ok');
+    loadMemory();
+  }catch(e){toast(e.message,'err');}
+}
+async function startMemory(){
+  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  try{
+    const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
+    if(!d.questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
+    memData=d.questions;memAnswers={};
+    let h=`<h2>今日复习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
+    memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span></div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickMem('${q.qid}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitMemory()">提交复习</button></div>`;
+    $('#mem-do-body').innerHTML=h;$('#mem-do').classList.remove('hidden');window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+function pickMem(qid,j,el){memAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+async function submitMemory(){
+  try{
+    const r=await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers})});
+    const correct=r.results.filter(x=>x.isCorrect).length;
+    let h=`<div class="result-head"><div class="score">${Math.round(correct/r.results.length*100)}分</div><div class="muted">本次复习 ${r.results.length} 题</div></div>`;
+    r.results.forEach((d,i)=>{
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div>`;
+      d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(!d.isCorrect&&j===memAnswers[d.qid])cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':''}</div>`;});
+      h+=`<div class="ana">下次复习：约 <b>${d.nextIntervalDays}</b> 天后${d.isCorrect?'（已记住，间隔拉长）':'（未记住，明天再来）'}</div>`;
+      if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
+      h+=`</div>`;
+    });
+    h+=`<div class="center"><button class="btn ghost" onclick="afterMemory()">返回</button></div>`;
+    $('#mem-do-body').innerHTML=h;window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+async function afterMemory(){$('#mem-do').classList.add('hidden');loadMemory();loadMine();}
 
 // ---- 我的记录 ----
 async function loadMine(){
