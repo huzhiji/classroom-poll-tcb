@@ -1,8 +1,7 @@
 # 课堂答题系统 - 阿里云 Windows Server 部署配置说明
 
-> 你的 ECS 是 **Windows Server**。本说明针对 Windows 环境（直接跑 Node.js，不装 Docker）。
-> 若你的服务器其实是 Linux，请改用 `deploy/aliyun-ecs/` 里的一键脚本（更简单）。
-> 数据持久化在 `DATA_DIR`（默认配置 `C:\classroom\data\store.json`）——Windows 磁盘本身持久，重启/更新不丢。
+> ⚠️ **当前服务器已改用 Alibaba Cloud Linux（Linux）**，请优先使用 `deploy/aliyun-ecs/` 下的 Docker 一键方案。本文档仅作为 Windows Server 环境的备选方案保留。
+> Windows 环境下直接跑 Node.js（不装 Docker）。数据持久化在 `DATA_DIR`（默认配置 `C:\classroom\data\store.json`）——Windows 磁盘本身持久，重启/更新不丢。
 
 ---
 
