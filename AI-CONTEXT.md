@@ -41,8 +41,8 @@ classroom-poll-cloudbase/
 ├── backup-to-local.ps1   # 本地 Windows 定时备份脚本（定期拉云端数据存本机）
 ├── AI-CONTEXT.md         # 本文件
 └── public/
-    ├── teacher.html      # 教师端（题库/考试/课堂/记录/导出/备份/复习提醒 7 个 Tab）
-    └── student.html      # 学生端（考试/课堂/错题/记忆/记录 5 个 Tab + 邮箱登录注册弹窗）
+    ├── teacher.html      # 教师端（10 个 Tab：班级仪表盘/课程管理/早读管理/题库/考试/课堂/学生记录/错题导出/数据备份/复习提醒）
+    └── student.html      # 学生端（8 个 Tab：学习仪表盘/课程/考试/早读/课堂/错题/记忆/我的记录 + 邮箱登录注册弹窗）
 ```
 
 **修改任何数据逻辑只动 `lib/store.js` + `index.js` 两个文件**；改界面只动 `public/*.html`。
@@ -197,3 +197,97 @@ DATA_DIR=./_testdata PORT=3001 node index.js   # 本地起服务，数据落 ./_
 - 提交规范：feat/fix 前缀中文简述。
 - 部署：push 到 main → 若自动部署未触发，去云托管手动「新建版本」。
 - **每次部署后务必确认**：① 已挂持久卷 `/data`；② 实例数=1。
+
+---
+
+## 12. 开发与部署完整流程（给 AI 的标准工作流）
+
+> 这份"流程"是整个项目的核心交接物：任何 AI 按这套动作改代码，都能复现当前可上线的结果。
+
+### 12.1 改代码的分工（别乱动文件）
+- **数据/业务逻辑** → 只改 `lib/store.js`（内存 db + 落盘）+ `index.js`（路由）。
+- **界面/交互** → 只改 `public/teacher.html`、`public/student.html` 里的 `<style>` 与 `<script>`。
+- 新增数据字段：在 `store.js` 的 db 默认结构、`add* / get*` 函数里加，并同步 `exportAll()` 合并默认值，否则旧数据解析会丢字段。
+
+### 12.2 本地验证（必须做，防线上炸）
+```bash
+cd classroom-poll-cloudbase
+npm install                                  # 装 express + nodemailer
+# 1) 语法快检（不依赖网络）
+node -e "require('./lib/store'); require('./index'); console.log('require ok')"   # 注意：会真的 listen 80，端口占用报错属正常，只要前面无 SyntaxError 即可
+# 2) 前端 JS 语法快检
+node -e "const fs=require('fs');const s=fs.readFileSync('public/student.html','utf8');new Function(s.match(/<script>([\s\S]*?)<\/script>/)[1]);"
+# 3) 起服务 + 端到端测试（务必用临时 DATA_DIR，绝不写 /data）
+export DATA_DIR="$PWD/_testdata"; export PORT=3011
+(node index.js > /tmp/srv.log 2>&1 &) ; sleep 2
+node _t_e2e.mjs                             # 用 fetch 串起注册→课程→早读→记忆→仪表盘
+pkill -f "node index.js"; rm -f _t_e2e.mjs; rm -rf _testdata
+```
+> 后台起服务用 `(node ... &)` 包一层，避免被 bash 工具的前台超时逻辑误杀；测试脚本一律放临时 `.mjs`，测完删。
+
+### 12.3 提交与推送
+```bash
+git add -A
+git commit -m "feat: 中文简述本次改动"
+git push origin main
+```
+推送后 `main` 即最新代码。**但线上不会自动变**——见 12.4。
+
+### 12.4 让线上生效（最容易被忽略的一步）
+1. 去腾讯云托管 `classroom-poll` 服务 → **部署管理 → 新建版本**（选 GitHub `huzhiji/classroom-poll-tcb` / `main`）→ 部署。
+2. 确认**持久卷挂载到 `/data`**（与部署是独立动作，漏挂则重部署数据清空）。
+3. 确认**实例数 = 1**。
+4. 若开启了 GitHub 自动部署却没触发：检查云托管触发分支=main、GitHub Webhooks 投递无失败；否则一律走"手动新建版本"。
+
+### 12.5 回滚与备份
+- 云端：教师端「数据备份」Tab → 创建快照 → 可一键恢复。
+- 本地：运行 `backup-to-local.ps1`（配好 `$Api`/`$BackupDir` + 任务计划），每天自动拉全量 JSON 到本机，保留 30 份。
+- 代码回滚：`git revert <commit>` 或 `git push origin <旧commit>:main --force`（谨慎）。
+
+---
+
+## 13. 关键历史里程碑与踩坑（避免重蹈覆辙）
+
+| 阶段 | 结论 / 坑 | 当前状态 |
+|------|-----------|----------|
+| Vercel 部署 | 仓库错位、环境变量失效、ESM 误编译、提交邮箱被 Block，最终放弃 | 旧仓库 `huzhiji/classroom-poll` 已弃用 |
+| 云托管无 Dockerfile | 构建 404，补 Dockerfile+.dockerignore | 已解决 |
+| 引入 CloudBase SDK | 容器内无凭证、安装易失败、构建炸 | 已彻底改为纯文件存储 |
+| 探活 connection refused | 代码监听 3000，云托管探活 80 | 改 `PORT\|\|80`，红线 |
+| 内存存储丢数据 | 重部署清空 | 改文件落盘 `/data/store.json` + 持久卷 |
+| 自动部署不触发 | Webhook/分支不匹配 | 一律手动新建版本兜底 |
+| 多副本写冲突 | 内存相互覆盖 | 实例数固定 1 |
+| 注册接口笔误 | `register` 返回 `studentKey` 而非 `email` | 前端按 `studentKey=email` 处理 |
+| 前端错误字段 | 实际是 `_error` 不是 `error` | 统一判 `r.ok` / `r._error` |
+
+**最重要的三条红线（改任何东西都别碰）**：
+1. 端口 `process.env.PORT || 80`，永远别改。
+2. 任何写操作后必须 `persist()`（防抖 300ms），漏写真丢数据。
+3. 实例数固定 1；持久卷必须挂 `/data`，否则一切努力随重部署归零。
+
+---
+
+## 14. 改动后自检清单（提交前逐项过）
+
+- [ ] `node -e "require('./lib/store'); require('./index')"` 无 SyntaxError。
+- [ ] 两个 `public/*.html` 的 `<script>` 用 `new Function` 校验无语法错。
+- [ ] 新增 API 在 `index.js` 注册、在 `store.js` 有对应函数且 `export`。
+- [ ] 新增写操作都调了 `persist()`。
+- [ ] 新增 db 字段在 `exportAll()` 合并里给了默认值（旧数据兼容）。
+- [ ] 用临时 `DATA_DIR=./_testdata` 跑过端到端，没把测试数据写进仓库或 `/data`。
+- [ ] 前端错误用 `r._error` / `r.ok` 判断，没用 `r.error`。
+- [ ] 端口仍是 `process.env.PORT || 80`。
+- [ ] 提交信息中文 `feat/fix` 前缀；push 到 `main`。
+- [ ] 提醒用户：线上需手动**新建版本** + 确认**持久卷 `/data`** + **实例数=1**。
+
+---
+
+## 15. 给其他 AI 工具的移交提示
+
+- 本文件即项目"说明书"。若目标工具支持自动读取，请复制/软链为：
+  - Claude → `CLAUDE.md`
+  - Codex / Cursor → `AGENTS.md`
+  - GitHub Copilot → `.github/copilot-instructions.md`
+  - 通用 → 直接把本文件内容贴进对话首条。
+- 首要动作：先 `git pull` 拿到最新 `main`，再 `npm install`，按第 12 节本地验证后再改。
+- 不要引入需要外网/密钥的 npm 包（曾因 CloudBase SDK 构建失败）；保持"零数据库、纯文件"的极简架构。
