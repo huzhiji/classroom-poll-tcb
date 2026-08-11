@@ -470,6 +470,166 @@ if (process.env.AUTO_REMINDER === '1' && smtpConfigured()) {
   }, 60 * 1000);
 }
 
+// ================= 课程模块 =================
+app.get('/api/courses', (req, res) => res.json(store.listCourses()));
+app.get('/api/courses/:id', (req, res) => {
+  const c = store.getCourse(req.params.id);
+  if (!c) return res.status(404).json(fail('课程不存在'));
+  res.json(c);
+});
+app.post('/api/courses', (req, res) => {
+  try { res.json(store.createCourse(req.body || {})); } catch (e) { res.status(500).json(fail('创建失败: ' + e.message)); }
+});
+app.put('/api/courses/:id', (req, res) => {
+  try { const c = store.updateCourse(req.params.id, req.body || {}); if (!c) return res.status(404).json(fail('课程不存在')); res.json(c); } catch (e) { res.status(500).json(fail('更新失败: ' + e.message)); }
+});
+app.delete('/api/courses/:id', (req, res) => {
+  try { store.deleteCourse(req.params.id); res.json({ deleted: true }); } catch (e) { res.status(500).json(fail('删除失败: ' + e.message)); }
+});
+app.post('/api/courses/:id/chapters', (req, res) => {
+  try { const ch = store.addChapter(req.params.id, req.body || {}); if (!ch) return res.status(404).json(fail('课程不存在')); res.json(ch); } catch (e) { res.status(500).json(fail('添加章节失败: ' + e.message)); }
+});
+app.put('/api/courses/:id/chapters/:chId', (req, res) => {
+  try { const ch = store.updateChapter(req.params.id, req.params.chId, req.body || {}); if (!ch) return res.status(404).json(fail('章节不存在')); res.json(ch); } catch (e) { res.status(500).json(fail('更新失败: ' + e.message)); }
+});
+app.delete('/api/courses/:id/chapters/:chId', (req, res) => {
+  try { const ok = store.deleteChapter(req.params.id, req.params.chId); if (!ok) return res.status(404).json(fail('章节不存在')); res.json({ deleted: true }); } catch (e) { res.status(500).json(fail('删除失败: ' + e.message)); }
+});
+app.post('/api/courses/:id/chapters/:chId/lessons', (req, res) => {
+  try { const ls = store.addLesson(req.params.id, req.params.chId, req.body || {}); if (!ls) return res.status(404).json(fail('章节不存在')); res.json(ls); } catch (e) { res.status(500).json(fail('添加课时失败: ' + e.message)); }
+});
+app.put('/api/courses/:id/chapters/:chId/lessons/:lsId', (req, res) => {
+  try { const ls = store.updateLesson(req.params.id, req.params.chId, req.params.lsId, req.body || {}); if (!ls) return res.status(404).json(fail('课时不存在')); res.json(ls); } catch (e) { res.status(500).json(fail('更新失败: ' + e.message)); }
+});
+app.delete('/api/courses/:id/chapters/:chId/lessons/:lsId', (req, res) => {
+  try { const ok = store.deleteLesson(req.params.id, req.params.chId, req.params.lsId); if (!ok) return res.status(404).json(fail('课时不存在')); res.json({ deleted: true }); } catch (e) { res.status(500).json(fail('删除失败: ' + e.message)); }
+});
+// 学生课程进度
+app.get('/api/student/courses', (req, res) => {
+  const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
+  res.json(store.getStudentCourses(key));
+});
+app.post('/api/courses/:id/lessons/:lsId/done', (req, res) => {
+  try {
+    const { studentKey, done } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const r = store.setLessonDone(studentKey, req.params.id, req.params.lsId, done !== false);
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('操作失败: ' + e.message)); }
+});
+// 学生单课进度（含已完成的课时 id 列表）
+app.get('/api/courses/:id/progress', (req, res) => {
+  const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
+  const c = store.getCourse(req.params.id); if (!c) return res.status(404).json(fail('课程不存在'));
+  res.json(store.getCourseProgress(key, req.params.id));
+});
+
+// ================= 早读模块 =================
+app.get('/api/morning', (req, res) => {
+  const { scope, ownerKey } = req.query;
+  res.json(store.listMorningReadings({ scope, ownerKey }));
+});
+app.post('/api/morning', (req, res) => {
+  try {
+    const { ownerType, ownerKey, title, content } = req.body || {};
+    if (!title || !title.trim()) return res.status(400).json(fail('请填写早读标题'));
+    res.json(store.createMorningReading({ ownerType, ownerKey, title, content }));
+  } catch (e) { res.status(500).json(fail('创建失败: ' + e.message)); }
+});
+app.put('/api/morning/:id', (req, res) => {
+  try { const m = store.updateMorningReading(req.params.id, req.body || {}); if (!m) return res.status(404).json(fail('早读不存在')); res.json(m); } catch (e) { res.status(500).json(fail('更新失败: ' + e.message)); }
+});
+app.delete('/api/morning/:id', (req, res) => {
+  try { store.deleteMorningReading(req.params.id); res.json({ deleted: true }); } catch (e) { res.status(500).json(fail('删除失败: ' + e.message)); }
+});
+// 老师一键推送给全体学生
+app.post('/api/morning/:id/push', (req, res) => {
+  try { const m = store.pushMorningReading(req.params.id); if (!m) return res.status(404).json(fail('早读不存在')); res.json(m); } catch (e) { res.status(500).json(fail('推送失败: ' + e.message)); }
+});
+// 学生今日早读清单 + 打卡状态
+app.get('/api/morning/today', (req, res) => {
+  const { key, date } = req.query; if (!key) return res.status(400).json(fail('缺少学生标识'));
+  const d = date || new Date().toISOString().slice(0, 10);
+  res.json(store.getTodayMorning(key, d));
+});
+app.post('/api/morning/checkin', (req, res) => {
+  try {
+    const { studentKey, date, readingIds, done } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const d = date || new Date().toISOString().slice(0, 10);
+    res.json(store.checkInMorning(studentKey, d, readingIds || [], done !== false));
+  } catch (e) { res.status(500).json(fail('打卡失败: ' + e.message)); }
+});
+// 老师打卡统计（已/未打卡名单）
+app.get('/api/morning/checkin/stats', (req, res) => {
+  const d = req.query.date || new Date().toISOString().slice(0, 10);
+  res.json(store.getMorningCheckinStats(d));
+});
+// 早读作业（老师布置）
+app.post('/api/morning/homework', (req, res) => {
+  try { res.json(store.createMorningHomework(req.body || {})); } catch (e) { res.status(500).json(fail('布置失败: ' + e.message)); }
+});
+app.get('/api/morning/homework', (req, res) => {
+  const d = req.query.date || new Date().toISOString().slice(0, 10);
+  res.json(store.getMorningHomeworkByDate(d));
+});
+app.post('/api/morning/homework/:id/submit', (req, res) => {
+  try {
+    const { studentKey, studentName, answers } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const r = store.submitMorningHomework({ homeworkId: req.params.id, studentKey, studentName, answers });
+    if (r.error) return res.status(404).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
+});
+
+// ================= 早读间隔记忆（艾宾浩斯） =================
+app.post('/api/morning/memory/enable', (req, res) => {
+  try {
+    const { studentKey, mrids } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    if (!Array.isArray(mrids) || !mrids.length) return res.status(400).json(fail('请选择要加入的早读'));
+    const added = store.enableMrMemory(studentKey, mrids);
+    res.json({ added, stats: store.getMrStats(studentKey) });
+  } catch (e) { res.status(500).json(fail('开启失败: ' + e.message)); }
+});
+app.get('/api/morning/memory/due', (req, res) => {
+  try {
+    const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const now = req.query.now ? Number(req.query.now) : Date.now();
+    res.json({ items: store.getMrDue(key, now), stats: store.getMrStats(key) });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+app.get('/api/morning/memory/stats', (req, res) => {
+  try { const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识')); res.json(store.getMrStats(key)); } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+// 早读记忆卡（含到期时间，用于日程表）
+app.get('/api/morning/memory/cards', (req, res) => {
+  const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
+  const stu = store.getStudent(key); if (!stu || !stu.mrMemory) return res.json([]);
+  const out = Object.keys(stu.mrMemory).map((mrid) => {
+    const c = stu.mrMemory[mrid]; const m = store.getMorningReading(mrid);
+    return { itemId: mrid, title: m ? m.title : '', content: m ? m.content : '', due: c.due, level: c.level };
+  });
+  res.json(out);
+});
+app.post('/api/morning/memory/review', (req, res) => {
+  try {
+    const { studentKey, results } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const r = store.reviewMr(studentKey, results);
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
+});
+
+// ================= 仪表盘 =================
+app.get('/api/dashboard/student', (req, res) => {
+  const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
+  res.json(store.studentDashboard(key));
+});
+app.get('/api/dashboard/teacher', (req, res) => res.json(store.teacherDashboard()));
+
 // ========== 启动 ==========
 const port = parseInt(process.env.PORT, 10) || 80;
 app.listen(port, () => console.log(`在线答题系统 running on port ${port}`));

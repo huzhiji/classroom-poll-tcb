@@ -8,7 +8,7 @@
 
 ## 0. 这是什么
 
-一个**国产云端在线答题 / 学习平台**：老师录入题目 → 生成「考试 / 专题」或开「课堂实时答题」→ 学生用**邮箱 + 密码**注册登录（无需管理员审批）→ 答题后自动收集错题与正确率统计 → 学生可对错题做**普通练习**或开启**艾宾浩斯间隔记忆（类 Anki）**模式 → 教师可**按邮箱群发复习提醒邮件**。数据可一键/定时备份到本地。
+一个**国产云端「选调生学习系统」**（由在线答题平台升级而来）：学生用**邮箱 + 密码**注册登录 → 首页**学习仪表盘**展示各模块掌握概览（进度条/完成率/薄弱环节）→ 三大核心模块：**课程**（老师自建章节+资料+内置练习，按课时完成度算进度）、**答题**（考试/专题/课堂/错题练习/记忆模式）、**早读**（老师一键推送、学生每日打卡、艾宾浩斯自动复习、打卡后布置作业、师生双端日程/统计）→ 教师可**按邮箱群发复习提醒邮件**。数据可一键/定时备份到本地。
 
 **已上线地址**：`https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com`
 **仓库**：`https://github.com/huzhiji/classroom-poll-tcb`（分支 `main`，已开启 GitHub 自动部署到腾讯云托管）
@@ -92,9 +92,20 @@ db = {
     }
   },
   rooms:     { [roomId]: { id, questions:[], currentQuestion, state, students:{}, eventSeq, revealAnswer, createdAt } },
+  courses:   [ { id, title, description, cover, chapters:[
+                 { id, title, order, lessons:[
+                   { id, title, type:'text'|'material', content,
+                     materials:[{type,title,url}], practiceExamId, order } ] } ],
+               createdAt, updatedAt } ],
+  courseProgress: { [studentKey]: { [courseId]: { completedLessons:[lessonId], lastAccess, startedAt } } },
+  morningReadings: [ { id, ownerType:'teacher'|'student', ownerKey, title, content,
+                       push:{mode:'none'|'all', pushedAt, pushDate}, active, createdAt } ],
+  morningCheckins: { [studentKey+'::'+date]: { studentKey, date, readingIds:[], done, homeworkDone, ts } },
+  morningHomework: [ { id, date, title, questionIds:[], examId, dueDate, createdAt } ],
   meta:      { qSeq, eSeq }
 }
 ```
+> 注：学生早读记忆卡复用 `students[email].mrMemory`（`{mrid:{level,due,reps,lapses,createdAt}}`），与答题记忆 `memory` 并列。
 
 ---
 
@@ -114,18 +125,32 @@ db = {
 
 **复习提醒（邮件）**：`GET /api/reminder/preview` → `{configured, count, recipients[]}` · `POST /api/reminder/send` → `{configured, sent, failed, errors[]}`
 
+**课程模块**：`GET /api/courses` · `GET /api/courses/:id` · `POST /api/courses`（`{title,description}`）· `PUT /api/courses/:id` · `DELETE /api/courses/:id` · `POST /api/courses/:id/chapters` · `PUT/DELETE /api/courses/:id/chapters/:chId` · `POST /api/courses/:id/chapters/:chId/lessons` · `PUT/DELETE /api/courses/:id/chapters/:chId/lessons/:lsId` · `GET /api/student/courses?key=` · `POST /api/courses/:id/lessons/:lsId/done`（`{studentKey,done}`）· `GET /api/courses/:id/progress?key=`（返回 `{total,completed,percent,completedLessons}`）
+
+**早读模块**：`GET /api/morning?scope=teacher|&ownerKey=` · `POST /api/morning`（`{ownerType,ownerKey,title,content}`）· `PUT/DELETE /api/morning/:id` · `POST /api/morning/:id/push`（一键推送全班）· `GET /api/morning/today?key=&date=`（`{date,items[],checkin:{done,readingIds,homeworkDone}}`）· `POST /api/morning/checkin`（`{studentKey,date,readingIds,done}`）· `GET /api/morning/checkin/stats?date=`（已/未打卡名单）· `POST /api/morning/homework`（`{title,date,questionIds,examId}`）· `GET /api/morning/homework?date=` · `POST /api/morning/homework/:id/submit`（`{studentKey,studentName,answers}`）
+
+**早读记忆（SRS，独立于答题记忆）**：`POST /api/morning/memory/enable`（`{studentKey,mrids}`）· `GET /api/morning/memory/due?key=` · `GET /api/morning/memory/stats?key=` · `GET /api/morning/memory/cards?key=`（含 `due` 时间戳，用于日程表）· `POST /api/morning/memory/review`（`{studentKey,results:{mrid:0记住|1没记住}}`）
+
+**仪表盘**：`GET /api/dashboard/student?key=`（课程进度/答题正确率/记忆掌握/待巩固错题/今日早读/薄弱环节）· `GET /api/dashboard/teacher`（学生数/课程数/今日打卡/全班正确率/薄弱专题）
+
 **数据备份**：`GET /api/backup/export`（浏览器下载带时间戳 JSON）· `POST /api/backup/snapshot` · `GET /api/backup/snapshots` · `POST /api/backup/restore`（`{name}`）
 
 **健康检查**：`GET /` · `GET /healthz`
 
 ---
 
-## 7. 前端页面
+## 7. 前端页面（已重命名为「选调生学习系统」）
 
-**teacher.html**（顶部 7 个 Tab）：题库管理 / 考试管理 / 课堂模式 / 学生记录 / 错题导出 / 数据备份 / **复习提醒**。
+**teacher.html**（顶部 10 个 Tab，首页=班级仪表盘）：📊 班级仪表盘 / 📚 课程管理 / 🌅 早读管理 / 题库管理 / 考试管理 / 课堂模式 / 学生记录 / 错题导出 / 数据备份 / 复习提醒。
+- 班级仪表盘 Tab：`loadTeacherDashboard()` 聚合学生数、课程数、今日早读打卡（已/未打卡名单）、全班正确率、薄弱专题。
+- 课程管理 Tab：`loadCourseList / createCourseT / editCourse / addChapter / addLesson / saveCourse`，支持章节+课时 CRUD。
+- 早读管理 Tab：`loadMorningList / createMorningT / pushMorning`（一键推送）、`assignHomework / loadHomeworkList`（布置作业）、`loadCheckinStats`（打卡统计）。
 - 复习提醒 Tab：`预览今日提醒名单` + `立即群发提醒邮件`（未配 SMTP 时按钮禁用并提示）。
 
-**student.html**（顶部 5 个 Tab + 登录弹窗）：考试答题 / 课堂练习 / 错题练习 / 记忆模式 / 我的记录。
+**student.html**（顶部 8 个 Tab，首页=学习仪表盘 + 登录弹窗）：📊 学习仪表盘 / 📚 课程 / 📝 考试答题 / 🌅 早读 / 👥 课堂练习 / ❌ 错题练习 / 🧠 记忆模式 / 📈 我的记录。
+- 学习仪表盘 `loadDashboard()`：课程总进度、答题正确率、记忆掌握、待巩固错题、今日早读、薄弱环节进度条。
+- 课程 `loadCourses / openCourse / toggleLesson`：课程卡片网格 → 章节/课时详情 → 标记完成（进度实时）。
+- 早读 `loadMorning`：今日打卡（老师推送+自建）、早读记忆复习（艾宾浩斯）、我的早读规划（自建）、复习日程表（14 天）、早读作业提交。
 - 首次打开若未登录，自动弹出**注册/登录**弹窗（注册=邮箱+姓名+密码；登录=邮箱+密码）。登录态存 `localStorage.quiz_student_key`（邮箱）与 `quiz_student_name`。
 - 身份相关函数：`showWho / openAuth / switchAuth / doRegister / doLogin`。
 

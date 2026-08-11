@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>在线答题系统 · 学生端</title>
+<title>选调生学习系统 · 学生端</title>
 <style>
-  :root{--primary:#4f46e5;--primary-d:#4338ca;--bg:#f5f7fb;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--ok:#16a34a;--err:#dc2626;--shadow:0 4px 16px rgba(15,23,42,.06);--radius:14px}
+  :root{--primary:#2563eb;--primary-d:#1d4ed8;--primary-l:#eef4ff;--bg:#f4f6fb;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--ok:#16a34a;--err:#e11d48;--warn:#f59e0b;--shadow:0 6px 24px rgba(17,24,39,.07);--radius:16px}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
   header{background:linear-gradient(135deg,#0ea5e9,#4f46e5);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:var(--shadow)}
@@ -60,26 +60,74 @@
   .modal-tabs{display:flex;gap:8px;margin-bottom:16px}
   .modal-tabs button{flex:1;padding:10px;border:1px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;font-weight:600;color:var(--muted)}
   .modal-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  /* ===== 选调生学习系统 · 新增组件样式 ===== */
+  header h1 .logo{margin-right:4px}
+  .hero{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow)}
+  .hero h2{font-size:21px;font-weight:800}
+  .hero .date{opacity:.92;font-size:14px;margin-top:4px}
+  .hero-stat{background:rgba(255,255,255,.18);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600}
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+  .dash-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);transition:.2s}
+  .dash-card:hover{box-shadow:0 10px 30px rgba(17,24,39,.12)}
+  .dash-card h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px}
+  .dash-card .big{font-size:30px;font-weight:800;color:var(--primary);line-height:1.1}
+  .dash-card .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .prog{height:10px;background:#eef2f6;border-radius:999px;overflow:hidden;margin-top:8px}
+  .prog>span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#38bdf8);border-radius:999px;transition:.4s}
+  .course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+  .course-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:.2s}
+  .course-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(17,24,39,.14)}
+  .course-card .ctop{height:60px;background:linear-gradient(135deg,var(--primary),#38bdf8);display:flex;align-items:center;justify-content:center;font-size:26px}
+  .course-card .cbody{padding:14px}
+  .course-card .ctitle{font-weight:700;font-size:15px;margin-bottom:6px}
+  .course-card .cmeta{font-size:12px;color:var(--muted)}
+  .lesson{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
+  .lesson.done{border-color:var(--ok);background:#f0fdf4}
+  .timeline{position:relative;padding-left:20px}
+  .timeline:before{content:'';position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--border)}
+  .tl-item{position:relative;margin-bottom:16px}
+  .tl-item:before{content:'';position:absolute;left:-17px;top:5px;width:11px;height:11px;border-radius:50%;background:#cbd5e1;border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+  .tl-item.due:before{background:var(--warn);box-shadow:0 0 0 1px var(--warn)}
+  .morning-item{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
+  .morning-item.checked{border-color:var(--ok);background:#f0fdf4}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .seg button{background:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
+  .seg button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .tag{display:inline-block;font-size:11px;background:var(--primary-l);color:var(--primary);padding:2px 8px;border-radius:6px;font-weight:600;vertical-align:middle}
   @media(max-width:640px){.opt{padding:14px}}
 </style>
 </head>
 <body>
 <header>
-  <h1>📝 在线答题系统</h1>
+  <h1><span class="logo">🎓</span> 选调生学习系统</h1>
   <div class="who" id="who">身份：<b id="who-name">未登录</b> <span id="who-email" class="muted"></span> <button onclick="openAuth()">登录/注册</button></div>
 </header>
 
 <div class="nav">
-  <button data-tab="exam" class="active">考试答题</button>
-  <button data-tab="classroom">课堂练习</button>
-  <button data-tab="wrong">错题练习</button>
-  <button data-tab="memory">记忆模式</button>
-  <button data-tab="mine">我的记录</button>
+  <button data-tab="dashboard" class="active">📊 学习仪表盘</button>
+  <button data-tab="courses">📚 课程</button>
+  <button data-tab="exam">📝 考试答题</button>
+  <button data-tab="morning">🌅 早读</button>
+  <button data-tab="classroom">👥 课堂练习</button>
+  <button data-tab="wrong">❌ 错题练习</button>
+  <button data-tab="memory">🧠 记忆模式</button>
+  <button data-tab="mine">📈 我的记录</button>
 </div>
 
 <main>
+  <!-- 仪表盘（首页） -->
+  <section id="tab-dashboard">
+    <div id="dash-body"></div>
+  </section>
+
+  <!-- 课程 -->
+  <section id="tab-courses" class="hidden">
+    <div id="courses-body"></div>
+  </section>
+
   <!-- 考试 -->
-  <section id="tab-exam">
+  <section id="tab-exam" class="hidden">
     <div class="card" id="exam-list-card"><h2>可参加的考试 / 专题</h2><div id="exam-list"></div></div>
     <div class="card hidden" id="exam-do-card"><div id="exam-do"></div></div>
   </section>
@@ -125,6 +173,12 @@
       <p class="muted" style="margin-top:10px">提示：每天打开本页即自动显示「今日待复习」，按时复习即可。</p>
     </div>
     <div class="card hidden" id="mem-do"><div id="mem-do-body"></div></div>
+  </section>
+
+  <!-- 早读 -->
+  <section id="tab-morning" class="hidden">
+    <div id="morning-body"></div>
+    <div class="card hidden" id="mr-do"><div id="mr-do-body"></div></div>
   </section>
 
   <!-- 我的记录 -->
@@ -204,6 +258,7 @@ async function doLogin(){
   }catch(e){$('#auth-msg').textContent=e.message;}
 }
 showWho();
+if(studentKey)loadDashboard();
 if(!studentKey)openAuth();
 
 // ---- Tab ----
@@ -211,9 +266,12 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
   $('#tab-'+b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='dashboard')loadDashboard();
+  if(b.dataset.tab==='courses')loadCourses();
   if(b.dataset.tab==='exam')loadExamList();
   if(b.dataset.tab==='mine')loadMine();
   if(b.dataset.tab==='memory')loadMemory();
+  if(b.dataset.tab==='morning')loadMorning();
 });
 
 // ---- 考试列表 ----
@@ -396,6 +454,174 @@ async function loadMine(){
     if(!records.length)h+='<p class="muted">暂无记录。</p>';
     records.forEach(r=>{h+=`<div class="exam-card"><div class="info"><b>${esc(r.refTitle)}</b><div class="meta">${new Date(r.date).toLocaleString()} · 得分 ${r.correct}/${r.total}</div></div></div>`;});
     $('#mine-body').innerHTML=h;
+  }catch(e){toast(e.message,'err');}
+}
+
+// ---- 仪表盘 ----
+let morningToday=null, mrData=null, mrAnswers={}, curDoneSet=new Set(), hwState=null;
+async function loadDashboard(){
+  if(!studentKey){$('#dash-body').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
+  try{
+    const d=await api('/api/dashboard/student?key='+encodeURIComponent(studentKey));
+    let h=`<div class="hero"><div><h2>你好，${esc(studentName||studentKey)} 👋</h2><div class="date">${new Date().toLocaleDateString('zh-CN')} · 选调生备考进度看板</div></div><div class="hero-stat">今日早读：${d.morning.done?'已打卡 ✅':(d.morning.pending?('待打卡 '+d.morning.pending+' 项'):'暂无任务')}</div></div>`;
+    h+='<div class="dash-grid">';
+    h+=dashTile('课程总进度',d.courses.avgPercent+'%',d.courses.completedLessons+'/'+d.courses.totalLessons+' 课时');
+    h+=dashTile('答题正确率',d.quiz.percent+'%',d.quiz.correct+'/'+d.quiz.total+' 题');
+    h+=dashTile('记忆掌握',d.mastery.mastered,'已掌握卡片');
+    h+=dashTile('待巩固错题',d.wrong,'需复习');
+    h+=dashTile('今日早读',d.morning.done?'已完成':(d.morning.pending?'待打卡':'无'),d.morning.total+' 项');
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>📚 课程学习进度</h2>';
+    if(!d.courses.list.length){h+='<p class="muted">还没有课程，去「课程」页查看。</p>';}
+    else{d.courses.list.forEach(c=>{h+=`<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(c.title)}</b><span class="muted">${c.completed}/${c.total} 课时 · ${c.percent}%</span></div><div class="prog"><span style="width:${c.percent}%"></span></div></div>`;});}
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>🌅 今日早读</h2>';
+    if(!d.morning.items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。</p>';}
+    else{h+=`<p class="muted">${d.morning.done?'你已完成今日早读打卡 🎉':'请完成早读打卡（每日必做）'}</p><button class="btn" onclick="goMorning()">${d.morning.done?'查看早读':'去早读打卡'}</button>`;}
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>⚠️ 薄弱环节（专题正确率偏低）</h2>';
+    if(!d.weak.length){h+='<p class="muted">答题数据不足，多做几套题即可看到薄弱点。</p>';}
+    else{d.weak.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
+    h+='</div>';
+    $('#dash-body').innerHTML=h;
+  }catch(e){toast(e.message,'err');}
+}
+function dashTile(t,n,sub){return `<div class="dash-card"><h3>${t}</h3><div class="big">${n}</div><div class="sub">${sub}</div></div>`;}
+function goMorning(){document.querySelector('.nav button[data-tab=morning]').click();}
+
+// ---- 课程 ----
+async function loadCourses(){
+  if(!studentKey){$('#courses-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
+  try{
+    const list=await api('/api/student/courses?key='+encodeURIComponent(studentKey));
+    const box=$('#courses-body');
+    if(!list.length){box.innerHTML='<p class="muted">老师还没有发布课程。</p>';return;}
+    box.innerHTML='<div class="course-grid">'+list.map(c=>`<div class="course-card" onclick="openCourse('${c.id}')"><div class="ctop">📘</div><div class="cbody"><div class="ctitle">${esc(c.title)}</div><div class="cmeta">${c.chapterCount} 章 · ${c.total} 课时</div><div class="prog" style="margin-top:8px"><span style="width:${c.percent}%"></span></div><div class="cmeta" style="margin-top:6px">进度 ${c.completed}/${c.total}（${c.percent}%）</div></div></div>`).join('')+'</div>';
+  }catch(e){toast(e.message,'err');}
+}
+async function openCourse(id){
+  try{
+    const c=await api('/api/courses/'+id);
+    const p=await api('/api/courses/'+id+'/progress?key='+encodeURIComponent(studentKey));
+    curDoneSet=new Set(p.completedLessons||[]);
+    let h=`<button class="btn ghost sm" onclick="loadCourses()">← 返回课程列表</button><h2 style="margin:12px 0">${esc(c.title)}</h2>`;
+    if(c.description)h+=`<p class="muted">${esc(c.description)}</p>`;
+    h+=`<div class="prog" style="margin:10px 0"><span style="width:${p.percent}%"></span></div><p class="muted">${p.completed}/${p.total} 课时完成（${p.percent}%）</p>`;
+    if(!c.chapters.length){h+='<p class="muted">本课程暂无章节内容。</p>';}
+    c.chapters.forEach(ch=>{
+      h+=`<div class="card" style="margin-top:14px"><h2 style="font-size:15px">📂 ${esc(ch.title)}</h2>`;
+      if(!ch.lessons.length){h+='<p class="muted">本章暂无课时。</p>';}
+      ch.lessons.forEach(ls=>{
+        const done=curDoneSet.has(ls.id);
+        h+=`<div class="lesson ${done?'done':''}"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(ls.title)}</b> ${ls.type==='material'?'<span class="tag">资料</span>':''}</div>`;
+        if(ls.content)h+=`<div class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(ls.content)}</div>`;
+        if(ls.materials&&ls.materials.length){h+='<div style="margin-top:6px">'+ls.materials.map(m=>`<a class="pill" href="${esc(m.url)}" target="_blank" rel="noopener">🔗 ${esc(m.title||m.url)}</a>`).join('')+'</div>';}
+        if(ls.practiceExamId)h+=`<div style="margin-top:8px"><button class="btn ghost sm" onclick="enterExam('${ls.practiceExamId}')">▶ 完成内置练习</button></div>`;
+        h+=`<div style="margin-top:10px"><button class="btn sm ${done?'ghost':''}" id="lsbtn-${ls.id}" onclick="toggleLesson('${id}','${ls.id}',${done})">${done?'✓ 已完成（点击取消）':'标记完成'}</button></div>`;
+        h+='</div>';
+      });
+      h+='</div>';
+    });
+    $('#courses-body').innerHTML=h;window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+async function toggleLesson(cid,lsid,done){
+  try{await api('/api/courses/'+cid+'/lessons/'+lsid+'/done',{method:'POST',body:JSON.stringify({studentKey,done:!done})});
+    if(done)curDoneSet.delete(lsid);else curDoneSet.add(lsid);
+    const btn=$('#lsbtn-'+lsid);const card=btn.closest('.lesson');
+    if(done){btn.textContent='标记完成';btn.classList.remove('ghost');card.classList.remove('done');}
+    else{btn.textContent='✓ 已完成（点击取消）';btn.classList.add('ghost');card.classList.add('done');}
+    toast(done?'已取消完成':'已标记完成','ok');loadDashboard();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ---- 早读 ----
+async function loadMorning(){
+  if(!studentKey){$('#morning-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  try{
+    const t=await api('/api/morning/today?key='+encodeURIComponent(studentKey)+'&date='+today);
+    const own=await api('/api/morning?ownerKey='+encodeURIComponent(studentKey)+'&scope=student');
+    const mr=await api('/api/morning/memory/stats?key='+encodeURIComponent(studentKey));
+    const hw=await api('/api/morning/homework?date='+today);
+    morningToday=t;
+    let h='<div class="card"><h2>🌅 今日早读打卡 <span class="tag">'+today+'</span></h2>';
+    if(!t.items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。可在下方「我的早读规划」自建。</p>';}
+    else{
+      h+=`<p class="muted">${t.checkin.done?'✅ 今日已打卡':'请阅读下列内容后完成打卡（每日必做）'}</p><div id="morning-items">`;
+      t.items.forEach(m=>{const chk=t.checkin.readingIds.includes(m.id);h+=`<div class="morning-item ${chk?'checked':''}"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" class="mchk" value="${m.id}" ${chk?'checked':''} style="margin-top:5px"><div><div style="font-weight:600">${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div></div></label></div>`;});
+      h+='</div>';
+      h+=`<div class="btnrow"><button class="btn" onclick="doCheckin()">${t.checkin.done?'取消打卡':'完成今日打卡'}</button></div>`;
+      if(hw.length){h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📋 今日早读作业</h2>';hw.forEach(hh=>{h+=`<div class="lesson"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(hh.title)}</b><button class="btn ghost sm" onclick="doHomework('${hh.id}')">去完成</button></div><div class="muted" style="margin-top:4px">${hh.questionIds.length} 题${hh.examId?'（来自考试）':''}</div></div>`;});}
+    }
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>🧠 早读记忆复习 <span class="tag">艾宾浩斯</span></h2>';
+    h+=`<div class="stat-grid" style="margin-top:8px"><div class="stat-box"><div class="num" style="color:var(--err)">${mr.due}</div><div class="lbl">今日待复习</div></div><div class="stat-box"><div class="num">${mr.learning}</div><div class="lbl">学习中</div></div><div class="stat-box"><div class="num">${mr.mastered}</div><div class="lbl">已掌握</div></div><div class="stat-box"><div class="num">${mr.total}</div><div class="lbl">记忆卡</div></div></div>`;
+    h+='<p class="muted" style="margin-top:8px">把已打卡的早读加入记忆后，系统按遗忘曲线自动安排复习。</p>';
+    h+=`<div class="btnrow"><button class="btn ghost sm" onclick="enableMr()">＋ 把今日早读加入记忆</button><button class="btn" id="mr-start" onclick="startMr()" ${mr.due?'':'disabled'}>开始今日复习</button></div>`;
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>🗓️ 我的早读规划（自建）</h2><div class="row"><div style="flex:2"><label>标题</label><input id="mr-title" placeholder="如：背诵习近平金句 10 条"></div></div><label>内容</label><textarea id="mr-content" placeholder="早读文本 / 知识点…"></textarea><div class="btnrow"><button class="btn" onclick="addMyMorning()">添加我的早读</button></div><div id="my-morning-list" style="margin-top:12px"></div></div>';
+    h+='<div class="card" style="margin-top:18px"><h2>📅 早读复习日程表</h2><div id="mr-schedule"></div></div>';
+    $('#morning-body').innerHTML=h;
+    renderMyMorning(own);renderSchedule();
+  }catch(e){toast(e.message,'err');}
+}
+function toggleIds(){const all=[...document.querySelectorAll('.mchk')].map(c=>c.value);const checked=[...document.querySelectorAll('.mchk:checked')].map(c=>c.value);return checked.length?checked:all;}
+async function doCheckin(){
+  const ids=toggleIds();const willDone=!(morningToday&&morningToday.checkin.done);
+  try{await api('/api/morning/checkin',{method:'POST',body:JSON.stringify({studentKey,date:new Date().toISOString().slice(0,10),readingIds:ids,done:willDone})});toast(willDone?'打卡成功':'已取消打卡','ok');loadMorning();loadDashboard();}catch(e){toast(e.message,'err');}
+}
+async function addMyMorning(){const title=$('#mr-title').value.trim(),content=$('#mr-content').value.trim();if(!title){toast('请填写标题','err');return;}try{await api('/api/morning',{method:'POST',body:JSON.stringify({ownerType:'student',ownerKey:studentKey,title,content})});toast('已添加','ok');$('#mr-title').value='';$('#mr-content').value='';loadMorning();}catch(e){toast(e.message,'err');}}
+function renderMyMorning(own){const box=$('#my-morning-list');if(!own||!own.length){box.innerHTML='<p class="muted">还没有自建早读。</p>';return;}box.innerHTML=own.map(m=>`<div class="morning-item"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.title)}</b><button class="btn danger sm" onclick="delMyMorning('${m.id}')">删除</button></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div></div>`).join('');}
+async function delMyMorning(id){if(!confirm('删除该早读？'))return;try{await api('/api/morning/'+id,{method:'DELETE'});toast('已删除','ok');loadMorning();}catch(e){toast(e.message,'err');}}
+async function enableMr(){if(!morningToday||!morningToday.items.length){toast('今日没有可加入的早读','err');return;}const ids=morningToday.items.map(m=>m.id);try{const r=await api('/api/morning/memory/enable',{method:'POST',body:JSON.stringify({studentKey,mrids:ids})});toast('已加入记忆：'+r.added+' 张卡','ok');loadMorning();}catch(e){toast(e.message,'err');}}
+async function startMr(){
+  if(!studentKey){toast('请先登录/注册','err');return;}
+  try{const d=await api('/api/morning/memory/due?key='+encodeURIComponent(studentKey));
+    if(!d.items.length){toast('今日没有待复习的早读 🎉','ok');return;}
+    mrData=d.items;mrAnswers={};
+    let h=`<h2>早读复习（${d.items.length} 项）</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
+    d.items.forEach((m,i)=>{h+=`<div class="q" data-mrid="${m.itemId}"><div class="qt">${i+1}. ${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-bottom:8px">${esc(m.content||'')}</div><div class="opt" onclick="pickMr('${m.itemId}',0,this)">✅ 记住了</div><div class="opt" onclick="pickMr('${m.itemId}',1,this)">❌ 没记住</div></div>`;});
+    h+=`<div class="center" style="margin-top:14px"><button class="btn" onclick="submitMr()">提交复习</button></div>`;
+    $('#mr-do-body').innerHTML=h;$('#mr-do').classList.remove('hidden');window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+function pickMr(mrid,v,el){mrAnswers[mrid]=v;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+async function submitMr(){try{const r=await api('/api/morning/memory/review',{method:'POST',body:JSON.stringify({studentKey,results:mrAnswers})});let ok=r.results.filter(x=>x.isCorrect).length;let h=`<div class="result-head"><div class="score">${Math.round(ok/r.results.length*100)}分</div><div class="muted">本次复习 ${r.results.length} 项</div></div>`;r.results.forEach((x,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(x.title)} ${x.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div><div class="ana">下次复习：约 <b>${x.nextIntervalDays}</b> 天后（${x.isCorrect?'间隔拉长':'明天再来'}）</div></div>`;});h+=`<div class="center"><button class="btn ghost" onclick="afterMr()">返回</button></div>`;$('#mr-do-body').innerHTML=h;window.scrollTo(0,0);}catch(e){toast(e.message,'err');}}
+async function afterMr(){$('#mr-do').classList.add('hidden');loadMorning();loadDashboard();}
+async function renderSchedule(){
+  try{
+    const cards=await api('/api/morning/memory/cards?key='+encodeURIComponent(studentKey));
+    const buckets={};cards.forEach(c=>{const day=new Date(c.due).toISOString().slice(0,10);(buckets[day]=buckets[day]||[]).push(c);});
+    let h='<div class="timeline">';const today=new Date();
+    for(let i=0;i<14;i++){const dt=new Date(today);dt.setDate(today.getDate()+i);const day=dt.toISOString().slice(0,10);const items=buckets[day]||[];
+      h+=`<div class="tl-item ${items.length?'due':''}"><div><b>${day}${i===0?'（今天）':i===1?'（明天）':''}</b> — ${items.length?items.length+' 项待复习':'无安排'}</div>${items.slice(0,3).map(it=>'<div class="muted">· '+esc(it.title)+'</div>').join('')}</div>`;}
+    h+='</div><p class="muted">系统按艾宾浩斯遗忘曲线自动安排每日复习，越记越牢。</p>';
+    $('#mr-schedule').innerHTML=h;
+  }catch(e){}
+}
+async function doHomework(id){
+  try{
+    const list=await api('/api/morning/homework?date='+new Date().toISOString().slice(0,10));
+    const hh=list.find(x=>x.id===id);if(!hh)throw new Error('作业不存在');
+    let qids=hh.questionIds||[];if(!qids.length&&hh.examId){const e=await api('/api/exams/'+hh.examId);qids=e.questionIds||[];}
+    const allq=await api('/api/questions');const map={};allq.forEach(q=>map[q.id]=q);
+    const qs=qids.map(qid=>map[qid]).filter(Boolean);
+    if(!qs.length){toast('作业暂无可答题','err');return;}
+    hwState={id,answers:{}};
+    let h=`<button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><h2 style="margin:12px 0">📋 ${esc(hh.title)}</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
+    qs.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)}</div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickHw('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    h+=`<div class="center" style="margin-top:14px"><button class="btn" onclick="submitHw()">提交作业</button></div>`;
+    $('#morning-body').innerHTML=h;window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+function pickHw(qid,j,el){hwState.answers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+async function submitHw(){
+  try{const r=await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})});
+    let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题</div></div>`;
+    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`;d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;h+=`</div>`;});
+    h+=`<div class="center"><button class="btn ghost" onclick="loadMorning()">返回早读</button></div>`;
+    $('#morning-body').innerHTML=h;window.scrollTo(0,0);loadDashboard();
   }catch(e){toast(e.message,'err');}
 }
 

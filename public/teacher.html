@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>在线答题系统 · 教师端</title>
+<title>选调生学习系统 · 教师端</title>
 <style>
   :root{
-    --primary:#4f46e5; --primary-d:#4338ca; --bg:#f5f7fb; --card:#fff;
-    --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --ok:#16a34a; --warn:#f59e0b; --err:#dc2626;
-    --shadow:0 4px 16px rgba(15,23,42,.06); --radius:14px;
+    --primary:#2563eb; --primary-d:#1d4ed8; --primary-l:#eef4ff; --bg:#f4f6fb; --card:#fff;
+    --text:#1f2937; --muted:#6b7280; --border:#e5e7eb; --ok:#16a34a; --warn:#f59e0b; --err:#e11d48;
+    --shadow:0 6px 24px rgba(17,24,39,.07); --radius:16px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
-  header{background:linear-gradient(135deg,var(--primary),#7c3aed);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow)}
+  header{background:linear-gradient(135deg,#1e3a8a,var(--primary));color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow)}
   header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
   header .sub{font-size:13px;opacity:.85}
   .nav{display:flex;gap:6px;flex-wrap:wrap}
@@ -77,6 +77,35 @@
   .pq .pa{margin:4px 0;font-size:14px}
   .pq .pa.right{color:var(--ok);font-weight:600}
   .pq .ana{font-size:13px;color:var(--muted);margin-top:6px}
+  /* ===== 选调生学习系统 · 新增组件样式 ===== */
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px}
+  .dash-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .dash-card h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px}
+  .dash-card .big{font-size:30px;font-weight:800;color:var(--primary);line-height:1.1}
+  .dash-card .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .prog{height:10px;background:#eef2f6;border-radius:999px;overflow:hidden;margin-top:8px}
+  .prog>span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#38bdf8);border-radius:999px}
+  .course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+  .course-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:.2s}
+  .course-card:hover{box-shadow:0 12px 32px rgba(17,24,39,.14)}
+  .course-card .ctop{height:56px;background:linear-gradient(135deg,var(--primary),#38bdf8);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:700}
+  .course-card .cbody{padding:14px}
+  .course-card .ctitle{font-weight:700;font-size:15px;margin-bottom:6px}
+  .course-card .cmeta{font-size:12px;color:var(--muted)}
+  .lesson{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
+  .morning-item{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
+  .timeline{position:relative;padding-left:20px}
+  .timeline:before{content:'';position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--border)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item:before{content:'';position:absolute;left:-17px;top:5px;width:11px;height:11px;border-radius:50%;background:#cbd5e1;border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+  .tl-item.due:before{background:var(--warn);box-shadow:0 0 0 1px var(--warn)}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .seg button{background:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
+  .seg button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .tag{display:inline-block;font-size:11px;background:var(--primary-l);color:var(--primary);padding:2px 8px;border-radius:6px;font-weight:600;vertical-align:middle}
+  .hero{background:linear-gradient(135deg,#1e3a8a,var(--primary));color:#fff;border-radius:var(--radius);padding:20px 24px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .hero h2{font-size:20px;font-weight:800}
   @media print{.no-print{display:none!important}.card,.card.shadow{box-shadow:none}}
   @media(max-width:640px){.opts-grid{grid-template-columns:1fr}.nav button{padding:7px 12px;font-size:13px}}
 </style>
@@ -84,11 +113,14 @@
 <body>
 <header>
   <div>
-    <h1>📝 在线答题系统</h1>
-    <div class="sub">教师工作台 · 题库 / 考试 / 课堂 / 记录 / 错题</div>
+    <h1>🎓 选调生学习系统</h1>
+    <div class="sub">教师工作台 · 班级概览 / 课程 / 早读 / 题库 / 考试 / 记录</div>
   </div>
   <nav class="nav">
-    <button data-tab="questions" class="active">题库管理</button>
+    <button data-tab="dashboard" class="active">📊 班级仪表盘</button>
+    <button data-tab="courses">📚 课程管理</button>
+    <button data-tab="morning">🌅 早读管理</button>
+    <button data-tab="questions">题库管理</button>
     <button data-tab="exams">考试管理</button>
     <button data-tab="classroom">课堂模式</button>
     <button data-tab="records">学生记录</button>
@@ -99,8 +131,61 @@
 </header>
 
 <main>
+  <!-- ========== 班级仪表盘 ========== -->
+  <section id="tab-dashboard">
+    <div id="tdash-body"></div>
+  </section>
+
+  <!-- ========== 课程管理 ========== -->
+  <section id="tab-courses" class="hidden">
+    <div class="card">
+      <h2>新建课程 <span class="tag">老师自建</span></h2>
+      <div class="row"><div style="flex:2"><label>课程标题</label><input id="nc-title" placeholder="如：习近平新时代中国特色社会主义思想概论"></div></div>
+      <label>课程简介</label><textarea id="nc-desc" placeholder="一句话介绍课程目标…"></textarea>
+      <div class="btnrow"><button class="btn" onclick="createCourseT()">创建课程</button></div>
+    </div>
+    <div class="card">
+      <h2>课程列表 <span class="tag" id="course-count">0</span></h2>
+      <div id="course-list"></div>
+    </div>
+    <div id="course-editor"></div>
+  </section>
+
+  <!-- ========== 早读管理 ========== -->
+  <section id="tab-morning" class="hidden">
+    <div class="card">
+      <h2>新建早读内容 <span class="tag">老师推送</span></h2>
+      <label>早读标题</label><input id="nm-title" placeholder="如：每日金句 10 条">
+      <label>早读内容（学生打卡阅读）</label><textarea id="nm-content" placeholder="早读文本 / 知识点…"></textarea>
+      <div class="btnrow"><button class="btn" onclick="createMorningT()">保存早读</button></div>
+    </div>
+    <div class="card">
+      <h2>早读内容库 <span class="tag" id="mr-count">0</span></h2>
+      <div id="mr-list"></div>
+    </div>
+    <div class="card">
+      <h2>📋 布置早读作业（打卡后检验）</h2>
+      <div class="row">
+        <div><label>作业标题</label><input id="hw-title" placeholder="如：早读默写测验"></div>
+        <div><label>日期</label><input id="hw-date" type="date"></div>
+      </div>
+      <label>选择题目（勾选加入作业）</label>
+      <div class="qlist" id="hw-pick" style="max-height:260px"></div>
+      <div class="btnrow"><button class="btn" onclick="assignHomework()">布置作业</button></div>
+      <div id="hw-list" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>📊 今日打卡统计 <span class="tag" id="ci-date"></span></h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>选择日期</label><input id="ci-pick" type="date"></div>
+        <div style="flex:0"><button class="btn" onclick="loadCheckinStats()">查询</button></div>
+      </div>
+      <div id="ci-body"></div>
+    </div>
+  </section>
+
   <!-- ========== 题库管理 ========== -->
-  <section id="tab-questions">
+  <section id="tab-questions" class="hidden">
     <div class="card">
       <h2>录入题目 <span class="tag">单题</span></h2>
       <div class="row">
@@ -290,6 +375,9 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   b.classList.add('active');
   document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
   $('#tab-'+b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='dashboard')loadTeacherDashboard();
+  if(b.dataset.tab==='courses')loadCourseList();
+  if(b.dataset.tab==='morning'){loadMorningList();loadCheckinStats();}
   if(b.dataset.tab==='questions')loadQuestions();
   if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
   if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
@@ -503,9 +591,132 @@ async function sendReminder(){
   }catch(e){toast(e.message,'err');}
 }
 
+// ---- 班级仪表盘 ----
+async function loadTeacherDashboard(){
+  try{
+    const d=await api('/api/dashboard/teacher');
+    const t=d.todayCheckin;
+    let h='<div class="hero"><div><h2>班级学习概览</h2><div style="opacity:.9;font-size:14px;margin-top:4px">实时掌握全班备考进度与早读打卡</div></div></div>';
+    h+='<div class="dash-grid">';
+    h+=tdashTile('学生总数',d.studentCount,'已注册');
+    h+=tdashTile('课程数',d.courseCount,'已建课程');
+    h+=tdashTile('今日早读已打卡',t.checked+' / '+t.total,'打卡率 '+(t.total?Math.round(t.checked/t.total*100):0)+'%');
+    h+=tdashTile('全班答题正确率',d.overall.percent+'%',d.overall.correct+'/'+d.overall.total+' 题');
+    h+=tdashTile('在学记忆学生',d.masteryOverview.studentsWithMemory,'开启复习');
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>📊 今日早读打卡</h2><div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+t.checked+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+t.unchecked+'</div><div class="lbl">未打卡</div></div></div>';
+    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+t.checkedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.checkedList.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+t.uncheckedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.uncheckedList.map(s=>'<span class="pill" style="background:#fee2e2;color:var(--err)">'+esc(s.name)+'</span>').join('')+'</div></div></div>';
+    h+='</div>';
+    h+='<div class="card" style="margin-top:18px"><h2>⚠️ 班级薄弱专题（正确率偏低）</h2>';
+    if(!d.weakTopics.length){h+='<p class="muted">答题数据不足。</p>';}
+    else{d.weakTopics.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
+    h+='</div>';
+    $('#tdash-body').innerHTML=h;
+  }catch(e){toast(e.message,'err');}
+}
+function tdashTile(t,n,sub){return `<div class="dash-card"><h3>${t}</h3><div class="big">${n}</div><div class="sub">${sub}</div></div>`;}
+
+// ---- 课程管理 ----
+async function loadCourseList(){
+  try{
+    const list=await api('/api/courses');
+    $('#course-count').textContent=list.length;
+    const box=$('#course-list');
+    if(!list.length){box.innerHTML='<p class="muted">还没有课程，先创建一门吧。</p>';return;}
+    box.innerHTML='<div class="course-grid">'+list.map(c=>`<div class="course-card" onclick="editCourse('${c.id}')"><div class="ctop">📘</div><div class="cbody"><div class="ctitle">${esc(c.title)}</div><div class="cmeta">${c.chapters.length} 章 · ${c.chapters.reduce((n,ch)=>n+ch.lessons.length,0)} 课时</div></div></div>`).join('')+'</div>';
+  }catch(e){toast(e.message,'err');}
+}
+async function createCourseT(){
+  const title=$('#nc-title').value.trim(),description=$('#nc-desc').value.trim();
+  if(!title){toast('请填写课程标题','err');return;}
+  try{await api('/api/courses',{method:'POST',body:JSON.stringify({title,description})});toast('课程已创建','ok');$('#nc-title').value='';$('#nc-desc').value='';loadCourseList();}catch(e){toast(e.message,'err');}
+}
+async function editCourse(id){
+  try{
+    const c=await api('/api/courses/'+id);
+    let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>✏️ 编辑课程：${esc(c.title)}</h2><button class="btn danger sm" onclick="delCourse('${id}')">删除课程</button></div>`;
+    h+=`<div class="row"><div style="flex:2"><label>标题</label><input id="ec-title" value="${esc(c.title)}"></div></div><label>简介</label><textarea id="ec-desc">${esc(c.description||'')}</textarea><div class="btnrow"><button class="btn sm" onclick="saveCourse('${id}')">保存信息</button></div>`;
+    h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📂 章节</h2>';
+    if(!c.chapters.length){h+='<p class="muted">暂无章节。</p>';}
+    c.chapters.forEach(ch=>{
+      h+=`<div class="lesson"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(ch.title)}</b><button class="btn danger sm" onclick="delChapter('${id}','${ch.id}')">删除章</button></div>`;
+      if(ch.lessons.length){h+='<div style="margin-top:8px">'+ch.lessons.map(ls=>{
+        const mat=(ls.materials&&ls.materials.length)?ls.materials.map(m=>esc(m.title||m.url)).join('、'):'';
+        return `<div class="qitem"><div class="qtitle"><div><b>${esc(ls.title)}</b> ${ls.type==='material'?'<span class="tag">资料</span>':''}${ls.practiceExamId?' <span class="tag">含练习</span>':''}</div><div class="meta">${mat?('资料：'+mat):''}</div></div><button class="btn danger sm" onclick="delLesson('${id}','${ch.id}','${ls.id}')">删除</button></div>`;
+      }).join('')+'</div>';}
+      h+=`<div class="row" style="margin-top:8px"><div style="flex:2"><input id="nl-title-${ch.id}" placeholder="新课时标题"></div><div><select id="nl-type-${ch.id}"><option value="text">文本课时</option><option value="material">资料课时</option></select></div><div style="flex:0"><button class="btn ghost sm" onclick="addLesson('${id}','${ch.id}')">添加课时</button></div></div>`;
+      h+='</div>';
+    });
+    h+='<div class="row" style="margin-top:12px"><div style="flex:2"><input id="nch-title" placeholder="新章节标题"></div><div style="flex:0"><button class="btn ghost sm" onclick="addChapter(\''+id+'\')">添加章节</button></div></div>';
+    h+='</div>';
+    $('#course-editor').innerHTML=h;window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+async function saveCourse(id){try{await api('/api/courses/'+id,{method:'PUT',body:JSON.stringify({title:$('#ec-title').value.trim(),description:$('#ec-desc').value.trim()})});toast('已保存','ok');editCourse(id);}catch(e){toast(e.message,'err');}}
+async function delCourse(id){if(!confirm('确认删除该课程及其所有章节？'))return;try{await api('/api/courses/'+id,{method:'DELETE'});toast('已删除','ok');$('#course-editor').innerHTML='';loadCourseList();}catch(e){toast(e.message,'err');}}
+async function addChapter(id){const title=$('#nch-title').value.trim();if(!title){toast('请填写章节标题','err');return;}try{await api('/api/courses/'+id+'/chapters',{method:'POST',body:JSON.stringify({title})});toast('章节已添加','ok');editCourse(id);}catch(e){toast(e.message,'err');}}
+async function delChapter(id,chId){if(!confirm('删除该章节及其课时？'))return;try{await api('/api/courses/'+id+'/chapters/'+chId,{method:'DELETE'});toast('已删除','ok');editCourse(id);}catch(e){toast(e.message,'err');}}
+async function addLesson(id,chId){const title=$('#nl-title-'+chId).value.trim();if(!title){toast('请填写课时标题','err');return;}try{await api('/api/courses/'+id+'/chapters/'+chId+'/lessons',{method:'POST',body:JSON.stringify({title,type:$('#nl-type-'+chId).value,content:'',materials:[]})});toast('课时已添加','ok');editCourse(id);}catch(e){toast(e.message,'err');}}
+async function delLesson(id,chId,lsId){if(!confirm('删除该课时？'))return;try{await api('/api/courses/'+id+'/chapters/'+chId+'/lessons/'+lsId,{method:'DELETE'});toast('已删除','ok');editCourse(id);}catch(e){toast(e.message,'err');}}
+
+// ---- 早读管理 ----
+async function loadMorningList(){
+  try{
+    const list=await api('/api/morning?scope=teacher');
+    $('#mr-count').textContent=list.length;
+    const box=$('#mr-list');
+    if(!list.length){box.innerHTML='<p class="muted">还没有早读内容，先创建一条吧。</p>';return;}
+    box.innerHTML=list.map(m=>{
+      const pushed=m.push&&m.push.mode==='all';
+      return `<div class="morning-item"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.title)}</b><span class="tag" style="${pushed?'background:#dcfce7;color:var(--ok)':''}">${pushed?('已推送 '+m.push.pushDate):'未推送'}</span></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div><div class="btnrow"><button class="btn sm ${pushed?'ghost':''}" onclick="pushMorning('${m.id}')">${pushed?'重新推送':'一键推送全班'}</button><button class="btn ghost sm" onclick="editMorning('${m.id}')">编辑</button><button class="btn danger sm" onclick="delMorning('${m.id}')">删除</button></div></div>`;
+    }).join('');
+  }catch(e){toast(e.message,'err');}
+}
+async function createMorningT(){const title=$('#nm-title').value.trim(),content=$('#nm-content').value.trim();if(!title){toast('请填写早读标题','err');return;}try{await api('/api/morning',{method:'POST',body:JSON.stringify({ownerType:'teacher',ownerKey:'teacher',title,content})});toast('早读已保存','ok');$('#nm-title').value='';$('#nm-content').value='';loadMorningList();}catch(e){toast(e.message,'err');}}
+async function editMorning(id){
+  const list=await api('/api/morning?scope=teacher');const m=list.find(x=>x.id===id);if(!m)return;
+  const title=prompt('编辑早读标题：',m.title);if(title===null)return;
+  const content=prompt('编辑早读内容：',m.content||'');if(content===null)return;
+  try{await api('/api/morning/'+id,{method:'PUT',body:JSON.stringify({title:title.trim(),content:content.trim()})});toast('已更新','ok');loadMorningList();}catch(e){toast(e.message,'err');}
+}
+async function pushMorning(id){if(!confirm('确认推送该早读给全体学生（学生今日即可打卡）？'))return;try{await api('/api/morning/'+id+'/push',{method:'POST',body:'{}'});toast('已推送给全体学生','ok');loadMorningList();}catch(e){toast(e.message,'err');}}
+async function delMorning(id){if(!confirm('确认删除该早读？'))return;try{await api('/api/morning/'+id,{method:'DELETE'});toast('已删除','ok');loadMorningList();}catch(e){toast(e.message,'err');}}
+async function assignHomework(){
+  const title=$('#hw-title').value.trim();const date=$('#hw-date').value||new Date().toISOString().slice(0,10);
+  const qids=[...document.querySelectorAll('#hw-pick input:checked')].map(c=>c.value);
+  if(!title){toast('请填写作业标题','err');return;}
+  if(!qids.length){toast('请至少勾选一道题','err');return;}
+  try{await api('/api/morning/homework',{method:'POST',body:JSON.stringify({title,date,questionIds:qids})});toast('作业已布置','ok');$('#hw-title').value='';loadHomeworkList();}catch(e){toast(e.message,'err');}
+}
+async function loadHomeworkList(){
+  try{const list=await api('/api/morning/homework?date='+($('#hw-date').value||new Date().toISOString().slice(0,10)));
+    const box=$('#hw-list');
+    if(!list.length){box.innerHTML='<p class="muted">该日期暂无作业。</p>';return;}
+    box.innerHTML=list.map(h=>`<div class="lesson"><b>${esc(h.title)}</b> <span class="muted">${h.date} · ${h.questionIds.length} 题</span></div>`).join('');
+  }catch(e){toast(e.message,'err');}
+}
+async function loadCheckinStats(){
+  const d=$('#ci-pick').value||new Date().toISOString().slice(0,10);
+  $('#ci-date').textContent=d;
+  try{
+    const s=await api('/api/morning/checkin/stats?date='+d);
+    let h='<div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+s.checkedCount+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+s.uncheckedCount+'</div><div class="lbl">未打卡</div></div><div class="stat-box"><div class="num">'+s.total+'</div><div class="lbl">总人数</div></div></div>';
+    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+s.checked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.checked.map(x=>'<span class="pill">'+esc(x.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+s.unchecked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.unchecked.map(x=>'<span class="pill" style="background:#fee2e2;color:var(--err)">'+esc(x.name)+'</span>').join('')+'</div></div></div>';
+    $('#ci-body').innerHTML=h;
+  }catch(e){toast(e.message,'err');}
+}
+function initMorningPage(){
+  const today=new Date().toISOString().slice(0,10);
+  if($('#hw-date'))$('#hw-date').value=today;
+  if($('#ci-pick'))$('#ci-pick').value=today;
+  api('/api/questions').then(list=>{const box=$('#hw-pick');if(box)box.innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" value="${q.id}"><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';}).catch(()=>{});
+}
+
 // 初始化
 loadQuestions();
 loadExamPick&&loadExamPick();
+initMorningPage();
+loadTeacherDashboard();
 </script>
 </body>
 </html>
