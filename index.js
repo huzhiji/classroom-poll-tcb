@@ -443,14 +443,14 @@ function escHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 function buildReminderMail(recip) {
-  const appUrl = (process.env.APP_URL || 'https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com').replace(/\/$/, '');
+  const appUrl = (process.env.APP_URL || '').replace(/\/$/, '');
   const titles = recip.due.slice(0, 15).map((q, i) => `${i + 1}. ${escHtml(q.title)}`).join('<br>');
   const more = recip.due.length > 15 ? `<br>…还有 ${recip.due.length - 15} 题` : '';
   const subject = `【复习提醒】${escHtml(recip.name)}，今日有 ${recip.stats.due} 道题待复习`;
   const html = `<div style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;max-width:560px;margin:auto;color:#1e293b">
     <h2 style="color:#4f46e5">嗨 ${escHtml(recip.name)}，该复习啦</h2>
     <p>你今天有 <b>${recip.stats.due}</b> 道题到了复习时间。坚持按遗忘曲线复习，记忆更牢固。</p>
-    <p><a href="${appUrl}/student.html#memory" style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600">去完成今日复习 →</a></p>
+    ${appUrl ? `<p><a href="${appUrl}/student.html#memory" style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600">去完成今日复习 →</a></p>` : '<p>请打开系统「记忆模式」完成今日复习。</p>'}
     <h3 style="font-size:15px;margin-top:18px">今日待复习（共 ${recip.due.length} 题）</h3>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:14px;line-height:1.8">${titles}${more}</div>
     <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0">

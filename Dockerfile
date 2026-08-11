@@ -1,4 +1,4 @@
-# 课堂答题系统 - 腾讯云托管 Dockerfile
+# 课堂答题系统 - 通用 Dockerfile（阿里云 ECS / 任意云服务器 / 本地均可用）
 FROM node:18-alpine
 
 WORKDIR /app
@@ -10,7 +10,8 @@ RUN npm install --production
 # 复制源码
 COPY . .
 
-# 云托管访问端口默认为 80，应用监听 process.env.PORT || 80（探活固定 :80，切勿改回 3000）
+# 应用监听 process.env.PORT || 80（默认 80）。
+# 在阿里云 ECS 上用 -p 80:80 映射即可，安全组需放行 80/443。
 EXPOSE 80
 
 CMD ["node", "index.js"]

@@ -569,8 +569,8 @@ function examCardHTML(e, doneSet, draft){
   const qn = (e.questionIds||[]).length;
   let actions = `<button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button>`;
   let tags = '';
-  if(draft){
-    tags += `<span class="tag-draft">草稿·已答 ${draft.answered}/${draft.total}</span>`;
+  if(draft&&typeof draft==='object'){
+    tags += `<span class="tag-draft">草稿·已答 ${(draft.answered||0)}/${(draft.total||0)}</span>`;
     actions = `<button class="btn sm" onclick="enterExam('${e.id}')">继续作答</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`;
   } else if(done){
     tags += `<span class="tag-done">✓ 已完成</span>`;
@@ -594,7 +594,10 @@ function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);renderNav()
 async function enterExam(id){
   try{
     examIdCurrent=id; _ppCount=null;
-    examData=await api('/api/exams/'+id);
+    const ed=await api('/api/exams/'+id);
+    if(!ed||typeof ed!=='object')throw new Error('考试不存在');
+    if(!Array.isArray(ed.questions))ed.questions=[];
+    examData=ed;
     const draftResp=await api('/api/exams/'+id+'/draft?key='+encodeURIComponent(studentKey));
     const draft=draftResp&&draftResp.draft;
     const total=examData.questions.length;
@@ -666,9 +669,10 @@ async function resumeExam(id){
 }
 // 渲染题目 + 顶部工具栏 + 题号导航
 function renderExamQuestions(){
-  const qmap={};examData.questions.forEach(q=>qmap[q.id]=q);
+  const questions=Array.isArray(examData.questions)?examData.questions:[];
+  const qmap={};questions.forEach(q=>qmap[q.id]=q);
   let h=`<div class="exam-toolbar">
-    <div><b>${esc(examData.title)}</b><div class="muted" id="exam-progress">共 ${examTotal} 题 · 已答 0</div></div>
+    <div><b>${esc(examData.title||'')}</b><div class="muted" id="exam-progress">共 ${examTotal} 题 · 已答 0</div></div>
     <div class="exam-toolbar-acts">
       <button class="btn sm" onclick="submitExam('${examIdCurrent}')">交卷看成绩</button>
       <button class="btn ghost sm" onclick="saveDraftNow('${examIdCurrent}')">暂存进度</button>
@@ -716,9 +720,11 @@ async function submitExam(id){
   const unanswered=examTotal-answeredCount;
   if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
   try{
-    const r=await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers,questionIds:examSeq})});
-    let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded.length?` · 新增 ${r.wrongAdded.length} 道错题`:''}</div></div>`;
-    r.details.forEach((d,i)=>{
+    const r=(await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers,questionIds:examSeq})}))||{};
+    const wrongAdded=Array.isArray(r.wrongAdded)?r.wrongAdded:[];
+    const details=Array.isArray(r.details)?r.details:[];
+    let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / 共 ${r.total||0} 题${wrongAdded.length?` · 新增 ${wrongAdded.length} 道错题`:''}</div></div>`;
+    details.forEach((d,i)=>{
       h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 错误</span>'}</div>`;
       h+=detailOptsHTML(d);
       if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
@@ -752,8 +758,9 @@ function renderLive(d){
   if(d.state==='waiting'){$('#cr-live-body').innerHTML='<p class="muted">等待教师发布题目…</p>';return;}
   if(!d.question){$('#cr-live-body').innerHTML='<p class="muted">等待教师发布题目…</p>';return;}
   const q=d.question;
+  const opts=Array.isArray(q.options)?q.options:[];
   let h=`<div class="q"><div class="qt">${esc(q.title)}</div>`;
-  q.options.forEach((o,j)=>{
+  opts.forEach((o,j)=>{
     let cls='opt';let mk='';
     const ca=correctIdx(d.question);
     if(d.state==='showing'&&ca.includes(j)){cls+=' correct';mk='<span class="mk">✓</span>';}
@@ -765,7 +772,7 @@ function renderLive(d){
   h+=`</div>`;
   $('#cr-live-body').innerHTML=h;
   // 统计
-  if(d.stats){let s=`<div class="pill">已答 ${d.stats.answered}/${d.stats.totalStudents}</div>`;d.stats.counts.forEach((c,i)=>{if(d.question.options[i]!==undefined)s+=`<div class="pill">${d.question.options[i]}: ${d.stats.percentages[i]}%</div>`;});$('#cr-live-stats').innerHTML=s;}
+  if(d.stats){const counts=Array.isArray(d.stats.counts)?d.stats.counts:[];let s=`<div class="pill">已答 ${d.stats.answered||0}/${d.stats.totalStudents||0}</div>`;counts.forEach((c,i)=>{if(opts[i]!==undefined)s+=`<div class="pill">${opts[i]}: ${d.stats.percentages?d.stats.percentages[i]:''}%</div>`;});$('#cr-live-stats').innerHTML=s;}
 }
 async function sendAnswer(idx,j,el){
   if(crAnswered[idx]!==undefined){[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));}
@@ -777,19 +784,23 @@ async function sendAnswer(idx,j,el){
 let wrongData=null,wrongAnswers={};
 async function startPractice(count){
   if(!studentKey){toast('请先登录/注册','err');return;}
-  try{const d=await api('/api/wrong-practice/start',{method:'POST',body:JSON.stringify({studentKey,count})});
-    if(!d.questions.length){toast('暂无错题，太棒了！','ok');return;}
-    wrongData=d.questions;wrongAnswers={};
-    let h=`<h2>错题练习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
-    d.questions.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.id,'pickWrong')+`</div>`;});
+  try{const dRaw=await api('/api/wrong-practice/start',{method:'POST',body:JSON.stringify({studentKey,count})});
+    const d=(dRaw&&typeof dRaw==='object')?dRaw:{};
+    const questions=Array.isArray(d.questions)?d.questions:[];
+    if(!questions.length){toast('暂无错题，太棒了！','ok');return;}
+    wrongData=questions;wrongAnswers={};
+    let h=`<h2>错题练习（${questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
+    questions.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.id,'pickWrong')+`</div>`;});
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitPractice()">提交练习</button></div>`;
     $('#wrong-do-body').innerHTML=h;$('#wrong-do').classList.remove('hidden');window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
 async function submitPractice(){
-  try{const r=await api('/api/wrong-practice/submit',{method:'POST',body:JSON.stringify({studentKey,answers:wrongAnswers})});
-    let h=`<div class="result-head"><div class="score">${Math.round(r.correct/r.total*100)}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题${r.removed.length?` · 已掌握移除 ${r.removed.length} 题`:''}</div></div>`;
-    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+`</div>`;});
+  try{const r=(await api('/api/wrong-practice/submit',{method:'POST',body:JSON.stringify({studentKey,answers:wrongAnswers})}))||{};
+    const details=Array.isArray(r.details)?r.details:[];
+    const tot=r.total||0;const cor=r.correct||0;
+    let h=`<div class="result-head"><div class="score">${tot?Math.round(cor/tot*100):0}分</div><div class="muted">答对 ${cor} / ${tot} 题${Array.isArray(r.removed)&&r.removed.length?` · 已掌握移除 ${r.removed.length} 题`:''}</div></div>`;
+    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="startPractice()">再练一次</button></div>`;
     $('#wrong-do-body').innerHTML=h;window.scrollTo(0,0);loadMine();
   }catch(e){toast(e.message,'err');}
@@ -801,20 +812,21 @@ async function loadMemory(){
   if(!studentKey){$('#mem-stats').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   try{
     const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
-    $('#mem-due').textContent=d.stats.due;
-    $('#mem-learning').textContent=d.stats.learning;
-    $('#mem-mastered').textContent=d.stats.mastered;
-    $('#mem-total').textContent=d.stats.total;
-    $('#mem-start').textContent='开始今日复习'+(d.stats.due?`（${d.stats.due}）`:'');
-    $('#mem-start').style.opacity=d.stats.due?'1':'.5';
+    const stats=(d&&d.stats)||{due:0,learning:0,mastered:0,total:0};
+    $('#mem-due').textContent=stats.due;
+    $('#mem-learning').textContent=stats.learning;
+    $('#mem-mastered').textContent=stats.mastered;
+    $('#mem-total').textContent=stats.total;
+    $('#mem-start').textContent='开始今日复习'+(stats.due?`（${stats.due}）`:'');
+    $('#mem-start').style.opacity=stats.due?'1':'.5';
   }catch(e){toast(e.message,'err');}
 }
 async function enableMemory(source){
   if(!studentKey){toast('请先登录/注册','err');return;}
   try{
     let qids=[];
-    if(source==='wrong'){const list=await api('/api/students/'+encodeURIComponent(studentKey)+'/wrong');qids=list.map(q=>q.id);}
-    else{const list=await api('/api/questions');qids=list.map(q=>q.id);}
+    if(source==='wrong'){const list=await api('/api/students/'+encodeURIComponent(studentKey)+'/wrong');qids=(Array.isArray(list)?list:[]).map(q=>q.id);}
+    else{const list=await api('/api/questions');qids=(Array.isArray(list)?list:[]).map(q=>q.id);}
     if(!qids.length){toast('没有可加入的题目','err');return;}
     const d=await api('/api/memory/enable',{method:'POST',body:JSON.stringify({studentKey,qids})});
     toast('已加入记忆计划：新增 '+d.added+' 张卡','ok');
@@ -824,10 +836,12 @@ async function enableMemory(source){
 async function startMemory(){
   if(!studentKey){toast('请先登录/注册','err');return;}
   try{
-    const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
-    if(!d.questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
-    memData=d.questions;memAnswers={};
-    let h=`<h2>今日复习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
+    const dRaw=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
+    const d=(dRaw&&typeof dRaw==='object')?dRaw:{};
+    const questions=Array.isArray(d.questions)?d.questions:[];
+    if(!questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
+    memData=questions;memAnswers={};
+    let h=`<h2>今日复习（${questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
     memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.qid,'pickMem')+`</div>`;});
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitMemory()">提交复习</button></div>`;
     $('#mem-do-body').innerHTML=h;$('#mem-do').classList.remove('hidden');window.scrollTo(0,0);
@@ -836,10 +850,11 @@ async function startMemory(){
 function pickMem(qid,j,el,multi){pickGen(memAnswers,qid,j,el,multi);}
 async function submitMemory(){
   try{
-    const r=await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers})});
-    const correct=r.results.filter(x=>x.isCorrect).length;
-    let h=`<div class="result-head"><div class="score">${Math.round(correct/r.results.length*100)}分</div><div class="muted">本次复习 ${r.results.length} 题</div></div>`;
-    r.results.forEach((d,i)=>{
+    const r=(await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers})}))||{};
+    const results=Array.isArray(r.results)?r.results:[];
+    const correct=results.length?results.filter(x=>x.isCorrect).length:0;
+    let h=`<div class="result-head"><div class="score">${results.length?Math.round(correct/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 题</div></div>`;
+    results.forEach((d,i)=>{
       h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div>`;
       h+=detailOptsHTML(d);
       if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
@@ -948,29 +963,34 @@ function goMorning(){document.querySelector('.nav button[data-tab=morning]').cli
 async function loadCourses(){
   if(!studentKey){$('#courses-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   try{
-    const list=await api('/api/student/courses?key='+encodeURIComponent(studentKey));
+    const listRaw=await api('/api/student/courses?key='+encodeURIComponent(studentKey));
+    const arr=Array.isArray(listRaw)?listRaw:[];
     const box=$('#courses-body');
-    if(!list.length){box.innerHTML='<p class="muted">老师还没有发布课程。</p>';return;}
-    box.innerHTML='<div class="course-grid">'+list.map(c=>`<div class="course-card" onclick="openCourse('${c.id}')"><div class="ctop">📘</div><div class="cbody"><div class="ctitle">${esc(c.title)}</div><div class="cmeta">${c.chapterCount} 章 · ${c.total} 课时</div><div class="prog" style="margin-top:8px"><span style="width:${c.percent}%"></span></div><div class="cmeta" style="margin-top:6px">进度 ${c.completed}/${c.total}（${c.percent}%）</div></div></div>`).join('')+'</div>';
+    if(!arr.length){box.innerHTML='<p class="muted">老师还没有发布课程。</p>';return;}
+    box.innerHTML='<div class="course-grid">'+arr.map(c=>`<div class="course-card" onclick="openCourse('${c.id}')"><div class="ctop">📘</div><div class="cbody"><div class="ctitle">${esc(c.title)}</div><div class="cmeta">${c.chapterCount} 章 · ${c.total} 课时</div><div class="prog" style="margin-top:8px"><span style="width:${c.percent}%"></span></div><div class="cmeta" style="margin-top:6px">进度 ${c.completed}/${c.total}（${c.percent}%）</div></div></div>`).join('')+'</div>';
   }catch(e){toast(e.message,'err');}
 }
 async function openCourse(id){
   try{
-    const c=await api('/api/courses/'+id);
-    const p=await api('/api/courses/'+id+'/progress?key='+encodeURIComponent(studentKey));
-    curDoneSet=new Set(p.completedLessons||[]);
-    let h=`<button class="btn ghost sm" onclick="loadCourses()">← 返回课程列表</button><h2 style="margin:12px 0">${esc(c.title)}</h2>`;
+    const cRaw=await api('/api/courses/'+id);
+    const c=(cRaw&&typeof cRaw==='object')?cRaw:{chapters:[]};
+    const pRaw=await api('/api/courses/'+id+'/progress?key='+encodeURIComponent(studentKey));
+    const p=(pRaw&&typeof pRaw==='object')?pRaw:{};
+    curDoneSet=new Set(Array.isArray(p.completedLessons)?p.completedLessons:[]);
+    let h=`<button class="btn ghost sm" onclick="loadCourses()">← 返回课程列表</button><h2 style="margin:12px 0">${esc(c.title||'')}</h2>`;
     if(c.description)h+=`<p class="muted">${esc(c.description)}</p>`;
-    h+=`<div class="prog" style="margin:10px 0"><span style="width:${p.percent}%"></span></div><p class="muted">${p.completed}/${p.total} 课时完成（${p.percent}%）</p>`;
-    if(!c.chapters.length){h+='<p class="muted">本课程暂无章节内容。</p>';}
-    c.chapters.forEach(ch=>{
-      h+=`<div class="card" style="margin-top:14px"><h2 style="font-size:15px">📂 ${esc(ch.title)}</h2>`;
-      if(!ch.lessons.length){h+='<p class="muted">本章暂无课时。</p>';}
-      ch.lessons.forEach(ls=>{
+    h+=`<div class="prog" style="margin:10px 0"><span style="width:${typeof p.percent==='number'?p.percent:0}%"></span></div><p class="muted">${(p.completed||0)}/${(p.total||0)} 课时完成（${typeof p.percent==='number'?p.percent:0}%）</p>`;
+    const chapters=Array.isArray(c.chapters)?c.chapters:[];
+    if(!chapters.length){h+='<p class="muted">本课程暂无章节内容。</p>';}
+    chapters.forEach(ch=>{
+      h+=`<div class="card" style="margin-top:14px"><h2 style="font-size:15px">📂 ${esc(ch.title||'')}</h2>`;
+      const lessons=Array.isArray(ch.lessons)?ch.lessons:[];
+      if(!lessons.length){h+='<p class="muted">本章暂无课时。</p>';}
+      lessons.forEach(ls=>{
         const done=curDoneSet.has(ls.id);
-        h+=`<div class="lesson ${done?'done':''}"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(ls.title)}</b> ${ls.type==='material'?'<span class="tag">资料</span>':''}</div>`;
+        h+=`<div class="lesson ${done?'done':''}"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(ls.title||'')}</b> ${ls.type==='material'?'<span class="tag">资料</span>':''}</div>`;
         if(ls.content)h+=`<div class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(ls.content)}</div>`;
-        if(ls.materials&&ls.materials.length){h+='<div style="margin-top:6px">'+ls.materials.map(m=>`<a class="pill" href="${esc(m.url)}" target="_blank" rel="noopener">🔗 ${esc(m.title||m.url)}</a>`).join('')+'</div>';}
+        if(Array.isArray(ls.materials)&&ls.materials.length){h+='<div style="margin-top:6px">'+ls.materials.map(m=>`<a class="pill" href="${esc(m.url)}" target="_blank" rel="noopener">🔗 ${esc(m.title||m.url)}</a>`).join('')+'</div>';}
         if(ls.practiceExamId)h+=`<div style="margin-top:8px"><button class="btn ghost sm" onclick="enterExam('${ls.practiceExamId}')">▶ 完成内置练习</button></div>`;
         h+=`<div style="margin-top:10px"><button class="btn sm ${done?'ghost':''}" id="lsbtn-${ls.id}" onclick="toggleLesson('${id}','${ls.id}',${done})">${done?'✓ 已完成（点击取消）':'标记完成'}</button></div>`;
         h+='</div>';
@@ -995,19 +1015,26 @@ async function loadMorning(){
   if(!studentKey){$('#morning-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   const today=new Date().toISOString().slice(0,10);
   try{
-    const t=await api('/api/morning/today?key='+encodeURIComponent(studentKey)+'&date='+today);
-    const own=await api('/api/morning?ownerKey='+encodeURIComponent(studentKey)+'&scope=student');
-    const mr=await api('/api/morning/memory/stats?key='+encodeURIComponent(studentKey));
-    const hw=await api('/api/morning/homework?date='+today);
+    const tRaw=await api('/api/morning/today?key='+encodeURIComponent(studentKey)+'&date='+today);
+    const t=(tRaw&&typeof tRaw==='object')?tRaw:{items:[],checkin:{done:false,readingIds:[]}};
+    const items=Array.isArray(t.items)?t.items:[];
+    const checkin=(t.checkin&&typeof t.checkin==='object')?t.checkin:{done:false,readingIds:[]};
+    const ownRaw=await api('/api/morning?ownerKey='+encodeURIComponent(studentKey)+'&scope=student');
+    const ownArr=Array.isArray(ownRaw)?ownRaw:[];
+    const mrRaw=await api('/api/morning/memory/stats?key='+encodeURIComponent(studentKey));
+    const mr=(mrRaw&&typeof mrRaw==='object')?mrRaw:{due:0,learning:0,mastered:0,total:0};
+    const hwRaw=await api('/api/morning/homework?date='+today);
+    const hw=Array.isArray(hwRaw)?hwRaw:[];
     morningToday=t;
     let h='<div class="card"><h2>🌅 今日早读打卡 <span class="tag">'+today+'</span></h2>';
-    if(!t.items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。可在下方「我的早读规划」自建。</p>';}
+    if(!items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。可在下方「我的早读规划」自建。</p>';}
     else{
-      h+=`<p class="muted">${t.checkin.done?'✅ 今日已打卡':'请阅读下列内容后完成打卡（每日必做）'}</p><div id="morning-items">`;
-      t.items.forEach(m=>{const chk=t.checkin.readingIds.includes(m.id);h+=`<div class="morning-item ${chk?'checked':''}"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" class="mchk" value="${m.id}" ${chk?'checked':''} style="margin-top:5px"><div><div style="font-weight:600">${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div></div></label></div>`;});
+      h+=`<p class="muted">${checkin.done?'✅ 今日已打卡':'请阅读下列内容后完成打卡（每日必做）'}</p><div id="morning-items">`;
+      const rids=Array.isArray(checkin.readingIds)?checkin.readingIds:[];
+      items.forEach(m=>{const chk=rids.includes(m.id);h+=`<div class="morning-item ${chk?'checked':''}"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" class="mchk" value="${m.id}" ${chk?'checked':''} style="margin-top:5px"><div><div style="font-weight:600">${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div></div></label></div>`;});
       h+='</div>';
-      h+=`<div class="btnrow"><button class="btn" onclick="doCheckin()">${t.checkin.done?'取消打卡':'完成今日打卡'}</button></div>`;
-      if(hw.length){h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📋 今日早读作业</h2>';hw.forEach(hh=>{h+=`<div class="lesson"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(hh.title)}</b><button class="btn ghost sm" onclick="doHomework('${hh.id}')">去完成</button></div><div class="muted" style="margin-top:4px">${hh.questionIds.length} 题${hh.examId?'（来自考试）':''}</div></div>`;});}
+      h+=`<div class="btnrow"><button class="btn" onclick="doCheckin()">${checkin.done?'取消打卡':'完成今日打卡'}</button></div>`;
+      if(hw.length){h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📋 今日早读作业</h2>';hw.forEach(hh=>{h+=`<div class="lesson"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(hh.title)}</b><button class="btn ghost sm" onclick="doHomework('${hh.id}')">去完成</button></div><div class="muted" style="margin-top:4px">${Array.isArray(hh.questionIds)?hh.questionIds.length:0} 题${hh.examId?'（来自考试）':''}</div></div>`;});}
     }
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>🧠 早读记忆复习 <span class="tag">艾宾浩斯</span></h2>';
@@ -1018,7 +1045,7 @@ async function loadMorning(){
     h+='<div class="card" style="margin-top:18px"><h2>🗓️ 我的早读规划（自建）</h2><div class="row"><div style="flex:2"><label>标题</label><input id="mr-title" placeholder="如：背诵习近平金句 10 条"></div></div><label>内容</label><textarea id="mr-content" placeholder="早读文本 / 知识点…"></textarea><div class="btnrow"><button class="btn" onclick="addMyMorning()">添加我的早读</button></div><div id="my-morning-list" style="margin-top:12px"></div></div>';
     h+='<div class="card" style="margin-top:18px"><h2>📅 早读复习日程表</h2><div id="mr-schedule"></div></div>';
     $('#morning-body').innerHTML=h;
-    renderMyMorning(own);renderSchedule();
+    renderMyMorning(ownArr);renderSchedule();
   }catch(e){toast(e.message,'err');}
 }
 function toggleIds(){const all=[...document.querySelectorAll('.mchk')].map(c=>c.value);const checked=[...document.querySelectorAll('.mchk:checked')].map(c=>c.value);return checked.length?checked:all;}
@@ -1032,21 +1059,24 @@ async function delMyMorning(id){if(!confirm('删除该早读？'))return;try{awa
 async function enableMr(){if(!morningToday||!morningToday.items.length){toast('今日没有可加入的早读','err');return;}const ids=morningToday.items.map(m=>m.id);try{const r=await api('/api/morning/memory/enable',{method:'POST',body:JSON.stringify({studentKey,mrids:ids})});toast('已加入记忆：'+r.added+' 张卡','ok');loadMorning();}catch(e){toast(e.message,'err');}}
 async function startMr(){
   if(!studentKey){toast('请先登录/注册','err');return;}
-  try{const d=await api('/api/morning/memory/due?key='+encodeURIComponent(studentKey));
-    if(!d.items.length){toast('今日没有待复习的早读 🎉','ok');return;}
-    mrData=d.items;mrAnswers={};
-    let h=`<h2>早读复习（${d.items.length} 项）</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
-    d.items.forEach((m,i)=>{h+=`<div class="q" data-mrid="${m.itemId}"><div class="qt">${i+1}. ${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-bottom:8px">${esc(m.content||'')}</div><div class="opt" onclick="pickMr('${m.itemId}',0,this)">✅ 记住了</div><div class="opt" onclick="pickMr('${m.itemId}',1,this)">❌ 没记住</div></div>`;});
+  try{const dRaw=await api('/api/morning/memory/due?key='+encodeURIComponent(studentKey));
+    const d=(dRaw&&typeof dRaw==='object')?dRaw:{};
+    const items=Array.isArray(d.items)?d.items:[];
+    if(!items.length){toast('今日没有待复习的早读 🎉','ok');return;}
+    mrData=items;mrAnswers={};
+    let h=`<h2>早读复习（${items.length} 项）</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
+    items.forEach((m,i)=>{h+=`<div class="q" data-mrid="${m.itemId}"><div class="qt">${i+1}. ${esc(m.title)}</div><div class="muted" style="white-space:pre-wrap;margin-bottom:8px">${esc(m.content||'')}</div><div class="opt" onclick="pickMr('${m.itemId}',0,this)">✅ 记住了</div><div class="opt" onclick="pickMr('${m.itemId}',1,this)">❌ 没记住</div></div>`;});
     h+=`<div class="center" style="margin-top:14px"><button class="btn" onclick="submitMr()">提交复习</button></div>`;
     $('#mr-do-body').innerHTML=h;$('#mr-do').classList.remove('hidden');window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
 function pickMr(mrid,v,el){mrAnswers[mrid]=v;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
-async function submitMr(){try{const r=await api('/api/morning/memory/review',{method:'POST',body:JSON.stringify({studentKey,results:mrAnswers})});let ok=r.results.filter(x=>x.isCorrect).length;let h=`<div class="result-head"><div class="score">${Math.round(ok/r.results.length*100)}分</div><div class="muted">本次复习 ${r.results.length} 项</div></div>`;r.results.forEach((x,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(x.title)} ${x.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div><div class="ana">下次复习：约 <b>${x.nextIntervalDays}</b> 天后（${x.isCorrect?'间隔拉长':'明天再来'}）</div></div>`;});h+=`<div class="center"><button class="btn ghost" onclick="afterMr()">返回</button></div>`;$('#mr-do-body').innerHTML=h;window.scrollTo(0,0);}catch(e){toast(e.message,'err');}}
+async function submitMr(){try{const r=(await api('/api/morning/memory/review',{method:'POST',body:JSON.stringify({studentKey,results:mrAnswers})}))||{};const results=Array.isArray(r.results)?r.results:[];const ok=results.length?results.filter(x=>x.isCorrect).length:0;let h=`<div class="result-head"><div class="score">${results.length?Math.round(ok/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 项</div></div>`;results.forEach((x,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(x.title)} ${x.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div><div class="ana">下次复习：约 <b>${x.nextIntervalDays}</b> 天后（${x.isCorrect?'间隔拉长':'明天再来'}）</div></div>`;});h+=`<div class="center"><button class="btn ghost" onclick="afterMr()">返回</button></div>`;$('#mr-do-body').innerHTML=h;window.scrollTo(0,0);}catch(e){toast(e.message,'err');}}
 async function afterMr(){$('#mr-do').classList.add('hidden');loadMorning();loadDashboard();}
 async function renderSchedule(){
   try{
-    const cards=await api('/api/morning/memory/cards?key='+encodeURIComponent(studentKey));
+    const cardsRaw=await api('/api/morning/memory/cards?key='+encodeURIComponent(studentKey));
+    const cards=Array.isArray(cardsRaw)?cardsRaw:[];
     const buckets={};cards.forEach(c=>{const day=new Date(c.due).toISOString().slice(0,10);(buckets[day]=buckets[day]||[]).push(c);});
     let h='<div class="timeline">';const today=new Date();
     for(let i=0;i<14;i++){const dt=new Date(today);dt.setDate(today.getDate()+i);const day=dt.toISOString().slice(0,10);const items=buckets[day]||[];
@@ -1057,10 +1087,11 @@ async function renderSchedule(){
 }
 async function doHomework(id){
   try{
-    const list=await api('/api/morning/homework?date='+new Date().toISOString().slice(0,10));
+    const listRaw=await api('/api/morning/homework?date='+new Date().toISOString().slice(0,10));
+    const list=Array.isArray(listRaw)?listRaw:[];
     const hh=list.find(x=>x.id===id);if(!hh)throw new Error('作业不存在');
-    let qids=hh.questionIds||[];if(!qids.length&&hh.examId){const e=await api('/api/exams/'+hh.examId);qids=e.questionIds||[];}
-    const allq=await api('/api/questions');const map={};allq.forEach(q=>map[q.id]=q);
+    let qids=Array.isArray(hh.questionIds)?hh.questionIds:[];if(!qids.length&&hh.examId){const e=await api('/api/exams/'+hh.examId);qids=Array.isArray(e.questionIds)?e.questionIds:[];}
+    const allqRaw=await api('/api/questions');const allq=Array.isArray(allqRaw)?allqRaw:[];const map={};allq.forEach(q=>map[q.id]=q);
     const qs=qids.map(qid=>map[qid]).filter(Boolean);
     if(!qs.length){toast('作业暂无可答题','err');return;}
     hwState={id,answers:{}};
@@ -1072,9 +1103,10 @@ async function doHomework(id){
 }
 function pickHw(qid,j,el,multi){pickGen(hwState.answers,qid,j,el,multi);}
 async function submitHw(){
-  try{const r=await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})});
-    let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题</div></div>`;
-    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
+  try{const r=(await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})}))||{};
+    const details=Array.isArray(r.details)?r.details:[];
+    let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / ${r.total||0} 题</div></div>`;
+    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="loadMorning()">返回早读</button></div>`;
     $('#morning-body').innerHTML=h;window.scrollTo(0,0);loadDashboard();
   }catch(e){toast(e.message,'err');}

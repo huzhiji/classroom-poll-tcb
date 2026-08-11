@@ -10,8 +10,8 @@
 
 一个**国产云端「选调生学习系统」**（由在线答题平台升级而来）：学生用**邮箱 + 密码**注册登录 → 首页**学习仪表盘**展示各模块掌握概览（进度条/完成率/薄弱环节）→ 三大核心模块：**课程**（老师自建章节+资料+内置练习，按课时完成度算进度）、**答题**（考试/专题/课堂/错题练习/记忆模式）、**早读**（老师一键推送、学生每日打卡、艾宾浩斯自动复习、打卡后布置作业、师生双端日程/统计）→ 教师可**按邮箱群发复习提醒邮件**。数据可一键/定时备份到本地。
 
-**已上线地址**：`https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com`
-**仓库**：`https://github.com/huzhiji/classroom-poll-tcb`（分支 `main`，已开启 GitHub 自动部署到腾讯云托管）
+**部署现状**：原腾讯云托管地址 `https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com` **因配额耗尽已停用**；现部署在**阿里云 ECS**（Docker 方式，见 §3 与 §12.4，一键脚本 `deploy/aliyun-ecs/`）。
+**仓库**：`https://github.com/huzhiji/classroom-poll-tcb`（分支 `main`）
 **注意**：另一个仓库 `huzhiji/classroom-poll`（Vercel 旧版）已弃用，请勿混淆。
 
 ---
@@ -24,7 +24,7 @@
 | 框架 | Express 4（生产依赖）+ **nodemailer**（邮件） | 同进程托管前端与 API |
 | 前端 | 原生 HTML/CSS/JS（无构建步骤） | 直接放 `public/`，浏览器打开即用 |
 | 存储 | **进程内存 + JSON 文件落盘**（`/data/store.json`） | 零数据库依赖，绝不因外网/凭证卡构建 |
-| 部署 | 腾讯云托管（容器，Dockerfile），GitHub 自动部署 | 国内访问快、可挂持久卷、可跑定时任务 |
+| 部署 | 阿里云 ECS + Docker（通用 Dockerfile；一键脚本 `deploy/aliyun-ecs/deploy.sh`）。曾用腾讯云托管，配额已耗尽停用 | 云平台无关、磁盘持久化、国内访问快 |
 
 ---
 
@@ -35,10 +35,13 @@ classroom-poll-cloudbase/
 ├── index.js              # Express 入口：静态托管 + 全部 /api/* 路由 + 邮件发送 + 每日定时调度
 ├── lib/store.js          # 统一存储层（内存 db + 落盘 + 题目/考试/学生/错题/房间/SRS/注册登录/提醒）
 ├── package.json          # 仅 express + nodemailer
-├── Dockerfile            # 腾讯云托管构建（FROM node:18-alpine，EXPOSE 80）
+├── Dockerfile            # 通用容器构建（FROM node:18-alpine，EXPOSE 80；阿里云 ECS 等任意环境可用）
 ├── .dockerignore         # 排除 node_modules 等
 ├── .gitignore            # 排除 node_modules / _testdata / 日志
 ├── backup-to-local.ps1   # 本地 Windows 定时备份脚本（定期拉云端数据存本机）
+├── check-student-robustness.js  # 学生端健壮性回归检查（NORMAL+BROKEN 双模式 mock 全部 loader，断言零 undefined 崩溃；改 student.html 后必跑）
+├── deploy/
+│   └── aliyun-ecs/       # 阿里云 ECS 部署：deploy.sh（一键构建+运行）、配置说明.md（完整指南）、nginx.conf（HTTPS 反代示例）
 ├── AI-CONTEXT.md         # 本文件
 └── public/
     ├── teacher.html      # 教师端（10 个 Tab：班级仪表盘/课程管理/早读管理/题库/考试/课堂/学生记录/错题导出/数据备份/复习提醒）
@@ -51,12 +54,13 @@ classroom-poll-cloudbase/
 
 ## 3. 部署架构（务必遵守）
 
-- **容器端口**：应用监听 `process.env.PORT || 80`。云托管探活固定 `:80`，**绝对不能改回 3000 并去掉 `|| 80`**，否则探活 connection refused、实例起不来。
-- **持久化卷**：所有数据落盘到 `/data/store.json`（可用环境变量 `DATA_DIR` 覆盖）。**云托管必须挂载持久卷到 `/data`**，否则每次"新建版本"重新部署数据清空。挂载与部署是两个独立动作，都要做。
-- **实例数**：固定为 1（最小=最大=1）。多副本会导致内存数据不一致、相互覆盖。
+- **当前部署目标：阿里云 ECS**（腾讯云托管配额已耗尽、停用）。ECS 磁盘本身持久：`DATA_DIR=/data` 直接落盘，**无需额外挂载云盘/持久卷**；容器 `-p 80:80` 映射、`--restart=always`；安全组放行 80/443。一键脚本 `deploy/aliyun-ecs/deploy.sh`，完整指南 `deploy/aliyun-ecs/配置说明.md`。
+- **容器端口**：应用监听 `process.env.PORT || 80`。**绝对不能改回 3000 并去掉 `|| 80`**，否则外部 80 映射探活失败。
+- **持久化卷**：所有数据落盘到 `/data/store.json`（可用环境变量 `DATA_DIR` 覆盖）。Docker 部署用 `-v /data:/data` 挂宿主机目录；**容器删了数据仍在**。
+- **实例数**：固定为 1。多副本会导致内存数据不一致、相互覆盖。
 - **不要引入 CloudBase SDK 或其他需外网/凭证的包**——当初因此构建失败，已彻底改为纯文件存储。
-- **自动部署**：GitHub push 到 `main` 触发（前提是云托管里配置的触发分支=main 且 Webhook 正常）。若没触发，去云托管「部署管理 → 新建版本」手动拉一次。
-- **邮件环境变量**（在云托管控制台设置）：`SMTP_HOST` / `SMTP_PORT`（465 走 SSL，587 走 STARTTLS）/ `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`（可选）/ `APP_URL`（邮件里"去复习"链接，默认线上地址）/ `AUTO_REMINDER`（`=1` 开启每日自动群发）/ `REMINDER_HOUR`（默认 9，24 小时制）。未配 SMTP 时，提醒预览仍可看名单，发送接口安全返回 `configured:false` 不报错。
+- **自动部署**：GitHub push 到 `main` 后，在 ECS 上 `git pull && bash deploy/aliyun-ecs/deploy.sh` 即可更新（数据不丢）。
+- **邮件环境变量**：`SMTP_HOST` / `SMTP_PORT`（465 走 SSL，587 走 STARTTLS）/ `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`（可选）/ `APP_URL`（邮件里"去复习"链接；**未设置则邮件不生成链接**）/ `AUTO_REMINDER`（`=1` 开启每日自动群发）/ `REMINDER_HOUR`（默认 9，24 小时制）。未配 SMTP 时，提醒预览仍可看名单，发送接口安全返回 `configured:false` 不报错。
 
 ---
 
@@ -220,6 +224,8 @@ npm install                                  # 装 express + nodemailer
 node -e "require('./lib/store'); require('./index'); console.log('require ok')"   # 注意：会真的 listen 80，端口占用报错属正常，只要前面无 SyntaxError 即可
 # 2) 前端 JS 语法快检
 node -e "const fs=require('fs');const s=fs.readFileSync('public/student.html','utf8');new Function(s.match(/<script>([\s\S]*?)<\/script>/)[1]);"
+# 2.5) 前端健壮性回归（NORMAL+BROKEN 双模式 mock 全部 loader，断言零 undefined 崩溃；改 student.html 后必跑）
+node check-student-robustness.js
 # 3) 起服务 + 端到端测试（务必用临时 DATA_DIR，绝不写 /data）
 export DATA_DIR="$PWD/_testdata"; export PORT=3011
 (node index.js > /tmp/srv.log 2>&1 &) ; sleep 2
@@ -237,10 +243,13 @@ git push origin main
 推送后 `main` 即最新代码。**但线上不会自动变**——见 12.4。
 
 ### 12.4 让线上生效（最容易被忽略的一步）
-1. 去腾讯云托管 `classroom-poll` 服务 → **部署管理 → 新建版本**（选 GitHub `huzhiji/classroom-poll-tcb` / `main`）→ 部署。
-2. 确认**持久卷挂载到 `/data`**（与部署是独立动作，漏挂则重部署数据清空）。
-3. 确认**实例数 = 1**。
-4. 若开启了 GitHub 自动部署却没触发：检查云托管触发分支=main、GitHub Webhooks 投递无失败；否则一律走"手动新建版本"。
+**当前线上环境 = 阿里云 ECS（Docker）**，更新流程：
+1. 本地 `git push origin main` 推送代码。
+2. 登录 ECS，`cd /opt/classroom && git pull && bash deploy/aliyun-ecs/deploy.sh`（脚本自动构建新镜像、重建容器，`-v /data:/data` 挂载保证数据不丢）。
+3. 若改过域名/邮件配置，编辑 `deploy/aliyun-ecs/deploy.sh` 顶部配置区后再跑。
+4. 验证：浏览器访问 `/teacher.html`、`/student.html`；SSH 内 `curl localhost/` 确认探活。
+
+> 历史：腾讯云托管阶段需手动「新建版本」+ 挂持久卷 + 实例数=1；该方案因配额耗尽已弃用。
 
 ### 12.5 回滚与备份
 - 云端：教师端「数据备份」Tab → 创建快照 → 可一键恢复。
@@ -262,6 +271,8 @@ git push origin main
 | 多副本写冲突 | 内存相互覆盖 | 实例数固定 1 |
 | 注册接口笔误 | `register` 返回 `studentKey` 而非 `email` | 前端按 `studentKey=email` 处理 |
 | 前端错误字段 | 实际是 `_error` 不是 `error` | 统一判 `r.ok` / `r._error` |
+| student.html 交卷行缺 `}` | 防御性加固时把 `examSeq})` 误写成 `examSeq)`，括号不配平，整个内联脚本解析失败 → 线上全部 `Cannot read properties of undefined` | 已修复；新增 `check-student-robustness.js` 回归 |
+| 腾讯云托管配额耗尽 | 免费配额用完无法访问 | 已迁移阿里云 ECS（Docker），`deploy/aliyun-ecs/` |
 
 **最重要的三条红线（改任何东西都别碰）**：
 1. 端口 `process.env.PORT || 80`，永远别改。

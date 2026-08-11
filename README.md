@@ -1,10 +1,11 @@
 # 选调生学习系统（原课堂答题系统）
 
-一个部署在**腾讯云托管**的国产在线学习平台：学生邮箱注册登录 → 首页学习仪表盘 → 课程 / 答题 / 早读三大模块 → 艾宾浩斯间隔记忆 → 邮箱复习提醒 → 数据可一键/定时备份到本地。
+一个部署在**阿里云 ECS（Docker）**的国产在线学习平台：学生邮箱注册登录 → 首页学习仪表盘 → 课程 / 答题 / 早读三大模块 → 艾宾浩斯间隔记忆 → 邮箱复习提醒 → 数据可一键/定时备份到本地。
 
-- **线上地址**：`https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com`
+- **线上地址**：部署于阿里云 ECS（见下文部署章节；原腾讯云托管地址已因配额耗尽停用）
 - **代码仓库**：`https://github.com/huzhiji/classroom-poll-tcb`（分支 `main`）
 - **AI 交接文档**：`AI-CONTEXT.md`（交给任何 AI 工具即可直接上手修改本项目）
+- **部署一键脚本**：`deploy/aliyun-ecs/deploy.sh`，完整指南见 `deploy/aliyun-ecs/配置说明.md`
 
 ---
 
@@ -24,37 +25,47 @@ DATA_DIR=./_testdata PORT=3001 node index.js
 
 ---
 
-## 二、部署到腾讯云托管（上线/更新）
+## 二、部署到阿里云 ECS（上线/更新）
 
-**前置**：已在云托管建好 `classroom-poll` 服务，并关联 GitHub 仓库 `huzhiji/classroom-poll-tcb`（分支 `main`）。
+**前置**：一台阿里云 ECS（1 核 1G 足够），已装 Docker，安全组放行 80/443。
 
-每次代码更新后，线上生效只需 **3 步**（部署与挂盘是两个独立动作，都要做）：
+### 首次部署
+```bash
+# 1. 上传代码到服务器（二选一）
+git clone https://github.com/huzhiji/classroom-poll-tcb.git /opt/classroom   # 有 GitHub 访问时
+# 或 scp 打包上传后解压
 
-### 第 1 步：重新部署（拉最新代码）
-1. 进 **腾讯云托管 → classroom-poll 服务 → 部署管理 → 新建版本**。
-2. 来源选 **GitHub 仓库 `huzhiji/classroom-poll-tcb` / 分支 `main`**。
-3. 确认构建（会读仓库里的 `Dockerfile`），等构建完成、实例就绪。
+# 2. 一键部署（构建镜像 → 启动容器 → 数据挂载 /data 持久化）
+cd /opt/classroom
+bash deploy/aliyun-ecs/deploy.sh
+```
 
-> 若已开 GitHub 自动部署但没自动触发：检查云托管触发分支 = `main`、GitHub Webhooks 投递无失败；否则一律走"手动新建版本"。
+部署完成即可访问：
+- 教师端 `http://<公网IP>/teacher.html`，学生端 `http://<公网IP>/student.html`
 
-### 第 2 步：挂载持久卷（**关键，否则数据随重部署清空**）
-1. 进服务 **配置 / 存储** → 新建**持久卷**，挂载路径填 **`/data`**。
-2. 所有数据（题库、学生、错题、课程、早读、记忆卡）都落盘到 `/data/store.json`，挂了卷重部署才不丢。
+### 每次代码更新后上线
+```bash
+cd /opt/classroom
+git pull
+bash deploy/aliyun-ecs/deploy.sh    # 重建容器，-v /data:/data 数据不丢
+```
 
-### 第 3 步：固定实例数
-把**实例数（最小=最大）设为 1**。多副本会导致内存数据相互覆盖。
+### 绑定域名 + HTTPS（推荐）
+域名解析 A 记录到 ECS 公网 IP → 申请免费 SSL 证书 → 用 `deploy/aliyun-ecs/nginx.conf` 配 Nginx 反代（详见 `配置说明.md`）。
+
+> 历史：本系统最早部署在腾讯云托管（容器 + 持久卷 + 实例数=1），因免费配额耗尽已停用；代码与 Dockerfile 完全云平台无关，可部署到任何服务器。
 
 ---
 
-## 三、环境变量（在云托管控制台「环境变量」设置）
+## 三、环境变量（在 `deploy/aliyun-ecs/deploy.sh` 顶部配置）
 
 | 变量 | 说明 | 必填 |
 |------|------|------|
-| `PORT` | 容器端口，代码已用 `process.env.PORT \|\| 80`，**探活固定 80，勿改** | 否（默认 80） |
-| `DATA_DIR` | 数据落盘目录，默认 `/data` | 否 |
+| `PORT` | 容器端口，代码已用 `process.env.PORT \|\| 80`，**外部 80 映射，勿改** | 否（默认 80） |
+| `DATA_DIR` | 数据落盘目录，默认 `/data`（脚本已挂载持久化） | 否 |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | 邮件 SMTP（如 QQ/企业邮箱）。`465` 走 SSL，`587` 走 STARTTLS | 否（不配则提醒邮件功能安全禁用） |
 | `SMTP_FROM` | 发件人显示名（可选） | 否 |
-| `APP_URL` | 邮件中"去复习"的链接，默认线上地址 | 否 |
+| `APP_URL` | 邮件中"去复习"的链接，如 `https://你的域名`；**未设置则不生成链接** | 否 |
 | `AUTO_REMINDER` | `=1` 开启每日自动群发复习提醒 | 否 |
 | `REMINDER_HOUR` | 自动发送时间（24 小时制，默认 9） | 否 |
 
