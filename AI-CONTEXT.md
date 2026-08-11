@@ -243,11 +243,12 @@ git push origin main
 推送后 `main` 即最新代码。**但线上不会自动变**——见 12.4。
 
 ### 12.4 让线上生效（最容易被忽略的一步）
-**当前线上环境 = 阿里云 ECS（Docker）**，更新流程：
+**当前线上环境 = 阿里云 ECS（Alibaba Cloud Linux，Docker）**，更新流程：
 1. 本地 `git push origin main` 推送代码。
-2. 登录 ECS，`cd /opt/classroom && git pull && bash deploy/aliyun-ecs/deploy.sh`（脚本自动构建新镜像、重建容器，`-v /data:/data` 挂载保证数据不丢）。
-3. 若改过域名/邮件配置，编辑 `deploy/aliyun-ecs/deploy.sh` 顶部配置区后再跑。
-4. 验证：浏览器访问 `/teacher.html`、`/student.html`；SSH 内 `curl localhost/` 确认探活。
+2. 若服务器已配好自动同步（`deploy/aliyun-ecs/auto-update.sh` + cron，见 `配置说明.md` §六）→ **无需登服务器，1~2 分钟自动上线**。
+3. 未配自动同步时：登录 ECS，`cd /opt/classroom && git pull && bash deploy/aliyun-ecs/deploy.sh`（`-v /data:/data` 挂载保证数据不丢）。
+4. 若改过域名/邮件配置：写到服务器 `deploy/aliyun-ecs/.env.local`（已被 .gitignore 排除，git pull 不覆盖），deploy.sh 自动读取。
+5. 验证：浏览器访问 `/teacher.html`、`/student.html`；SSH 内 `curl localhost/` 确认探活。
 
 > 历史：腾讯云托管阶段需手动「新建版本」+ 挂持久卷 + 实例数=1；该方案因配额耗尽已弃用。
 

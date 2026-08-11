@@ -3,3 +3,5 @@ _testdata/
 npm-debug.log*
 .DS_Store
 *.log
+# 服务器本地个性化部署配置（SMTP/APP_URL 等），不会被 git 覆盖
+deploy/aliyun-ecs/.env.local

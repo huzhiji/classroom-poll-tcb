@@ -21,6 +21,15 @@ AUTO_REMINDER="${AUTO_REMINDER:-0}"  # 设为 1 启用每日自动复习提醒
 REMINDER_HOUR="${REMINDER_HOUR:-9}"
 # ------------------------------
 
+# 读取服务器本地个性化配置（如 SMTP/APP_URL）：
+# 把配置写到 deploy/aliyun-ecs/.env.local（每行 变量=值，如 SMTP_HOST=smtp.qq.com），
+# 该文件已加入 .gitignore，git 更新不会覆盖它，自动部署也能保留你的配置。
+ENV_LOCAL="$(cd "$(dirname "$0")" && pwd)/.env.local"
+if [ -f "$ENV_LOCAL" ]; then
+  echo "==> 读取本地配置 .env.local ..."
+  . "$ENV_LOCAL"
+fi
+
 echo "==> [1/3] 构建镜像 ${IMAGE_NAME} ..."
 docker build -t "${IMAGE_NAME}" .
 
