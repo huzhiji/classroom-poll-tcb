@@ -541,11 +541,11 @@ async function loadTeacherDashboard(){
     h+=tdashTile('在学记忆学生',d.masteryOverview.studentsWithMemory,'开启复习');
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>📊 今日早读打卡</h2><div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+t.checked+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+t.unchecked+'</div><div class="lbl">未打卡</div></div></div>';
-    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+t.checkedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.checkedList.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+t.uncheckedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.uncheckedList.map(s=>'<span class="pill" style="background:#fee2e2;color:var(--err)">'+esc(s.name)+'</span>').join('')+'</div></div></div>';
+    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+t.checkedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.checkedList.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+t.uncheckedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.uncheckedList.map(s=>'<span class="pill" style="background:rgba(217,114,138,.14);color:var(--err)">'+esc(s.name)+'</span>').join('')+'</div></div></div>';
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>⚠️ 班级薄弱专题（正确率偏低）</h2>';
     if(!d.weakTopics.length){h+='<p class="muted">答题数据不足。</p>';}
-    else{d.weakTopics.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
+    else{d.weakTopics.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#d9b779,#d9728a)"></span></div></div>`;});}
     h+='</div>';
     $('#tdash-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
@@ -613,7 +613,7 @@ async function loadMorningList(){
     if(!list.length){box.innerHTML='<p class="muted">还没有早读内容，先创建一条吧。</p>';return;}
     box.innerHTML=list.map(m=>{
       const pushed=m.push&&m.push.mode==='all';
-      return `<div class="morning-item"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.title)}</b><span class="tag" style="${pushed?'background:#dcfce7;color:var(--ok)':''}">${pushed?('已推送 '+m.push.pushDate):'未推送'}</span></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div><div class="btnrow"><button class="btn sm ${pushed?'ghost':''}" onclick="pushMorning('${m.id}')">${pushed?'重新推送':'一键推送全班'}</button><button class="btn ghost sm" onclick="editMorning('${m.id}')">编辑</button><button class="btn danger sm" onclick="delMorning('${m.id}')">删除</button></div></div>`;
+      return `<div class="morning-item"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.title)}</b><span class="tag" style="${pushed?'background:rgba(95,184,138,.14);color:var(--ok)':''}">${pushed?('已推送 '+m.push.pushDate):'未推送'}</span></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div><div class="btnrow"><button class="btn sm ${pushed?'ghost':''}" onclick="pushMorning('${m.id}')">${pushed?'重新推送':'一键推送全班'}</button><button class="btn ghost sm" onclick="editMorning('${m.id}')">编辑</button><button class="btn danger sm" onclick="delMorning('${m.id}')">删除</button></div></div>`;
     }).join('');
   }catch(e){toast(e.message,'err');}
 }
@@ -646,7 +646,7 @@ async function loadCheckinStats(){
   try{
     const s=await api('/api/morning/checkin/stats?date='+d);
     let h='<div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+s.checkedCount+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+s.uncheckedCount+'</div><div class="lbl">未打卡</div></div><div class="stat-box"><div class="num">'+s.total+'</div><div class="lbl">总人数</div></div></div>';
-    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+s.checked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.checked.map(x=>'<span class="pill">'+esc(x.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+s.unchecked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.unchecked.map(x=>'<span class="pill" style="background:#fee2e2;color:var(--err)">'+esc(x.name)+'</span>').join('')+'</div></div></div>';
+    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+s.checked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.checked.map(x=>'<span class="pill">'+esc(x.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+s.unchecked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.unchecked.map(x=>'<span class="pill" style="background:rgba(217,114,138,.14);color:var(--err)">'+esc(x.name)+'</span>').join('')+'</div></div></div>';
     $('#ci-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
 }

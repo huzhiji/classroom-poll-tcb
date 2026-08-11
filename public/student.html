@@ -9,7 +9,8 @@
   /* ===== 学生端页面级覆盖：沉浸式深色背景 ===== */
   body{
     background:
-      linear-gradient(180deg, rgba(15,23,42,.38) 0%, rgba(15,23,42,.62) 100%),
+      radial-gradient(1200px 620px at 82% -12%, rgba(217,183,121,.08), transparent 58%),
+      linear-gradient(180deg, rgba(7,10,18,.62) 0%, rgba(7,10,18,.82) 100%),
       url(/images/bg-hero.jpg) center/cover no-repeat fixed;
   }
   .who .muted{color:rgba(255,255,255,.8)}
@@ -75,7 +76,7 @@
   <!-- 记忆模式 -->
   <section id="tab-memory" class="hidden">
     <div class="card">
-      <h2>记忆模式 <span class="badge" style="background:#e0e7ff;color:var(--primary)">艾宾浩斯</span></h2>
+      <h2>记忆模式 <span class="badge" style="background:rgba(217,183,121,.14);color:var(--gold)">艾宾浩斯</span></h2>
       <p class="muted">开启后，系统按遗忘规律自动安排每道题的复习时间，每天把该复习的题推给你，越记越牢（类似 Anki）。答错会自动缩短间隔、明天再来。</p>
       <div class="stat-grid" id="mem-stats" style="margin-top:12px">
         <div class="stat-box"><div class="num" id="mem-due" style="color:var(--err)">0</div><div class="lbl">今日待复习</div></div>
@@ -481,7 +482,7 @@ async function submitExam(id){
     const details=Array.isArray(r.details)?r.details:[];
     let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / 共 ${r.total||0} 题${wrongAdded.length?` · 新增 ${wrongAdded.length} 道错题`:''}</div></div>`;
     details.forEach((d,i)=>{
-      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 错误</span>'}</div>`;
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:rgba(217,114,138,.14);color:var(--err)">✗ 错误</span>'}</div>`;
       h+=detailOptsHTML(d);
       if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
       if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
@@ -556,7 +557,7 @@ async function submitPractice(){
     const details=Array.isArray(r.details)?r.details:[];
     const tot=r.total||0;const cor=r.correct||0;
     let h=`<div class="result-head"><div class="score">${tot?Math.round(cor/tot*100):0}分</div><div class="muted">答对 ${cor} / ${tot} 题${Array.isArray(r.removed)&&r.removed.length?` · 已掌握移除 ${r.removed.length} 题`:''}</div></div>`;
-    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+`</div>`;});
+    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:rgba(217,114,138,.14);color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="startPractice()">再练一次</button></div>`;
     $('#wrong-do-body').innerHTML=h;window.scrollTo(0,0);loadMine();
   }catch(e){toast(e.message,'err');}
@@ -611,7 +612,7 @@ async function submitMemory(){
     const correct=results.length?results.filter(x=>x.isCorrect).length:0;
     let h=`<div class="result-head"><div class="score">${results.length?Math.round(correct/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 题</div></div>`;
     results.forEach((d,i)=>{
-      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div>`;
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:rgba(217,114,138,.14);color:var(--err)">✗ 再记一次</span>'}</div>`;
       h+=detailOptsHTML(d);
       if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
       h+=`<div class="ana">下次复习：约 <b>${d.nextIntervalDays}</b> 天后${d.isCorrect?'（已记住，间隔拉长）':'（未记住，明天再来）'}</div>`;
@@ -698,7 +699,7 @@ async function loadDashboard(){
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>⚠️ 薄弱环节（专题正确率偏低）</h2>';
     if(!weak.length){h+='<p class="muted">答题数据不足，多做几套题即可看到薄弱点。</p>';}
-    else{weak.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
+    else{weak.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#d9b779,#d9728a)"></span></div></div>`;});}
     h+='</div>';
     $('#dash-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
@@ -827,7 +828,7 @@ async function startMr(){
   }catch(e){toast(e.message,'err');}
 }
 function pickMr(mrid,v,el){mrAnswers[mrid]=v;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
-async function submitMr(){try{const r=(await api('/api/morning/memory/review',{method:'POST',body:JSON.stringify({studentKey,results:mrAnswers})}))||{};const results=Array.isArray(r.results)?r.results:[];const ok=results.length?results.filter(x=>x.isCorrect).length:0;let h=`<div class="result-head"><div class="score">${results.length?Math.round(ok/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 项</div></div>`;results.forEach((x,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(x.title)} ${x.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div><div class="ana">下次复习：约 <b>${x.nextIntervalDays}</b> 天后（${x.isCorrect?'间隔拉长':'明天再来'}）</div></div>`;});h+=`<div class="center"><button class="btn ghost" onclick="afterMr()">返回</button></div>`;$('#mr-do-body').innerHTML=h;window.scrollTo(0,0);}catch(e){toast(e.message,'err');}}
+async function submitMr(){try{const r=(await api('/api/morning/memory/review',{method:'POST',body:JSON.stringify({studentKey,results:mrAnswers})}))||{};const results=Array.isArray(r.results)?r.results:[];const ok=results.length?results.filter(x=>x.isCorrect).length:0;let h=`<div class="result-head"><div class="score">${results.length?Math.round(ok/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 项</div></div>`;results.forEach((x,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(x.title)} ${x.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:rgba(217,114,138,.14);color:var(--err)">✗ 再记一次</span>'}</div><div class="ana">下次复习：约 <b>${x.nextIntervalDays}</b> 天后（${x.isCorrect?'间隔拉长':'明天再来'}）</div></div>`;});h+=`<div class="center"><button class="btn ghost" onclick="afterMr()">返回</button></div>`;$('#mr-do-body').innerHTML=h;window.scrollTo(0,0);}catch(e){toast(e.message,'err');}}
 async function afterMr(){$('#mr-do').classList.add('hidden');loadMorning();loadDashboard();}
 async function renderSchedule(){
   try{
@@ -862,7 +863,7 @@ async function submitHw(){
   try{const r=(await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})}))||{};
     const details=Array.isArray(r.details)?r.details:[];
     let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / ${r.total||0} 题</div></div>`;
-    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
+    details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:rgba(217,114,138,.14);color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="loadMorning()">返回早读</button></div>`;
     $('#morning-body').innerHTML=h;window.scrollTo(0,0);loadDashboard();
   }catch(e){toast(e.message,'err');}

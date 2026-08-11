@@ -9,7 +9,8 @@
   /* ===== 首页专属 ===== */
   body{
     background:
-      linear-gradient(180deg, rgba(15,23,42,.42) 0%, rgba(15,23,42,.72) 100%),
+      radial-gradient(1200px 620px at 82% -12%, rgba(217,183,121,.10), transparent 58%),
+      linear-gradient(180deg, rgba(7,10,18,.58) 0%, rgba(7,10,18,.82) 100%),
       url('/images/bg-hero.jpg') center/cover no-repeat fixed;
   }
   header h1 .logo{font-size:22px}
@@ -66,8 +67,8 @@
   .feature .ico{
     width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;
     font-size:24px;border-radius:12px;
-    background:linear-gradient(135deg,rgba(37,99,235,.14),rgba(56,189,248,.14));
-    color:var(--primary);
+    background:linear-gradient(135deg,rgba(217,183,121,.18),rgba(217,183,121,.04));
+    color:var(--gold);
   }
   .feature h3{font-size:16px;color:var(--ink);margin:14px 0 8px;font-weight:700;letter-spacing:.01em}
   .feature p{color:var(--muted);font-size:13.5px;line-height:1.75}
@@ -79,11 +80,11 @@
   .dual-cta .feature::after{
     content:'';position:absolute;inset:auto -40px -40px auto;
     width:160px;height:160px;border-radius:50%;
-    background:radial-gradient(circle, rgba(37,99,235,.15), transparent 70%);
+    background:radial-gradient(circle, rgba(217,183,121,.16), transparent 70%);
     pointer-events:none;
   }
-  .dual-cta .feature .ico{background:linear-gradient(135deg,rgba(201,162,39,.18),rgba(201,162,39,.06));color:var(--gold-d)}
-  .dual-cta .feature.right .ico{background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(56,189,248,.10));color:var(--primary)}
+  .dual-cta .feature .ico{background:linear-gradient(135deg,rgba(217,183,121,.20),rgba(217,183,121,.05));color:var(--gold)}
+  .dual-cta .feature.right .ico{background:linear-gradient(135deg,rgba(180,190,210,.16),rgba(180,190,210,.04));color:#C7CDDA}
 
   /* 响应式 */
   @media(max-width:760px){
