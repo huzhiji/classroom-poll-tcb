@@ -196,6 +196,12 @@
   table th{background:rgba(248,250,252,.9)}
   tr:hover td{background:rgba(241,245,249,.7)}
   .print-area{background:#fff}
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:200}
+  .modal-box{background:#fff;border-radius:16px;padding:24px;width:min(560px,92vw);box-shadow:var(--shadow)}
+  .modal-box h3{margin:0 0 10px}
+  .modal-box textarea{width:100%;min-height:200px;font-size:13px;font-family:inherit;padding:10px;border:1px solid var(--border);border-radius:10px;box-sizing:border-box}
+  .modal-box .hint{font-size:12px;color:var(--muted);margin:8px 0 14px;line-height:1.7}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
   @media(max-width:640px){
     header{padding:14px 16px}
     .hero{padding:22px 20px}
@@ -453,6 +459,26 @@
   </section>
 </main>
 
+<div id="ans-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>📝 导入答案 / 解析</h3>
+    <div id="ans-title" style="font-size:13px;color:var(--muted);margin-bottom:6px"></div>
+    <textarea id="ans-text" placeholder="每行一题,例如：
+1 A
+2 C
+3 D
+也支持区间或纯序列：
+1-5 ACDBA
+ACDBA...
+如需解析,在答案后加“解析：”：
+1 A 解析：×××"></textarea>
+    <div class="hint">支持格式：① 行式「题号 答案」；② 区间式「1-5 ACDBA」；③ 纯序列「ACDBA…」（按顺序每题一个字母）；④ 判断题用 对/错。答案后加「解析：」可为该题附解析。</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeAnsModal()">取消</button>
+      <button class="btn" onclick="saveAnswers()">保存答案</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="/quotes.js"></script>
@@ -545,15 +571,29 @@ async function loadExams(){
     box.innerHTML=exams.map(e=>{
       const qs=(e.questionIds||[]).map(id=>map[id]).filter(Boolean);
       const link=location.origin+'/student.html#exam='+e.id;
-      return `<div class="qitem"><div class="qtitle"><div><b>${esc(e.title)}</b> · ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()}</div>
+      const filled=qs.filter(q=>q.correctAnswer>=0).length;
+      const ansTxt = filled===qs.length ? `<span style="color:var(--ok)">答案 ${filled}/${qs.length} ✓</span>` : `<span style="color:${filled? '#d97706':'var(--muted)'}">答案 ${filled}/${qs.length}</span>`;
+      return `<div class="qitem"><div class="qtitle"><div><b>${esc(e.title)}</b> · ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()} · ${ansTxt}</div>
         <div class="meta">${qs.slice(0,3).map(q=>esc(q.title)).join(' / ')}${qs.length>3?' …':''}</div></div>
         <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
+        <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
         <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button></div>`;
     }).join('');
   }catch(e){toast(e.message,'err');}
 }
 function copyLink(l){navigator.clipboard.writeText(l).then(()=>toast('链接已复制','ok'),()=>prompt('复制以下链接发给学生：',l));}
 async function delExam(id){if(!confirm('确认删除该考试？'))return;try{await api('/api/exams/'+id,{method:'DELETE'});toast('已删除','ok');loadExams();}catch(e){toast(e.message,'err');}}
+let ansExamId=null;
+function openAnswerFill(id,title){ansExamId=id;$('#ans-title').textContent=title+'（答案以题号顺序对应）';$('#ans-text').value='';$('#ans-modal').classList.remove('hidden');setTimeout(()=>$('#ans-text').focus(),50);}
+function closeAnsModal(){$('#ans-modal').classList.add('hidden');}
+async function saveAnswers(){
+  const raw=$('#ans-text').value.trim();
+  if(!raw){toast('请先粘贴答案','err');return;}
+  try{
+    const r=await api('/api/exams/'+ansExamId+'/answers',{method:'POST',body:JSON.stringify({raw})});
+    closeAnsModal();toast('已保存答案 '+r.updated.answers+' 条 / 解析 '+r.updated.analyses+' 条','ok');loadExams();
+  }catch(e){toast(e.message,'err');}
+}
 
 // 考试选题列表（复用题库）
 async function loadExamPick(){

@@ -99,6 +99,22 @@ app.post('/api/exams/:id/submit', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// 批量写入考试答案/解析（教师导入答案键）
+app.post('/api/exams/:id/answers', (req, res) => {
+  try {
+    const exam = store.getExam(req.params.id);
+    if (!exam) return res.status(404).json(fail('考试不存在'));
+    let entries = req.body && req.body.entries;
+    if (!Array.isArray(entries) && req.body && req.body.raw) {
+      entries = store.parseAnswersText(req.body.raw, exam.questionIds.length);
+    }
+    if (!Array.isArray(entries)) return res.status(400).json(fail('参数错误：需要 entries 数组或 raw 文本'));
+    const r = store.setExamAnswers(req.params.id, entries);
+    if (r.error) return res.status(404).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('保存失败: ' + e.message)); }
+});
+
 // ================= 学生记录 & 错题 =================
 app.get('/api/students/:key/records', (req, res) => {
   res.json(store.getStudentRecords(req.params.key));
