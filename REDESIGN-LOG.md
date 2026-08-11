@@ -67,8 +67,9 @@
 - theme.css 新增 `.to-top` 浮动返回顶部按钮（fixed bottom-right，hover 变蓝 + 上移）。
 - teacher.html / student.html / index.html 注入 `<button class="to-top">↑</button>`。
 - 全站验证：健壮性 harness 双模式 PASS；Edge 截图桌面端三页 + 移动端 390×844 着陆页响应式正确；所有 JS 钩子未变。
-- git tag：`redesign-v4` · commit：`待推送`
+- git tag：`redesign-v4` · commit：`c02efcd`
 - 存档：`phase-4-motion-and-polish.zip`
+- **已推送 main**（`960686c..c02efcd`）
 
 ## 回滚示例
 
