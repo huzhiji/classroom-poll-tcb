@@ -17,6 +17,24 @@ function fail(msg, code = 400) {
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'online-quiz', time: Date.now() }));
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
+// 临时调试:文件系统探针(验证持久卷 DATA_DIR 实际路径与可写性)
+app.get('/api/debug/fs', (req, res) => {
+  try {
+    const fs = require('fs');
+    const dir = process.env.DATA_DIR || '/data';
+    const f = path.join(dir, '__fs_probe__.txt');
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = String(Date.now());
+    fs.writeFileSync(f, stamp);
+    const back = fs.readFileSync(f, 'utf8');
+    let unlinkOk = true;
+    try { fs.unlinkSync(f); } catch (e) { unlinkOk = false; }
+    res.json({ dataDir: dir, writeOk: back === stamp, unlinkOk, probe: back });
+  } catch (e) {
+    res.json({ dataDir: process.env.DATA_DIR || '/data', writeOk: false, error: e.message });
+  }
+});
+
 // ================= 题目管理 =================
 app.get('/api/questions', (req, res) => {
   const { type, topic } = req.query;
