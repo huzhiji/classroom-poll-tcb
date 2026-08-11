@@ -358,6 +358,118 @@ app.post('/api/memory/review', (req, res) => {
   } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
 });
 
+// ================= 注册 / 登录（邮箱 + 密码） =================
+app.post('/api/register', (req, res) => {
+  try {
+    const r = store.registerStudent(req.body || {});
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('注册失败: ' + e.message)); }
+});
+
+app.post('/api/login', (req, res) => {
+  try {
+    const r = store.loginStudent(req.body || {});
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('登录失败: ' + e.message)); }
+});
+
+// ================= 复习提醒（邮件） =================
+// SMTP 配置通过环境变量注入（云托管控制台设置）：
+//   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM / APP_URL / REMINDER_HOUR / AUTO_REMINDER
+function smtpConfigured() {
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+function buildReminderMail(recip) {
+  const appUrl = (process.env.APP_URL || 'https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com').replace(/\/$/, '');
+  const titles = recip.due.slice(0, 15).map((q, i) => `${i + 1}. ${escHtml(q.title)}`).join('<br>');
+  const more = recip.due.length > 15 ? `<br>…还有 ${recip.due.length - 15} 题` : '';
+  const subject = `【复习提醒】${escHtml(recip.name)}，今日有 ${recip.stats.due} 道题待复习`;
+  const html = `<div style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;max-width:560px;margin:auto;color:#1e293b">
+    <h2 style="color:#4f46e5">嗨 ${escHtml(recip.name)}，该复习啦</h2>
+    <p>你今天有 <b>${recip.stats.due}</b> 道题到了复习时间。坚持按遗忘曲线复习，记忆更牢固。</p>
+    <p><a href="${appUrl}/student.html#memory" style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600">去完成今日复习 →</a></p>
+    <h3 style="font-size:15px;margin-top:18px">今日待复习（共 ${recip.due.length} 题）</h3>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:14px;line-height:1.8">${titles}${more}</div>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0">
+    <p style="font-size:14px;color:#334155">复习概况：学习中 <b>${recip.stats.learning}</b> 题，已掌握 <b>${recip.stats.mastered}</b> 题。还有 <b>${recip.stats.total - recip.stats.mastered}</b> 题尚未复习到（未掌握），请持续巩固。</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:14px">本邮件由课堂答题系统自动发送。若已完成复习可忽略。</p>
+  </div>`;
+  return { subject, html };
+}
+
+// 群发今日复习提醒邮件；未配置 SMTP 时返回 configured:false 而不报错。
+async function sendReminderEmails() {
+  if (!smtpConfigured()) {
+    return { configured: false, sent: 0, failed: 0, message: '邮件服务未配置（请在环境变量设置 SMTP_HOST / SMTP_USER / SMTP_PASS）' };
+  }
+  const nodemailer = require('nodemailer');
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const recipients = store.getReminderRecipients();
+  let sent = 0, failed = 0;
+  const errors = [];
+  for (const r of recipients) {
+    try {
+      const mail = buildReminderMail(r);
+      await transporter.sendMail({ from, to: r.email, subject: mail.subject, html: mail.html });
+      sent++;
+    } catch (e) { failed++; errors.push(r.email + ': ' + e.message); }
+  }
+  return { configured: true, sent, failed, errors: errors.slice(0, 5) };
+}
+
+// 教师端预览：返回今日需提醒的学生名单 + SMTP 是否已配置
+app.get('/api/reminder/preview', (req, res) => {
+  try {
+    const configured = smtpConfigured();
+    const recipients = store.getReminderRecipients();
+    res.json({
+      configured,
+      count: recipients.length,
+      recipients: recipients.map((r) => ({
+        name: r.name, email: r.email,
+        due: r.stats.due, learning: r.stats.learning, mastered: r.stats.mastered, total: r.stats.total,
+      })),
+    });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+// 教师端手动群发
+app.post('/api/reminder/send', async (req, res) => {
+  try {
+    const r = await sendReminderEmails();
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('发送失败: ' + e.message)); }
+});
+
+// ========== 每日自动提醒调度 ==========
+// 仅当 AUTO_REMINDER=1 且 SMTP 已配置时启动；每天在 REMINDER_HOUR（默认 9 点）触发一次群发。
+if (process.env.AUTO_REMINDER === '1' && smtpConfigured()) {
+  const REMINDER_HOUR = parseInt(process.env.REMINDER_HOUR || '9', 10);
+  let lastSentDate = '';
+  setInterval(() => {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    if (now.getHours() === REMINDER_HOUR && dateStr !== lastSentDate) {
+      lastSentDate = dateStr;
+      sendReminderEmails()
+        .then((r) => console.log('[reminder] 自动发送完成', JSON.stringify(r)))
+        .catch((e) => console.error('[reminder] 自动发送失败', e.message));
+    }
+  }, 60 * 1000);
+}
+
 // ========== 启动 ==========
 const port = parseInt(process.env.PORT, 10) || 80;
 app.listen(port, () => console.log(`在线答题系统 running on port ${port}`));

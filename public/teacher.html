@@ -94,6 +94,7 @@
     <button data-tab="records">学生记录</button>
     <button data-tab="export">错题导出</button>
     <button data-tab="backup">数据备份</button>
+    <button data-tab="reminder">复习提醒</button>
   </nav>
 </header>
 
@@ -256,6 +257,23 @@
       <div id="snap-list"></div>
     </div>
   </section>
+
+  <!-- ========== 复习提醒 ========== -->
+  <section id="tab-reminder" class="hidden">
+    <div class="card">
+      <h2>复习提醒（邮件） <span class="tag">邮箱推送</span></h2>
+      <p class="muted">已用邮箱注册的学生，若当天有到期复习题，可手动群发提醒邮件；也可在云托管设置 <code>AUTO_REMINDER=1</code> 开启每日定时自动发送（需先配置 SMTP）。</p>
+      <div id="reminder-status" class="muted" style="margin:10px 0">点击「预览」查看今日需提醒的学生。</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn" onclick="previewReminder()">预览今日提醒名单</button>
+        <button class="btn ghost" id="reminder-send-btn" onclick="sendReminder()" disabled>立即群发提醒邮件</button>
+      </div>
+    </div>
+    <div class="card hidden" id="reminder-list-card">
+      <h2>今日需提醒（<span id="reminder-count">0</span> 人）</h2>
+      <div id="reminder-list"></div>
+    </div>
+  </section>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -276,6 +294,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
   if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
   if(b.dataset.tab==='backup')loadSnapshots();
+  if(b.dataset.tab==='reminder')previewReminder();
 });
 
 // ---- 题型切换影响选项与答案 ----
@@ -457,6 +476,31 @@ async function loadSnapshots(){
 async function restoreSnapshot(name){
   if(!confirm('确认用该快照覆盖当前所有数据？此操作不可撤销（当前数据不会被自动保留）。'))return;
   try{await api('/api/backup/restore',{method:'POST',body:JSON.stringify({name})});toast('已从快照恢复：'+name,'ok');}catch(e){toast(e.message,'err');}
+}
+
+// ---- 复习提醒 ----
+async function previewReminder(){
+  try{
+    const d=await api('/api/reminder/preview');
+    $('#reminder-status').textContent=d.configured
+      ? '邮件服务已配置（SMTP）。点击下方按钮即可群发。'
+      : '⚠️ 邮件服务未配置：请在云托管环境变量设置 SMTP_HOST / SMTP_USER / SMTP_PASS 后才能发送。预览仍可查看名单。';
+    $('#reminder-send-btn').disabled=!d.configured;
+    $('#reminder-count').textContent=d.count;
+    const box=$('#reminder-list');
+    if(!d.count){box.innerHTML='<div class="muted" style="padding:14px">今日没有学生有到期复习题，或尚无学生用邮箱注册。</div>';$('#reminder-list-card').classList.remove('hidden');return;}
+    box.innerHTML=d.recipients.map(r=>`<div class="qitem"><div class="qtitle"><div><b>${esc(r.name)}</b> · ${esc(r.email)}</div><div class="meta">今日待复习 ${r.due} 题 · 学习中 ${r.learning} · 已掌握 ${r.mastered} · 未掌握 ${r.total-r.mastered}</div></div></div>`).join('');
+    $('#reminder-list-card').classList.remove('hidden');
+  }catch(e){toast(e.message,'err');}
+}
+async function sendReminder(){
+  if(!confirm('确认向名单中的学生群发今日复习提醒邮件？'))return;
+  try{
+    const r=await api('/api/reminder/send',{method:'POST',body:'{}'});
+    if(!r.configured){toast('邮件服务未配置，无法发送','err');return;}
+    toast(`已发送 ${r.sent} 封，失败 ${r.failed} 封`,r.failed?'err':'ok');
+    previewReminder();
+  }catch(e){toast(e.message,'err');}
 }
 
 // 初始化

@@ -53,13 +53,20 @@
   .pill{display:inline-flex;gap:6px;background:#f1f5f9;padding:5px 12px;border-radius:999px;font-size:13px;margin:4px}
   .center{text-align:center}
   .muted{color:var(--muted);font-size:14px}
+  #who-email{opacity:.85;font-size:12px;font-weight:400}
+  /* 登录/注册弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:200}
+  .modal-box{background:#fff;border-radius:16px;padding:24px;width:min(380px,92vw);box-shadow:var(--shadow)}
+  .modal-tabs{display:flex;gap:8px;margin-bottom:16px}
+  .modal-tabs button{flex:1;padding:10px;border:1px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;font-weight:600;color:var(--muted)}
+  .modal-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   @media(max-width:640px){.opt{padding:14px}}
 </style>
 </head>
 <body>
 <header>
   <h1>📝 在线答题系统</h1>
-  <div class="who" id="who">身份：<b id="who-name">未设置</b> <button onclick="editName()">修改</button></div>
+  <div class="who" id="who">身份：<b id="who-name">未登录</b> <span id="who-email" class="muted"></span> <button onclick="openAuth()">登录/注册</button></div>
 </header>
 
 <div class="nav">
@@ -129,17 +136,75 @@
 <div class="toast" id="toast"></div>
 <div class="live hidden" id="live-dot">● 实时连接中</div>
 
+<!-- 登录 / 注册弹窗 -->
+<div id="auth-modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-tabs">
+      <button data-auth="register" class="active" onclick="switchAuth('register')">注册</button>
+      <button data-auth="login" onclick="switchAuth('login')">登录</button>
+    </div>
+    <div id="auth-register">
+      <label>邮箱（用于接收复习提醒）</label>
+      <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email">
+      <label>姓名</label>
+      <input id="reg-name" placeholder="你的姓名" autocomplete="name">
+      <label>密码（至少 4 位）</label>
+      <input id="reg-pw" type="password" placeholder="设置密码" autocomplete="new-password">
+      <button class="btn" style="margin-top:14px;width:100%" onclick="doRegister()">注册并进入</button>
+    </div>
+    <div id="auth-login" class="hidden">
+      <label>邮箱</label>
+      <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email">
+      <label>密码</label>
+      <input id="login-pw" type="password" placeholder="输入密码" autocomplete="current-password">
+      <button class="btn" style="margin-top:14px;width:100%" onclick="doLogin()">登录</button>
+    </div>
+    <div id="auth-msg" class="muted" style="margin-top:10px"></div>
+  </div>
+</div>
+
 <script>
 const $=(s)=>document.querySelector(s);
 function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2200);}
 async function api(u,o){const r=await fetch(u,Object.assign({headers:{'Content-Type':'application/json'}},o));const d=await r.json();if(d&&d._error)throw new Error(d.message);return d;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-// ---- 身份 ----
+// ---- 身份 / 注册登录 ----
 let studentKey=localStorage.getItem('quiz_student_key')||'';
-function showWho(){if(studentKey){$('#who-name').textContent=studentKey;$('#who').style.display='flex';}else{$('#who-name').textContent='未设置';}}
-function editName(){const n=prompt('输入你的姓名或学号：',studentKey);if(n&&n.trim()){studentKey=n.trim();localStorage.setItem('quiz_student_key',studentKey);showWho();toast('身份已设置','ok');if(!$('#tab-exam').classList.contains('hidden'))loadExamList();}}
+let studentName=localStorage.getItem('quiz_student_name')||'';
+function showWho(){
+  if(studentKey){$('#who-name').textContent=studentName||studentKey;$('#who-email').textContent=studentKey;$('#who').style.display='flex';}
+  else{$('#who-name').textContent='未登录';$('#who-email').textContent='';}
+}
+function openAuth(){switchAuth('register');$('#auth-modal').classList.remove('hidden');$('#auth-msg').textContent='';}
+function closeAuth(){$('#auth-modal').classList.add('hidden');}
+function switchAuth(m){
+  document.querySelectorAll('.modal-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.auth===m));
+  $('#auth-register').classList.toggle('hidden',m!=='register');
+  $('#auth-login').classList.toggle('hidden',m!=='login');
+}
+async function doRegister(){
+  const email=$('#reg-email').value.trim(),name=$('#reg-name').value.trim(),pw=$('#reg-pw').value;
+  if(!email||!name||!pw){$('#auth-msg').textContent='请填写完整信息';return;}
+  try{
+    const r=await api('/api/register',{method:'POST',body:JSON.stringify({email,name,password:pw})});
+    studentKey=r.studentKey;studentName=r.name;
+    localStorage.setItem('quiz_student_key',studentKey);localStorage.setItem('quiz_student_name',studentName);
+    closeAuth();showWho();toast('注册成功，欢迎 '+studentName,'ok');loadExamList();
+  }catch(e){$('#auth-msg').textContent=e.message;}
+}
+async function doLogin(){
+  const email=$('#login-email').value.trim(),pw=$('#login-pw').value;
+  if(!email||!pw){$('#auth-msg').textContent='请填写邮箱和密码';return;}
+  try{
+    const r=await api('/api/login',{method:'POST',body:JSON.stringify({email,password:pw})});
+    studentKey=r.studentKey;studentName=r.name;
+    localStorage.setItem('quiz_student_key',studentKey);localStorage.setItem('quiz_student_name',studentName);
+    closeAuth();showWho();toast('登录成功','ok');loadExamList();
+  }catch(e){$('#auth-msg').textContent=e.message;}
+}
 showWho();
+if(!studentKey)openAuth();
 
 // ---- Tab ----
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
@@ -153,7 +218,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
 
 // ---- 考试列表 ----
 async function loadExamList(){
-  if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点击右上角「修改」设置你的姓名/学号。</p>';return;}
+  if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
   try{const exams=await api('/api/exams');const box=$('#exam-list');
     if(!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
     box.innerHTML=exams.map(e=>`<div class="exam-card"><div class="info"><b>${esc(e.title)}</b><div class="meta">${(e.questionIds||[]).length} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button></div>`).join('');
@@ -238,7 +303,7 @@ async function sendAnswer(idx,j,el){
 // ---- 错题练习 ----
 let wrongData=null,wrongAnswers={};
 async function startPractice(count){
-  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  if(!studentKey){toast('请先登录/注册','err');return;}
   try{const d=await api('/api/wrong-practice/start',{method:'POST',body:JSON.stringify({studentKey,count})});
     if(!d.questions.length){toast('暂无错题，太棒了！','ok');return;}
     wrongData=d.questions;wrongAnswers={};
@@ -261,7 +326,7 @@ async function submitPractice(){
 // ---- 记忆模式（SRS） ----
 let memData=null,memAnswers={};
 async function loadMemory(){
-  if(!studentKey){$('#mem-stats').innerHTML='<p class="muted">请先设置姓名/学号。</p>';return;}
+  if(!studentKey){$('#mem-stats').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   try{
     const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
     $('#mem-due').textContent=d.stats.due;
@@ -273,7 +338,7 @@ async function loadMemory(){
   }catch(e){toast(e.message,'err');}
 }
 async function enableMemory(source){
-  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  if(!studentKey){toast('请先登录/注册','err');return;}
   try{
     let qids=[];
     if(source==='wrong'){const list=await api('/api/students/'+encodeURIComponent(studentKey)+'/wrong');qids=list.map(q=>q.id);}
@@ -285,7 +350,7 @@ async function enableMemory(source){
   }catch(e){toast(e.message,'err');}
 }
 async function startMemory(){
-  if(!studentKey){toast('请先设置姓名/学号','err');return;}
+  if(!studentKey){toast('请先登录/注册','err');return;}
   try{
     const d=await api('/api/memory/due?key='+encodeURIComponent(studentKey));
     if(!d.questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
@@ -317,7 +382,7 @@ async function afterMemory(){$('#mem-do').classList.add('hidden');loadMemory();l
 
 // ---- 我的记录 ----
 async function loadMine(){
-  if(!studentKey){$('#mine-body').innerHTML='<p class="muted">请先设置姓名/学号。</p>';return;}
+  if(!studentKey){$('#mine-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   try{const stats=await api('/api/students/'+encodeURIComponent(studentKey)+'/stats');
     const records=await api('/api/students/'+encodeURIComponent(studentKey)+'/records');
     let h=`<div class="stat-grid">
@@ -337,7 +402,7 @@ async function loadMine(){
 // ---- URL 深链 ----
 (function(){
   const h=location.hash;
-  if(h.startsWith('#exam=')){const id=h.slice(6);if(studentKey){enterExam(id);document.querySelector('.nav button[data-tab=exam]').click();}else{toast('请先设置姓名/学号','err');}}
+  if(h.startsWith('#exam=')){const id=h.slice(6);if(studentKey){enterExam(id);document.querySelector('.nav button[data-tab=exam]').click();}else{toast('请先登录/注册','err');openAuth();}}
   else if(h.startsWith('#room=')){$('#cr-room').value=h.slice(6).toUpperCase();document.querySelector('.nav button[data-tab=classroom]').click();}
 })();
 </script>

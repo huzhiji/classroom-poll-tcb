@@ -1,13 +1,14 @@
 {
   "name": "classroom-poll-cloudbase",
   "version": "1.0.0",
-  "description": "课堂实时答题系统 - 腾讯云托管版（内存存储，零外部依赖）",
+  "description": "课堂实时答题系统 - 腾讯云托管版（内存存储，零外部依赖；支持邮箱注册与复习提醒）",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.0"
   }
 }
