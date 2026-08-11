@@ -62,3 +62,24 @@
 - 通过内联脚本语法校验 + Edge 截图验证。
 - git tag：`redesign-v3`
 - 存档：`phase-3-landing-and-dual-cta.zip`
+
+### Phase 4（2026-08-11 22:05）✅ 动效润色 + 全站验证
+- theme.css 新增 `.to-top` 浮动返回顶部按钮（fixed bottom-right，hover 变蓝 + 上移）。
+- teacher.html / student.html / index.html 注入 `<button class="to-top">↑</button>`。
+- 全站验证：健壮性 harness 双模式 PASS；Edge 截图桌面端三页 + 移动端 390×844 着陆页响应式正确；所有 JS 钩子未变。
+- git tag：`redesign-v4` · commit：`待推送`
+- 存档：`phase-4-motion-and-polish.zip`
+
+## 回滚示例
+
+```bash
+# 回滚到 Phase 2（保留页脚之前的版本）
+git checkout redesign-v2 -- public/
+
+# 或整库回到 Phase 1
+git checkout redesign-v1
+
+# 或彻底还原原始版本（Phase 0）
+git checkout redesign-v0
+# 或解压 D:\Backup\classroom-redesign-archive\phase-0-original-960686c.zip 覆盖项目目录
+```
