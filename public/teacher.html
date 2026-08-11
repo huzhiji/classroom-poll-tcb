@@ -152,6 +152,24 @@
     border-radius:18px;
   }
   .hero h2{font-size:22px;font-weight:800}
+  .quote-card{
+    position:relative;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.6);
+    border-left:4px solid var(--primary);
+    border-radius:18px;
+    padding:24px 26px 18px;
+    margin-bottom:18px;
+    box-shadow:0 12px 40px rgba(15,23,42,.1);
+    overflow:hidden;
+  }
+  .quote-card .quote-mark{position:absolute;top:-14px;right:14px;font-size:96px;line-height:1;font-family:Georgia,serif;color:rgba(37,99,235,.12);pointer-events:none}
+  .quote-card .quote-text{font-size:21px;font-weight:800;color:#1e293b;line-height:1.5;letter-spacing:.3px;position:relative}
+  .quote-card .quote-foot{margin-top:14px;font-size:13px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .quote-card .quote-foot .badge-q{background:var(--primary-l);color:var(--primary);padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  @media(max-width:640px){.quote-card{padding:20px 18px 16px}.quote-card .quote-text{font-size:18px}}
   .dash-card{
     background: rgba(255,255,255,.92);
     border:1px solid rgba(255,255,255,.6);
@@ -432,6 +450,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="/quotes.js"></script>
 <script>
 const $=(s)=>document.querySelector(s);
 function toast(msg,type){const t=$('#toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.className='toast',2200);}
@@ -665,7 +684,7 @@ async function loadTeacherDashboard(){
   try{
     const d=await api('/api/dashboard/teacher');
     const t=d.todayCheckin;
-    let h='<div class="hero"><div><h2>班级学习概览</h2><div style="opacity:.9;font-size:14px;margin-top:4px">实时掌握全班备考进度与早读打卡</div></div></div>';
+    let h=quoteCardHTML()+'<div class="hero"><div><h2>班级学习概览</h2><div style="opacity:.9;font-size:14px;margin-top:4px">实时掌握全班备考进度与早读打卡</div></div></div>';
     h+='<div class="dash-grid">';
     h+=tdashTile('学生总数',d.studentCount,'已注册');
     h+=tdashTile('课程数',d.courseCount,'已建课程');
@@ -684,6 +703,15 @@ async function loadTeacherDashboard(){
   }catch(e){toast(e.message,'err');}
 }
 function tdashTile(t,n,sub){return `<div class="dash-card"><h3>${t}</h3><div class="big">${n}</div><div class="sub">${sub}</div></div>`;}
+function quoteCardHTML(){
+  const q=getDailyQuote();
+  const ds=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  return `<div class="quote-card">
+    <div class="quote-mark">“</div>
+    <div class="quote-text">${esc(q.text)}</div>
+    <div class="quote-foot"><span class="badge-q">📜 总书记金句</span> ${ds} · 来源：${esc(q.source)}</div>
+  </div>`;
+}
 
 // ---- 课程管理 ----
 async function loadCourseList(){
