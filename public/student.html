@@ -58,6 +58,30 @@
   .exam-group-head b{font-size:15px}
   .eg-body{padding:8px 0 2px 6px;border-left:2px solid rgba(37,99,235,.15);margin-left:14px}
   .eg-body .exam-group-head{background:rgba(248,250,252,.7);padding:9px 12px;font-size:14px}
+  /* 大类进度条 + 状态标签 */
+  .cat-progress{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted);font-weight:500}
+  .cat-bar{flex:0 0 120px;height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden}
+  .cat-bar>i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:999px;transition:width .3s}
+  .tag-done{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:#dcfce7;color:var(--ok);font-size:12px;font-weight:600;vertical-align:middle}
+  .tag-draft{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:12px;font-weight:600;vertical-align:middle}
+  .exam-card .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  /* 考试开始面板 / 选练几题 / 草稿 */
+  .start-panel{max-width:680px;margin:0 auto;padding:8px 4px}
+  .draft-box{margin:16px 0;padding:16px;border:1px solid #fde68a;background:#fffbeb;border-radius:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+  .draft-tip{font-weight:600;color:#b45309}
+  .practice-pick{margin:18px 0}
+  .pp-title{font-weight:600;margin-bottom:10px}
+  .pp-opts{display:flex;gap:10px;flex-wrap:wrap}
+  .pp-btn{padding:10px 18px;border:1px solid var(--border);background:#fff;border-radius:10px;cursor:pointer;font-size:14px;transition:.15s}
+  .pp-btn:hover{border-color:var(--primary)}
+  .pp-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  /* 答题工具栏 + 题号导航 */
+  .exam-toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;flex-wrap:wrap}
+  .exam-toolbar-acts{display:flex;gap:8px;flex-wrap:wrap}
+  .qnav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:8px;border:1px dashed var(--border);border-radius:12px;background:rgba(248,250,252,.6)}
+  .qn{width:34px;height:34px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:.15s}
+  .qn:hover{border-color:var(--primary)}
+  .qn.on{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
   .live{position:fixed;bottom:18px;right:18px;background:#1e293b;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow)}
   .pill{display:inline-flex;gap:6px;background:#f1f5f9;padding:5px 12px;border-radius:999px;font-size:13px;margin:4px}
   .center{text-align:center}
@@ -408,7 +432,6 @@ function pickGen(ansMap,qid,j,el,multi){
     el.classList.add('sel');
   }
 }
-function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);}
 function pickWrong(qid,j,el,multi){pickGen(wrongAnswers,qid,j,el,multi);}
 function pickMem(qid,j,el,multi){pickGen(memAnswers,qid,j,el,multi);}
 // 答题页选项行(handler: pickOpt/pickWrong/pickMem)
@@ -476,48 +499,82 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
 // ---- 考试列表 ----
 async function loadExamList(){
   if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
-  try{const exams=await api('/api/exams');const box=$('#exam-list');
+  try{
+    const [exams, prog, draftsRes] = await Promise.all([
+      api('/api/exams'),
+      api('/api/exams/progress?key='+encodeURIComponent(studentKey)),
+      api('/api/drafts?key='+encodeURIComponent(studentKey))
+    ]);
+    const box=$('#exam-list');
     if(!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
-    // 分类:专项题库 / 国考真题 / 选调真题 / 省考真题(省考内按省份)
-    const groups={};
-    exams.forEach(e=>{
-      const t=e.title||'';
-      let cat;
-      if(t.includes('专项'))cat='专项题库';
-      else if(t.includes('选调'))cat='选调真题';
-      else if(t.includes('国家公务员'))cat='国考真题';
-      else cat='省考真题';
-      (groups[cat]=groups[cat]||[]).push(e);
-    });
-    const order=['国考真题','省考真题','选调真题','专项题库'];
-    const catLabel={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项题库':'📚 专项题库' };
+    const doneSet = new Set(prog.doneExamIds||[]);
+    const draftMap = (draftsRes&&draftsRes.drafts)||{};
+    // 顶层两大块
+    const tops = [
+      { key:'国省考真题', label:'📘 国省考真题', subCats:['国考真题','省考真题','选调真题'] },
+      { key:'专题', label:'📚 专题训练', subCats:['专题'] },
+    ];
+    const byCat={};
+    exams.forEach(e=>{const c=e.category||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
     const provNames=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
-    const cats=order.filter(c=>groups[c]);
-    box.innerHTML=cats.map(cat=>{
-      const list=groups[cat];
+    const catLabel={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题' };
+
+    box.innerHTML = tops.map(top=>{
+      const t = prog.byTop[top.key]||{done:0,total:0,percent:0};
+      if(!t.total) return '';
       let body;
-      if(cat==='省考真题'){
-        // 按省份分组
-        const sub={};
-        list.forEach(e=>{const m=provNames.find(p=>e.title.includes(p))||'其他';(sub[m]=sub[m]||[]).push(e);});
-        body=Object.keys(sub).map(p=>`
-          <div class="exam-group">
-            <div class="exam-group-head" onclick="tg('eg-${cat}-${p}')"><span class="caret" id="caret-eg-${cat}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
-            <div class="eg-body" id="eg-${cat}-${p}">${sub[p].map(examCardHTML).join('')}</div>
-          </div>`).join('');
+      if(top.key==='国省考真题'){
+        body = top.subCats.map(c=>{
+          const list = byCat[c]; if(!list||!list.length) return '';
+          if(c==='省考真题'){
+            const sub={};
+            list.forEach(e=>{const m=provNames.find(p=>(e.title||'').includes(p))||'其他';(sub[m]=sub[m]||[]).push(e);});
+            return `<div class="exam-group">
+              <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▾</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
+              <div class="eg-body" id="eg-${c}">${Object.keys(sub).map(p=>`<div class="exam-group">
+                <div class="exam-group-head" onclick="tg('eg-${c}-${p}')"><span class="caret" id="caret-eg-${c}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
+                <div class="eg-body" id="eg-${c}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+              </div>`).join('')}</div>
+            </div>`;
+          }
+          return `<div class="exam-group">
+            <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▾</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
+            <div class="eg-body" id="eg-${c}">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+          </div>`;
+        }).join('');
       }else{
-        body=list.map(examCardHTML).join('');
+        const list = byCat['专题']||[];
+        body = list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('');
       }
       return `<div class="exam-group">
-        <div class="exam-group-head" onclick="tg('eg-${cat}')"><span class="caret" id="caret-eg-${cat}">▾</span><b>${catLabel[cat]}</b><span class="muted">(${list.length}套)</span></div>
-        <div class="eg-body" id="eg-${cat}">${body}</div>
+        <div class="exam-group-head" onclick="tg('eg-top-${top.key}')">
+          <span class="caret" id="caret-eg-top-${top.key}">▾</span>
+          <b>${top.label}</b>
+          <span class="cat-progress">已完成 ${t.done} / 共 ${t.total}
+            <span class="cat-bar"><i style="width:${t.percent}%"></i></span>
+            <b style="color:var(--ok)">${t.percent}%</b>
+          </span>
+        </div>
+        <div class="eg-body" id="eg-top-${top.key}" style="border-left:none;margin-left:0;padding-left:0">${body}</div>
       </div>`;
     }).join('');
-    // 默认展开第一个大类
-    if(cats.length)tg('eg-'+cats[0]);
+    if(prog.byTop['国省考真题'].total) tg('eg-top-国省考真题');
   }catch(e){toast(e.message,'err');}
 }
-function examCardHTML(e){return `<div class="exam-card"><div class="info"><b>${esc(e.title)}</b><div class="meta">${(e.questionIds||[]).length} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button></div>`;}
+function examCardHTML(e, doneSet, draft){
+  const done = doneSet && doneSet.has(e.id);
+  const qn = (e.questionIds||[]).length;
+  let actions = `<button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button>`;
+  let tags = '';
+  if(draft){
+    tags += `<span class="tag-draft">草稿·已答 ${draft.answered}/${draft.total}</span>`;
+    actions = `<button class="btn sm" onclick="enterExam('${e.id}')">继续作答</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`;
+  } else if(done){
+    tags += `<span class="tag-done">✓ 已完成</span>`;
+    actions = `<button class="btn sm" onclick="enterExam('${e.id}')">再做一次</button>`;
+  }
+  return `<div class="exam-card${done?' done':''}"><div class="info"><b>${esc(e.title)}</b>${tags}<div class="meta">${qn} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><div class="acts">${actions}</div></div>`;
+}
 function tg(id){
   const body=document.getElementById(id),caret=document.getElementById('caret-'+id);
   if(!body)return;
@@ -527,25 +584,136 @@ function tg(id){
 }
 
 // ---- 考试答题 ----
-let examData=null,examAnswers={};
+let examData=null,examAnswers={},examSeq=[],examTotal=0,examIdCurrent=null,_ppCount=null;
+function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);renderNav();}
+
+// 进入考试：展示「选练几题」开始面板（或草稿续作）
 async function enterExam(id){
-  try{examData=await api('/api/exams/'+id);examAnswers={};
-    let h=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${esc(examData.title)}</h2><span class="muted">${examData.questions.length} 题</span></div><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
-    examData.questions.forEach((q,i)=>{
-      h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`;
-      h+=optRowsHTML(q,q.id,'pickOpt');
-      h+=`</div>`;
-    });
-    h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitExam('${id}')">交卷看成绩</button></div>`;
+  try{
+    examIdCurrent=id; _ppCount=null;
+    examData=await api('/api/exams/'+id);
+    const draftResp=await api('/api/exams/'+id+'/draft?key='+encodeURIComponent(studentKey));
+    const draft=draftResp&&draftResp.draft;
+    const total=examData.questions.length;
+    let h=`<div class="start-panel">
+      <h2>${esc(examData.title)}</h2>
+      <p class="muted">共 ${total} 题 · 不限时 · 可随时「暂存进度」后离开，下次继续作答</p>`;
+    if(draft&&Array.isArray(draft.seq)&&draft.seq.length){
+      const answered=Object.keys(draft.answers||{}).length;
+      h+=`<div class="draft-box">
+        <div class="draft-tip">📌 检测到上次暂存的草稿</div>
+        <button class="btn" onclick="resumeExam('${id}')">继续上次作答（${(draft.seq||[]).length} 题 · 已答 ${answered}）</button>
+        <button class="btn ghost" onclick="clearAndStart('${id}')">重新开始</button>
+      </div>`;
+    }else{
+      h+=`<div class="practice-pick">
+        <div class="pp-title">本次练习几题？</div>
+        <div class="pp-opts" id="pp-opts">`;
+      const presets=[10,20,30,50].filter(n=>n<total);
+      let optsHtml=`<button class="pp-btn${total<=10?' active':''}" data-n="${total}" onclick="pickCount(this,${total})">全部（${total}）</button>`;
+      presets.forEach(n=>{optsHtml+=`<button class="pp-btn" data-n="${n}" onclick="pickCount(this,${n})">${n} 题</button>`;});
+      optsHtml+=`<button class="pp-btn" data-n="custom" onclick="pickCount(this,'custom')">自定义</button>`;
+      h+=optsHtml+`</div>
+        <div id="pp-custom-wrap" style="display:none;margin-top:10px">自定义题数：<input id="pp-custom" type="number" min="1" max="${total}" value="${Math.min(10,total)}" style="width:90px;padding:6px;border:1px solid var(--border);border-radius:8px"> <span class="muted">（最多 ${total}）</span></div>
+      </div>
+      <button class="btn" onclick="startPractice('${id}')">开始练习</button>`;
+    }
+    h+=`</div>`;
     $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
     window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);}
+function pickCount(el,n){
+  document.querySelectorAll('#pp-opts .pp-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active'); _ppCount=n;
+  $('#pp-custom-wrap').style.display=(n==='custom')?'block':'none';
+}
+// 清空草稿并重新选练
+async function clearAndStart(id){
+  try{await api('/api/exams/'+id+'/draft?key='+encodeURIComponent(studentKey),{method:'DELETE'});}catch(e){}
+  enterExam(id);
+}
+function restartExam(id){clearAndStart(id);}
+// 开始一次新练习（按所选题数抽取）
+async function startPractice(id){
+  let n=_ppCount;
+  if(n==='custom'){n=parseInt($('#pp-custom').value,10)||0;}
+  if(!n||n<1){toast('请选择练习题数','err');return;}
+  const total=examData.questions.length;
+  n=Math.min(n,total);
+  let seq;
+  if(n>=total){seq=examData.questions.map(q=>q.id);}
+  else{
+    const pool=examData.questions.slice();
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    seq=pool.slice(0,n).map(q=>q.id);
+  }
+  examSeq=seq;examTotal=seq.length;examAnswers={};
+  renderExamQuestions();
+}
+// 续作草稿
+async function resumeExam(id){
+  try{
+    const r=await api('/api/exams/'+id+'/draft?key='+encodeURIComponent(studentKey));
+    const d=r&&r.draft; if(!d){enterExam(id);return;}
+    examSeq=d.seq&&d.seq.length?d.seq:examData.questions.map(q=>q.id);
+    examTotal=examSeq.length;examAnswers=d.answers||{};
+    renderExamQuestions();
+  }catch(e){toast(e.message,'err');}
+}
+// 渲染题目 + 顶部工具栏 + 题号导航
+function renderExamQuestions(){
+  const qmap={};examData.questions.forEach(q=>qmap[q.id]=q);
+  let h=`<div class="exam-toolbar">
+    <div><b>${esc(examData.title)}</b><div class="muted" id="exam-progress">共 ${examTotal} 题 · 已答 0</div></div>
+    <div class="exam-toolbar-acts">
+      <button class="btn sm" onclick="submitExam('${examIdCurrent}')">交卷看成绩</button>
+      <button class="btn ghost sm" onclick="saveDraftNow('${examIdCurrent}')">暂存进度</button>
+      <button class="btn ghost sm" onclick="backToExams()">返回列表</button>
+    </div>
+  </div>
+  <div class="qnav" id="qnav"></div>`;
+  examSeq.forEach((qid,i)=>{
+    const q=qmap[qid];if(!q)return;
+    h+=`<div class="q" id="qbox-${i}"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`;
+    h+=optRowsHTML(q,q.id,'pickOpt');
+    h+=`</div>`;
+  });
+  h+=`<div class="center" style="margin:18px 0"><button class="btn" onclick="submitExam('${examIdCurrent}')">交卷看成绩</button> <button class="btn ghost" onclick="saveDraftNow('${examIdCurrent}')">暂存进度</button></div>`;
+  $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
+  window.scrollTo(0,0);renderNav();
+}
+// 题号导航（显示作答状态）
+function renderNav(){
+  const nav=$('#qnav');if(!nav)return;
+  let html='';let answered=0;
+  examSeq.forEach((qid,i)=>{
+    const a=examAnswers[qid];
+    const done=(a!==undefined)&&!(Array.isArray(a)&&!a.length);
+    if(done)answered++;
+    html+=`<button class="qn${done?' on':''}" onclick="gotoQ(${i})">${i+1}</button>`;
+  });
+  nav.innerHTML=html;
+  const p=$('#exam-progress');if(p)p.textContent=`共 ${examTotal} 题 · 已答 ${answered}`;
+}
+function gotoQ(i){const el=document.getElementById('qbox-'+i);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+// 暂存草稿（返回列表前自动调用）
+async function saveDraftNow(id){
+  const r=await api('/api/exams/'+id+'/draft',{method:'POST',body:JSON.stringify({studentKey,answers:examAnswers,seq:examSeq,idx:0,count:examSeq.length,total:examSeq.length})});
+  return r&&r.ok;
+}
+function backToExams(){
+  const hasAns=Object.keys(examAnswers).some(k=>{const a=examAnswers[k];return a!==undefined&&!(Array.isArray(a)&&!a.length);});
+  if(hasAns){saveDraftNow(examIdCurrent).then(()=>_goList()).catch(()=>_goList());}
+  else _goList();
+}
+function _goList(){$('#exam-list-card').classList.remove('hidden');$('#exam-do-card').classList.add('hidden');loadExamList();loadMine();}
 async function submitExam(id){
-  const unanswered=examData.questions.filter(q=>{const a=examAnswers[q.id];return a===undefined||(Array.isArray(a)&&!a.length);}).length;
+  const answeredCount=examSeq.filter(qid=>{const a=examAnswers[qid];return a!==undefined&&!(Array.isArray(a)&&!a.length);}).length;
+  const unanswered=examTotal-answeredCount;
   if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
-  try{const r=await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers})});
+  try{
+    const r=await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers,questionIds:examSeq})});
     let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded.length?` · 新增 ${r.wrongAdded.length} 道错题`:''}</div></div>`;
     r.details.forEach((d,i)=>{
       h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 错误</span>'}</div>`;
@@ -558,7 +726,6 @@ async function submitExam(id){
     $('#exam-do').innerHTML=h;window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function backToExams(){$('#exam-list-card').classList.remove('hidden');$('#exam-do-card').classList.add('hidden');loadExamList();loadMine();}
 
 // ---- 课堂 ----
 let crRoomId=null,crStudentId=null,crPollTimer=null,crAnswered={};

@@ -113,7 +113,8 @@ db = {
 
 **题目**：`GET /api/questions?type=&topic=` · `GET /api/topics` · `POST /api/questions` · `POST /api/questions/batch`（`{text}` 文本解析或 `{questions:[...]}`）· `PUT /api/questions/:id` · `DELETE /api/questions/:id`
 
-**考试/专题**：`GET /api/exams` · `GET /api/exams/:id`（隐藏答案）· `POST /api/exams`（`{title,questionIds}` 或 `{title,questions}` 直接带题）· `DELETE /api/exams/:id` · `POST /api/exams/:id/submit`（`{studentKey,studentName,answers}`）
+**考试/专题**：`GET /api/exams`（每个考试返回 `category` 字段，由标题自动识别：国考真题/省考真题/选调真题/专题/国省考真题）· `GET /api/exams/:id`（隐藏答案）· `POST /api/exams`（`{title,questionIds}` 或 `{title,questions}` 直接带题）· `DELETE /api/exams/:id` · `POST /api/exams/:id/submit`（`{studentKey,studentName,answers,questionIds}` — `questionIds` 可选，传入则只对该子集评分，用于「练几题」部分作答）
+- **考试进度 / 草稿（新增）**：`GET /api/exams/progress?key=` → `{doneExamIds:[], byTop:{'国省考真题':{done,total,percent},'专题':{...}}}`（注意：此路由必须放在 `/api/exams/:id` 之前，否则会被 `:id` 捕获）· `GET /api/drafts?key=` → `{drafts:{examId:{count,total,answered,updatedAt}}}` · `POST /api/exams/:id/draft`（`{studentKey,answers,seq,idx,count,total}` 暂存）· `GET /api/exams/:id/draft?key=` · `DELETE /api/exams/:id/draft?key=`（交卷时后端自动 clearDraft）
 
 **学生/错题**：`GET /api/students/:key/records` · `GET /api/students/:key/stats` · `GET /api/students/:key/wrong` · `POST /api/wrong/remove` · `POST /api/wrong-practice/start` · `POST /api/wrong-practice/submit`
 
@@ -153,6 +154,7 @@ db = {
 - 早读 `loadMorning`：今日打卡（老师推送+自建）、早读记忆复习（艾宾浩斯）、我的早读规划（自建）、复习日程表（14 天）、早读作业提交。
 - 首次打开若未登录，自动弹出**注册/登录**弹窗（注册=邮箱+姓名+密码；登录=邮箱+密码）。登录态存 `localStorage.quiz_student_key`（邮箱）与 `quiz_student_name`。
 - 身份相关函数：`showWho / openAuth / switchAuth / doRegister / doLogin`。
+- 考试答题模块（重点·最新改造）：`loadExamList` 按 `category` 归并为**两大可折叠块「📘 国省考真题 / 📚 专题训练」**，块头显示「已完成 X / 共 Y (Z%)」进度条；国省考真题块内再按 国考/省考/选调 折叠、省考按省份折叠；卡片带「草稿·已答 N/M」「✓ 已完成」徽标。`enterExam` 先弹「本次练习几题」面板（全部/10/20/30/50/自定义，支持部分作答），有草稿时显示「继续上次作答/重新开始」。`renderExamQuestions` 顶部 sticky 工具栏（交卷/暂存进度/返回列表）+ 题号导航；`saveDraftNow` 暂存、`backToExams` 返回前自动暂存防丢、`submitExam` 支持 `questionIds` 只交练习子集。
 
 ---
 

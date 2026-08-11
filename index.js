@@ -66,6 +66,15 @@ app.delete('/api/questions/:id', (req, res) => {
 // ================= 考试 / 专题 =================
 app.get('/api/exams', (req, res) => res.json(store.listExams()));
 
+// 考试完成进度（按大类统计：已完成 / 共 / 百分比）—— 必须放在 /:id 之前，否则被 :id 捕获
+app.get('/api/exams/progress', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json(store.getExamProgress(key));
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
 app.get('/api/exams/:id', (req, res) => {
   const data = store.getExamQuestions(req.params.id);
   if (!data) return res.status(404).json(fail('考试不存在'));
@@ -91,12 +100,45 @@ app.delete('/api/exams/:id', (req, res) => {
 // 提交考试答卷
 app.post('/api/exams/:id/submit', (req, res) => {
   try {
-    const { studentKey, studentName, answers } = req.body || {};
+    const { studentKey, studentName, answers, questionIds } = req.body || {};
     if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
-    const result = store.submitExam({ examId: req.params.id, studentKey, studentName, answers });
+    const result = store.submitExam({ examId: req.params.id, studentKey, studentName, answers, questionIds });
     if (result.error) return res.status(404).json(fail(result.error));
     res.json(result);
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
+// 考试草稿（暂存 / 续作）
+app.post('/api/exams/:id/draft', (req, res) => {
+  try {
+    const { studentKey, answers, seq, idx, count, total } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const d = store.saveDraft(studentKey, req.params.id, { answers: answers || {}, seq: seq || null, idx: idx || 0, count: count || 0, total: total || 0 });
+    res.json({ ok: true, draft: d });
+  } catch (e) { res.status(500).json(fail('暂存失败: ' + e.message)); }
+});
+app.get('/api/exams/:id/draft', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json({ draft: store.getDraft(key, req.params.id) });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+app.delete('/api/exams/:id/draft', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json({ ok: true, cleared: store.clearDraft(key, req.params.id) });
+  } catch (e) { res.status(500).json(fail('清除失败: ' + e.message)); }
+});
+
+// 某学生全部草稿摘要（考试列表批量展示「继续作答」）
+app.get('/api/drafts', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json({ drafts: store.listDrafts(key) });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
 });
 
 // 批量写入考试答案/解析（教师导入答案键）
