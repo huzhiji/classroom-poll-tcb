@@ -254,57 +254,71 @@ async function loadExamList(){
     const byTop = prog.byTop||{};
     const doneSet = new Set(prog.doneExamIds||[]);
     const draftMap = (draftsRes&&draftsRes.drafts)||{};
-    // 顶层两大块
-    const tops = [
-      { key:'国省考真题', label:'📘 国省考真题', subCats:['国考真题','省考真题','选调真题','国省考真题'] },
-      { key:'专题', label:'📚 专题训练', subCats:['专题'] },
-    ];
+    // 按分类聚合（category 由后端 examCategory 推导）
     const byCat={};
     exams.forEach(e=>{const c=(e&&e.category)||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
-    const provNames=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
-    const catLabel={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题' };
-
-    box.innerHTML = tops.map(top=>{
-      const t = byTop[top.key]||{done:0,total:0,percent:0};
-      if(!t.total) return '';
+    // 顶层大类顺序：真题 / 常识 / 公基 / 专题
+    const topsOrder=['国省考真题','常识判断','公共基础','专题'];
+    box.innerHTML = topsOrder.map(top=>{
+      const t = byTop[top]||{done:0,total:0,percent:0};
+      const cats = Object.keys(byCat).filter(c=>examTopLocal(c)===top && byCat[c].length);
+      if(!cats.length) return '';
       let body;
-      if(top.key==='国省考真题'){
-        body = top.subCats.map(c=>{
-          const list = byCat[c]; if(!list||!list.length) return '';
-          if(c==='省考真题'){
-            const sub={};
-            list.forEach(e=>{const m=provNames.find(p=>(e.title||'').includes(p))||'其他';(sub[m]=sub[m]||[]).push(e);});
-            return `<div class="exam-group">
-              <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▸</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
-              <div class="eg-body" id="eg-${c}" style="display:none">${Object.keys(sub).map(p=>`<div class="exam-group">
-                <div class="exam-group-head" onclick="tg('eg-${c}-${p}')"><span class="caret" id="caret-eg-${c}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
-                <div class="eg-body" id="eg-${c}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
-              </div>`).join('')}</div>
-            </div>`;
-          }
-          return `<div class="exam-group">
-            <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▸</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
-            <div class="eg-body" id="eg-${c}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
-          </div>`;
-        }).join('');
+      if(cats.length===1 && cats[0]===top && top!=='常识判断'){
+        // 该大类只有单一分类（如公共基础），直接列出试卷，避免标题重复
+        body = byCat[cats[0]].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('');
       }else{
-        const list = byCat['专题']||[];
-        body = list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('');
+        body = cats.map(c=>renderCatGroup(c, byCat[c], doneSet, draftMap)).join('');
       }
       return `<div class="exam-group">
-        <div class="exam-group-head" onclick="tg('eg-top-${top.key}')">
-          <span class="caret" id="caret-eg-top-${top.key}">▸</span>
-          <b>${top.label}</b>
+        <div class="exam-group-head" onclick="tg('eg-top-${top}')">
+          <span class="caret" id="caret-eg-top-${top}">▸</span>
+          <b>${topLabel(top)}</b>
           <span class="cat-progress">已完成 ${t.done} / 共 ${t.total}
             <span class="cat-bar"><i style="width:${t.percent}%"></i></span>
             <b style="color:var(--ok)">${t.percent}%</b>
           </span>
         </div>
-        <div class="eg-body" id="eg-top-${top.key}" style="border-left:none;margin-left:0;padding-left:0;display:none">${body}</div>
+        <div class="eg-body" id="eg-top-${top}" style="border-left:none;margin-left:0;padding-left:0;display:none">${body}</div>
       </div>`;
     }).join('');
     // 默认全部折叠，无需额外展开
   }catch(e){toast(e.message,'err');}
+}
+// 顶层大类映射（与后端 examTop 保持一致）
+function examTopLocal(cat){
+  if(cat==='常识判断'||cat==='公共基础'||cat==='专题') return cat;
+  return '国省考真题';
+}
+function topLabel(t){
+  return {'国省考真题':'📘 国省考真题','常识判断':'🔆 常识判断','公共基础':'📓 公共基础','专题':'📚 专题训练'}[t]||t;
+}
+const PROV_NAMES=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
+const CAT_LABEL={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识判断','公共基础':'📓 公共基础' };
+// 渲染某分类下的试卷列表（省考真题按省份折叠；常识判断按专项/真题分组；其余直接列出）
+function renderCatGroup(catKey, list, doneSet, draftMap){
+  if(catKey==='省考真题' || catKey==='常识判断'){
+    const sub={};
+    list.forEach(e=>{
+      let m;
+      if(catKey==='省考真题'){ m=PROV_NAMES.find(p=>(e.title||'').includes(p))||'其他'; }
+      else { m=(e.mode==='topic')?'📓 专项常识':'📘 常识真题'; }
+      (sub[m]=sub[m]||[]).push(e);
+    });
+    const subLabel={};
+    if(catKey==='常识判断'){ subLabel['📓 专项常识']='📓 专项常识'; subLabel['📘 常识真题']='📘 常识真题'; }
+    return `<div class="exam-group">
+      <div class="exam-group-head" onclick="tg('eg-${catKey}')"><span class="caret" id="caret-eg-${catKey}">▸</span><b>${CAT_LABEL[catKey]||catKey}</b><span class="muted">(${list.length}套)</span></div>
+      <div class="eg-body" id="eg-${catKey}" style="display:none">${Object.keys(sub).map(p=>`<div class="exam-group">
+        <div class="exam-group-head" onclick="tg('eg-${catKey}-${p}')"><span class="caret" id="caret-eg-${catKey}-${p}">▸</span><b>${esc(subLabel[p]||p)}</b><span class="muted">(${sub[p].length}套)</span></div>
+        <div class="eg-body" id="eg-${catKey}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+      </div>`).join('')}</div>
+    </div>`;
+  }
+  return `<div class="exam-group">
+    <div class="exam-group-head" onclick="tg('eg-${catKey}')"><span class="caret" id="caret-eg-${catKey}">▸</span><b>${CAT_LABEL[catKey]||catKey}</b><span class="muted">(${list.length}套)</span></div>
+    <div class="eg-body" id="eg-${catKey}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+  </div>`;
 }
 function examCardHTML(e, doneSet, draft){
   const done = doneSet && doneSet.has(e.id);
@@ -364,7 +378,7 @@ async function enterExam(id){
       h+=optsHtml+`</div>
         <div id="pp-custom-wrap" style="display:none;margin-top:10px">自定义题数：<input id="pp-custom" type="number" min="1" max="${total}" value="${Math.min(10,total)}" style="width:90px;padding:6px;border:1px solid var(--border);border-radius:8px"> <span class="muted">（最多 ${total}）</span></div>
       </div>
-      <button class="btn" onclick="startPractice('${id}')">开始练习</button>`;
+      <button class="btn" onclick="startExamPractice('${id}')">开始练习</button>`;
     }
     h+=`</div>`;
     $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
@@ -382,8 +396,8 @@ async function clearAndStart(id){
   enterExam(id);
 }
 function restartExam(id){clearAndStart(id);}
-// 开始一次新练习（按所选题数抽取）
-async function startPractice(id){
+// 开始一次新练习（按所选题数抽取）—— 注意：与错题练习的 startPractice(count) 区分，避免函数名覆盖
+async function startExamPractice(id){
   let n=_ppCount;
   if(n==='custom'){n=parseInt($('#pp-custom').value,10)||0;}
   if(!n||n<1){toast('请选择练习题数','err');return;}
