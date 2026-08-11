@@ -10,7 +10,7 @@
 
 一个**国产云端「选调生学习系统」**（由在线答题平台升级而来）：学生用**邮箱 + 密码**注册登录 → 首页**学习仪表盘**展示各模块掌握概览（进度条/完成率/薄弱环节）→ 三大核心模块：**课程**（老师自建章节+资料+内置练习，按课时完成度算进度）、**答题**（考试/专题/课堂/错题练习/记忆模式）、**早读**（老师一键推送、学生每日打卡、艾宾浩斯自动复习、打卡后布置作业、师生双端日程/统计）→ 教师可**按邮箱群发复习提醒邮件**。数据可一键/定时备份到本地。
 
-**部署现状**：原腾讯云托管地址 `https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com` **因配额耗尽已停用**；现部署在**阿里云 ECS**（Docker 方式，见 §3 与 §12.4，一键脚本 `deploy/aliyun-ecs/`）。
+**部署现状**：原腾讯云托管地址 `https://classroom-poll-294902-10-1304972958.sh.run.tcloudbase.com` **因配额耗尽已停用**；现部署在**阿里云 ECS（Windows Server，直接跑 Node.js）**，见 §3 与 §12.4，完整指南 `deploy/windows-server/配置说明-Windows.md`（含 NSSM 开机自启、Caddy HTTPS）。Linux 服务器可用 `deploy/aliyun-ecs/` 一键脚本。
 **仓库**：`https://github.com/huzhiji/classroom-poll-tcb`（分支 `main`）
 **注意**：另一个仓库 `huzhiji/classroom-poll`（Vercel 旧版）已弃用，请勿混淆。
 
@@ -54,7 +54,7 @@ classroom-poll-cloudbase/
 
 ## 3. 部署架构（务必遵守）
 
-- **当前部署目标：阿里云 ECS**（腾讯云托管配额已耗尽、停用）。ECS 磁盘本身持久：`DATA_DIR=/data` 直接落盘，**无需额外挂载云盘/持久卷**；容器 `-p 80:80` 映射、`--restart=always`；安全组放行 80/443。一键脚本 `deploy/aliyun-ecs/deploy.sh`，完整指南 `deploy/aliyun-ecs/配置说明.md`。
+- **当前部署目标：阿里云 ECS —— 实际系统为 Windows Server**（直接跑 Node.js，见 `deploy/windows-server/`：`start.bat` 前台启动、`install-service.bat` NSSM 注册服务开机自启、`配置说明-Windows.md` 完整指南含 Caddy HTTPS）。Windows 磁盘本身持久：`DATA_DIR` 设为 `C:\classroom\data` 即可，重启/更新不丢。若换 Linux 服务器，可用 `deploy/aliyun-ecs/`（Docker 一键脚本）。
 - **容器端口**：应用监听 `process.env.PORT || 80`。**绝对不能改回 3000 并去掉 `|| 80`**，否则外部 80 映射探活失败。
 - **持久化卷**：所有数据落盘到 `/data/store.json`（可用环境变量 `DATA_DIR` 覆盖）。Docker 部署用 `-v /data:/data` 挂宿主机目录；**容器删了数据仍在**。
 - **实例数**：固定为 1。多副本会导致内存数据不一致、相互覆盖。

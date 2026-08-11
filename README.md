@@ -25,9 +25,12 @@ DATA_DIR=./_testdata PORT=3001 node index.js
 
 ---
 
-## 二、部署到阿里云 ECS（上线/更新）
+## 二、部署到阿里云（上线/更新）
 
-**前置**：一台阿里云 ECS（1 核 1G 足够），已装 Docker，安全组放行 80/443。
+> **当前实际环境：阿里云 Windows Server**（直接跑 Node.js）→ 请按 `deploy/windows-server/配置说明-Windows.md` 操作（含 start.bat 启动脚本、NSSM 开机自启、Caddy HTTPS）。
+> 若你的服务器是 Linux，用下面的 Docker 一键脚本（更简单）。
+
+**前置**：一台阿里云 ECS（1 核 1G 足够），安全组放行 80/443。
 
 ### 首次部署
 ```bash
