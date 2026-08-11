@@ -409,6 +409,20 @@ async function resumeExam(id){
   }catch(e){toast(e.message,'err');}
 }
 // 渲染题目 + 顶部工具栏 + 题号导航
+// 一键加入错题（学生主动把不会的题加入错题库）
+function wrongBtnHTML(qid){
+  return `<button class="wrong-add" type="button" onclick="addWrong('${qid}',this)">＋ 加入错题本</button>`;
+}
+async function addWrong(qid,btn){
+  if(!studentKey){toast('请先登录/注册','err');return;}
+  try{
+    const r=await api('/api/wrong/add',{method:'POST',body:JSON.stringify({studentKey,qid})});
+    if(r&&r.ok){
+      toast(r.already?'已在错题本':'已加入错题本','ok');
+      if(btn){btn.classList.add('done');btn.textContent='✓ 已在错题本';btn.disabled=true;}
+    }else toast((r&&r._error)||'加入失败','err');
+  }catch(e){toast(e.message,'err');}
+}
 function renderExamQuestions(){
   const questions=Array.isArray(examData.questions)?examData.questions:[];
   const qmap={};questions.forEach(q=>qmap[q.id]=q);
@@ -425,6 +439,7 @@ function renderExamQuestions(){
     const q=qmap[qid];if(!q)return;
     h+=`<div class="q" id="qbox-${i}"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`;
     h+=optRowsHTML(q,q.id,'pickOpt');
+    h+=wrongBtnHTML(q.id);
     h+=`</div>`;
   });
   h+=`<div class="center" style="margin:18px 0"><button class="btn" onclick="submitExam('${examIdCurrent}')">交卷看成绩</button> <button class="btn ghost" onclick="saveDraftNow('${examIdCurrent}')">暂存进度</button></div>`;
@@ -583,7 +598,7 @@ async function startMemory(){
     if(!questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
     memData=questions;memAnswers={};
     let h=`<h2>今日复习（${questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
-    memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.qid,'pickMem')+`</div>`;});
+    memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.qid,'pickMem')+wrongBtnHTML(q.qid)+`</div>`;});
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitMemory()">提交复习</button></div>`;
     $('#mem-do-body').innerHTML=h;$('#mem-do').classList.remove('hidden');window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
@@ -837,7 +852,7 @@ async function doHomework(id){
     if(!qs.length){toast('作业暂无可答题','err');return;}
     hwState={id,answers:{}};
     let h=`<button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><h2 style="margin:12px 0">📋 ${esc(hh.title)}</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
-    qs.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`+optRowsHTML(q,q.id,'pickHw')+`</div>`;});
+    qs.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`+optRowsHTML(q,q.id,'pickHw')+wrongBtnHTML(q.id)+`</div>`;});
     h+=`<div class="center" style="margin-top:14px"><button class="btn" onclick="submitHw()">提交作业</button></div>`;
     $('#morning-body').innerHTML=h;window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}

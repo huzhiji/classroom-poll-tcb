@@ -178,6 +178,17 @@ app.post('/api/wrong/remove', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// 一键加入错题（学生主动加入）
+app.post('/api/wrong/add', (req, res) => {
+  try {
+    const { studentKey, qid } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    const result = store.addWrong(studentKey, qid);
+    if (result.error) return res.status(400).json(fail(result.error));
+    res.json(result);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
 // 错题练习：开始（随机抽取）
 app.post('/api/wrong-practice/start', (req, res) => {
   try {

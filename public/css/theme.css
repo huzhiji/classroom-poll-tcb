@@ -531,8 +531,7 @@ tr:hover td{background:rgba(241,245,249,.65)}
 html{scroll-behavior:smooth}
 main>section[id]{scroll-margin-top:84px}
 
-/* ---------- 19. 返回顶部 ---------- */
-.to-top{
+/* ---------- 19. 返回顶部 ---------- */.to-top{
   position:fixed;right:20px;bottom:20px;z-index:90;
   width:44px;height:44px;border-radius:50%;
   background:rgba(15,23,42,.85);color:#fff;
@@ -545,3 +544,14 @@ main>section[id]{scroll-margin-top:84px}
 }
 .to-top:hover{opacity:1;background:var(--primary);transform:translateY(-3px)}
 @media(max-width:520px){.to-top{right:14px;bottom:14px;width:40px;height:40px;font-size:18px}}
+
+/* ---------- 20. 一键加入错题 ---------- */
+.wrong-add{
+  float:right;margin:2px 0 0 10px;
+  background:rgba(255,255,255,.72);border:1px dashed rgba(148,163,184,.65);
+  color:var(--muted);border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;
+  font-weight:600;transition:all var(--t);
+}
+.wrong-add:hover{border-color:var(--err);color:var(--err);background:rgba(254,226,226,.55);transform:translateY(-1px)}
+.wrong-add.done{border-style:solid;border-color:rgba(22,163,74,.55);color:var(--ok);background:rgba(220,252,231,.6);cursor:default}
+.wrong-add.done:hover{transform:none}
