@@ -4,8 +4,9 @@ FROM node:18-alpine
 WORKDIR /app
 
 # 先装依赖（利用层缓存，package.json 不变时不用重装）
+# 国内服务器直连 npm 官方源较慢/易超时，用 npmmirror（阿里）加速
 COPY package.json ./
-RUN npm install --production
+RUN npm install --production --registry=https://registry.npmmirror.com
 
 # 复制源码
 COPY . .
