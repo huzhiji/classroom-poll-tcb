@@ -48,7 +48,16 @@
   .stat-box .num{font-size:26px;font-weight:700;color:var(--primary)}
   .stat-box .lbl{font-size:13px;color:var(--muted);margin-top:4px}
   .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
-  .badge.choice{background:#e0e7ff;color:var(--primary)}.badge.judge{background:#dcfce7;color:var(--ok)}
+  .badge.choice{background:#e0e7ff;color:var(--primary)}.badge.judge{background:#dcfce7;color:var(--ok)}.badge.multi{background:#fef3c7;color:#b45309}
+  .multi-tag{float:right;font-size:11px;color:#b45309;background:#fef3c7;border-radius:6px;padding:0 6px;font-weight:600}
+  /* 考试列表分组折叠 */
+  .exam-group{margin-bottom:10px}
+  .exam-group-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:12px;cursor:pointer;user-select:none;transition:background .15s}
+  .exam-group-head:hover{background:rgba(255,255,255,.95)}
+  .exam-group-head .caret{color:var(--primary);font-size:13px;transition:transform .15s;width:14px;text-align:center}
+  .exam-group-head b{font-size:15px}
+  .eg-body{padding:8px 0 2px 6px;border-left:2px solid rgba(37,99,235,.15);margin-left:14px}
+  .eg-body .exam-group-head{background:rgba(248,250,252,.7);padding:9px 12px;font-size:14px}
   .live{position:fixed;bottom:18px;right:18px;background:#1e293b;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;box-shadow:var(--shadow)}
   .pill{display:inline-flex;gap:6px;background:#f1f5f9;padding:5px 12px;border-radius:999px;font-size:13px;margin:4px}
   .center{text-align:center}
@@ -368,6 +377,51 @@ function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast show 
 async function api(u,o){const r=await fetch(u,Object.assign({headers:{'Content-Type':'application/json'}},o));const d=await r.json();if(d&&d._error)throw new Error(d.message);return d;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
+// ---- 选项字母 / 多选辅助 ----
+const OPTL='ABCDEFGH';
+function optL(j){return OPTL[j]||String(Number(j)+1);}
+function isMultiQ(q){return q&&(q.type==='multi'||Array.isArray(q.correctAnswer));}
+function correctIdx(q){const c=q&&q.correctAnswer;return Array.isArray(c)?c:(typeof c==='number'&&c>=0?[c]:[]);}
+function hasAns(q){const c=q&&q.correctAnswer;return Array.isArray(c)?c.length>0:(typeof c==='number'&&c>=0);}
+function selIdx(d){const s=d&&d.selected;return Array.isArray(s)?s:(typeof s==='number'&&s>=0?[s]:[]);}
+// 结果/解析页选项渲染(单选/多选通用):正确选项✓、误选✗
+function detailOptsHTML(d){
+  const ca=correctIdx(d), sel=selIdx(d);
+  return (d.options||[]).map((o,j)=>{
+    let cls='opt',mk='';
+    if(ca.includes(j)){cls+=' correct';mk='<span class="mk">✓</span>';}
+    else if(sel.includes(j)&&!d.isCorrect){cls+=' wrong';mk='<span class="mk">✗</span>';}
+    return `<div class="${cls}">${optL(j)}. ${esc(o)} ${mk}</div>`;
+  }).join('');
+}
+// 通用答案选择(单选/多选)
+function pickGen(ansMap,qid,j,el,multi){
+  if(multi){
+    const arr=(ansMap[qid]||[]).slice();
+    const i=arr.indexOf(j);
+    if(i>=0)arr.splice(i,1);else arr.push(j);
+    ansMap[qid]=arr.length?arr:undefined;
+    el.classList.toggle('sel',i<0);
+  }else{
+    ansMap[qid]=j;
+    [...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+}
+function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);}
+function pickWrong(qid,j,el,multi){pickGen(wrongAnswers,qid,j,el,multi);}
+function pickMem(qid,j,el,multi){pickGen(memAnswers,qid,j,el,multi);}
+// 答题页选项行(handler: pickOpt/pickWrong/pickMem)
+function optRowsHTML(q,qid,handler){
+  const multi=isMultiQ(q);
+  return (q.options||[]).map((o,j)=>{
+    const fn=multi?`${handler}('${qid}',${j},this,true)`:`${handler}('${qid}',${j},this)`;
+    return `<div class="opt" onclick="${fn}">${optL(j)}. ${esc(o)}${multi?' <span class="multi-tag">多选</span>':''}</div>`;
+  }).join('');
+}
+// 正确答案字母串(供多选结果展示)
+function correctLetters(d){return correctIdx(d).map(optL).join('');}
+
 // ---- 身份 / 注册登录 ----
 let studentKey=localStorage.getItem('quiz_student_key')||'';
 let studentName=localStorage.getItem('quiz_student_name')||'';
@@ -424,8 +478,52 @@ async function loadExamList(){
   if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
   try{const exams=await api('/api/exams');const box=$('#exam-list');
     if(!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
-    box.innerHTML=exams.map(e=>`<div class="exam-card"><div class="info"><b>${esc(e.title)}</b><div class="meta">${(e.questionIds||[]).length} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button></div>`).join('');
+    // 分类:专项题库 / 国考真题 / 选调真题 / 省考真题(省考内按省份)
+    const groups={};
+    exams.forEach(e=>{
+      const t=e.title||'';
+      let cat;
+      if(t.includes('专项'))cat='专项题库';
+      else if(t.includes('选调'))cat='选调真题';
+      else if(t.includes('国家公务员'))cat='国考真题';
+      else cat='省考真题';
+      (groups[cat]=groups[cat]||[]).push(e);
+    });
+    const order=['国考真题','省考真题','选调真题','专项题库'];
+    const catLabel={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项题库':'📚 专项题库' };
+    const provNames=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
+    const cats=order.filter(c=>groups[c]);
+    box.innerHTML=cats.map(cat=>{
+      const list=groups[cat];
+      let body;
+      if(cat==='省考真题'){
+        // 按省份分组
+        const sub={};
+        list.forEach(e=>{const m=provNames.find(p=>e.title.includes(p))||'其他';(sub[m]=sub[m]||[]).push(e);});
+        body=Object.keys(sub).map(p=>`
+          <div class="exam-group">
+            <div class="exam-group-head" onclick="tg('eg-${cat}-${p}')"><span class="caret" id="caret-eg-${cat}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
+            <div class="eg-body" id="eg-${cat}-${p}">${sub[p].map(examCardHTML).join('')}</div>
+          </div>`).join('');
+      }else{
+        body=list.map(examCardHTML).join('');
+      }
+      return `<div class="exam-group">
+        <div class="exam-group-head" onclick="tg('eg-${cat}')"><span class="caret" id="caret-eg-${cat}">▾</span><b>${catLabel[cat]}</b><span class="muted">(${list.length}套)</span></div>
+        <div class="eg-body" id="eg-${cat}">${body}</div>
+      </div>`;
+    }).join('');
+    // 默认展开第一个大类
+    if(cats.length)tg('eg-'+cats[0]);
   }catch(e){toast(e.message,'err');}
+}
+function examCardHTML(e){return `<div class="exam-card"><div class="info"><b>${esc(e.title)}</b><div class="meta">${(e.questionIds||[]).length} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button></div>`;}
+function tg(id){
+  const body=document.getElementById(id),caret=document.getElementById('caret-'+id);
+  if(!body)return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'';
+  if(caret)caret.textContent=open?'▸':'▾';
 }
 
 // ---- 考试答题 ----
@@ -434,8 +532,8 @@ async function enterExam(id){
   try{examData=await api('/api/exams/'+id);examAnswers={};
     let h=`<div style="display:flex;justify-content:space-between;align-items:center"><h2>${esc(examData.title)}</h2><span class="muted">${examData.questions.length} 题</span></div><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
     examData.questions.forEach((q,i)=>{
-      h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)}</div>`;
-      q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickOpt('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});
+      h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`;
+      h+=optRowsHTML(q,q.id,'pickOpt');
       h+=`</div>`;
     });
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitExam('${id}')">交卷看成绩</button></div>`;
@@ -443,15 +541,16 @@ async function enterExam(id){
     window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function pickOpt(qid,j,el){examAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);}
 async function submitExam(id){
-  const unanswered=examData.questions.filter(q=>examAnswers[q.id]===undefined).length;
+  const unanswered=examData.questions.filter(q=>{const a=examAnswers[q.id];return a===undefined||(Array.isArray(a)&&!a.length);}).length;
   if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
   try{const r=await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers})});
     let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded.length?` · 新增 ${r.wrongAdded.length} 道错题`:''}</div></div>`;
     r.details.forEach((d,i)=>{
       h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 错误</span>'}</div>`;
-      d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});
+      h+=detailOptsHTML(d);
+      if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
       if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
       h+=`</div>`;
     });
@@ -486,12 +585,13 @@ function renderLive(d){
   let h=`<div class="q"><div class="qt">${esc(q.title)}</div>`;
   q.options.forEach((o,j)=>{
     let cls='opt';let mk='';
-    if(d.state==='showing'&&d.question.correctAnswer===j){cls+=' correct';mk='<span class="mk">✓</span>';}
-    if(crAnswered[q.index]===j&&d.state==='showing'&&d.question.correctAnswer!==j){cls+=' wrong';mk='<span class="mk">✗</span>';}
-    h+=`<div class="${cls}" ${d.state==='answering'?`onclick="sendAnswer(${q.index},${j},this)"`:''}>${j}. ${esc(o)} ${mk}</div>`;
+    const ca=correctIdx(d.question);
+    if(d.state==='showing'&&ca.includes(j)){cls+=' correct';mk='<span class="mk">✓</span>';}
+    if(crAnswered[q.index]===j&&d.state==='showing'&&!ca.includes(j)){cls+=' wrong';mk='<span class="mk">✗</span>';}
+    h+=`<div class="${cls}" ${d.state==='answering'?`onclick="sendAnswer(${q.index},${j},this)"`:''}>${optL(j)}. ${esc(o)} ${mk}</div>`;
   });
   if(d.state==='answering')h+=`<div class="muted" style="margin-top:8px">点击选项作答，可修改。</div>`;
-  if(d.state==='showing')h+=`<div class="ana">${d.question.correctAnswer>=0?('正确答案：'+d.question.options[d.question.correctAnswer]):''}</div>`;
+  if(d.state==='showing')h+=`<div class="ana">${hasAns(d.question)?('正确答案：'+(isMultiQ(d.question)?correctLetters(d.question):optL(d.question.correctAnswer))):''}</div>`;
   h+=`</div>`;
   $('#cr-live-body').innerHTML=h;
   // 统计
@@ -511,16 +611,15 @@ async function startPractice(count){
     if(!d.questions.length){toast('暂无错题，太棒了！','ok');return;}
     wrongData=d.questions;wrongAnswers={};
     let h=`<h2>错题练习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
-    d.questions.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span></div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickWrong('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    d.questions.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.id,'pickWrong')+`</div>`;});
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitPractice()">提交练习</button></div>`;
     $('#wrong-do-body').innerHTML=h;$('#wrong-do').classList.remove('hidden');window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function pickWrong(qid,j,el){wrongAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
 async function submitPractice(){
   try{const r=await api('/api/wrong-practice/submit',{method:'POST',body:JSON.stringify({studentKey,answers:wrongAnswers})});
     let h=`<div class="result-head"><div class="score">${Math.round(r.correct/r.total*100)}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题${r.removed.length?` · 已掌握移除 ${r.removed.length} 题`:''}</div></div>`;
-    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`;d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});h+=`</div>`;});
+    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="startPractice()">再练一次</button></div>`;
     $('#wrong-do-body').innerHTML=h;window.scrollTo(0,0);loadMine();
   }catch(e){toast(e.message,'err');}
@@ -559,12 +658,12 @@ async function startMemory(){
     if(!d.questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
     memData=d.questions;memAnswers={};
     let h=`<h2>今日复习（${d.questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
-    memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':'选择'}</span></div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickMem('${q.qid}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.qid,'pickMem')+`</div>`;});
     h+=`<div class="center" style="margin-top:16px"><button class="btn" onclick="submitMemory()">提交复习</button></div>`;
     $('#mem-do-body').innerHTML=h;$('#mem-do').classList.remove('hidden');window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function pickMem(qid,j,el){memAnswers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function pickMem(qid,j,el,multi){pickGen(memAnswers,qid,j,el,multi);}
 async function submitMemory(){
   try{
     const r=await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers})});
@@ -572,7 +671,8 @@ async function submitMemory(){
     let h=`<div class="result-head"><div class="score">${Math.round(correct/r.results.length*100)}分</div><div class="muted">本次复习 ${r.results.length} 题</div></div>`;
     r.results.forEach((d,i)=>{
       h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 已记住</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗ 再记一次</span>'}</div>`;
-      d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(!d.isCorrect&&j===memAnswers[d.qid])cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':''}</div>`;});
+      h+=detailOptsHTML(d);
+      if(isMultiQ(d)&&hasAns(d))h+=`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`;
       h+=`<div class="ana">下次复习：约 <b>${d.nextIntervalDays}</b> 天后${d.isCorrect?'（已记住，间隔拉长）':'（未记住，明天再来）'}</div>`;
       if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
       h+=`</div>`;
@@ -772,16 +872,16 @@ async function doHomework(id){
     if(!qs.length){toast('作业暂无可答题','err');return;}
     hwState={id,answers:{}};
     let h=`<button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><h2 style="margin:12px 0">📋 ${esc(hh.title)}</h2><hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">`;
-    qs.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)}</div>`;q.options.forEach((o,j)=>{h+=`<div class="opt" onclick="pickHw('${q.id}',${j},this)">${j}. ${esc(o)}</div>`;});h+=`</div>`;});
+    qs.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.id}"><div class="qt">${i+1}. ${esc(q.title)} ${isMultiQ(q)?'<span class="badge multi">多选</span>':''}</div>`+optRowsHTML(q,q.id,'pickHw')+`</div>`;});
     h+=`<div class="center" style="margin-top:14px"><button class="btn" onclick="submitHw()">提交作业</button></div>`;
     $('#morning-body').innerHTML=h;window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
 }
-function pickHw(qid,j,el){hwState.answers[qid]=j;[...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function pickHw(qid,j,el,multi){pickGen(hwState.answers,qid,j,el,multi);}
 async function submitHw(){
   try{const r=await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})});
     let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / ${r.total} 题</div></div>`;
-    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`;d.options.forEach((o,j)=>{let cls='opt';if(j===d.correctAnswer)cls+=' correct';else if(j===d.selected&&!d.isCorrect)cls+=' wrong';h+=`<div class="${cls}">${j}. ${esc(o)} ${j===d.correctAnswer?'<span class="mk">✓</span>':(j===d.selected?'<span class="mk">✗</span>':'')}</div>`;});if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;h+=`</div>`;});
+    r.details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge choice" style="background:#fee2e2;color:var(--err)">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
     h+=`<div class="center"><button class="btn ghost" onclick="loadMorning()">返回早读</button></div>`;
     $('#morning-body').innerHTML=h;window.scrollTo(0,0);loadDashboard();
   }catch(e){toast(e.message,'err');}

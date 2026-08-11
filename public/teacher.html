@@ -472,7 +472,7 @@
 ACDBA...
 如需解析,在答案后加“解析：”：
 1 A 解析：×××"></textarea>
-    <div class="hint">支持格式：① 行式「题号 答案」；② 区间式「1-5 ACDBA」；③ 纯序列「ACDBA…」（按顺序每题一个字母）；④ 判断题用 对/错。答案后加「解析：」可为该题附解析。</div>
+    <div class="hint">支持格式：① 行式「题号 答案」；② 区间式「1-5 ACDBA」；③ 纯序列「ACDBA…」（按顺序每题一个字母）；④ 判断题用 对/错；⑤ 多项选择题答案直接写多字母，如「26 ABD」或「26.ABD」。答案后加「解析：」可为该题附解析。</div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeAnsModal()">取消</button>
       <button class="btn" onclick="saveAnswers()">保存答案</button>
@@ -571,7 +571,7 @@ async function loadExams(){
     box.innerHTML=exams.map(e=>{
       const qs=(e.questionIds||[]).map(id=>map[id]).filter(Boolean);
       const link=location.origin+'/student.html#exam='+e.id;
-      const filled=qs.filter(q=>q.correctAnswer>=0).length;
+      const filled=qs.filter(q=>Array.isArray(q.correctAnswer)?q.correctAnswer.length>0:q.correctAnswer>=0).length;
       const ansTxt = filled===qs.length ? `<span style="color:var(--ok)">答案 ${filled}/${qs.length} ✓</span>` : `<span style="color:${filled? '#d97706':'var(--muted)'}">答案 ${filled}/${qs.length}</span>`;
       return `<div class="qitem"><div class="qtitle"><div><b>${esc(e.title)}</b> · ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()} · ${ansTxt}</div>
         <div class="meta">${qs.slice(0,3).map(q=>esc(q.title)).join(' / ')}${qs.length>3?' …':''}</div></div>
