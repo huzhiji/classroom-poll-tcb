@@ -508,3 +508,25 @@ tr:hover td{background:rgba(241,245,249,.65)}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* ---------- 17. 页脚 ---------- */
+.footer{
+  margin:36px auto 28px;max-width:1120px;padding:18px 24px;
+  background:rgba(15,23,42,.78);backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--radius-lg);
+  color:rgba(255,255,255,.78);font-size:12.5px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  box-shadow:var(--shadow);
+}
+.footer a{color:#93c5fd;text-decoration:none;margin-left:14px;font-weight:600;transition:color var(--t)}
+.footer a:hover{color:#fff}
+.footer a:first-child{margin-left:0}
+.footer .brand{font-weight:700;color:#fff;font-size:14px;letter-spacing:.01em}
+.footer .sub-foot{opacity:.7}
+@media(max-width:520px){.footer{text-align:center;justify-content:center}.footer a{margin:0 8px}}
+
+/* ---------- 18. 滚动行为 ---------- */
+html{scroll-behavior:smooth}
+main>section[id]{scroll-margin-top:84px}

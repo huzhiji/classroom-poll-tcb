@@ -37,3 +37,18 @@
 ### Phase 0（2026-08-11 21:49）✅
 - 当前线上版本 `960686c` 完整备份 → `D:\Backup\classroom-redesign-archive\phase-0-original-960686c.zip`
 - git tag：`redesign-v0`
+
+### Phase 1（2026-08-11 21:56）✅ 设计系统 + 共享样式表
+- 新建 `public/css/theme.css`（~600 行）：设计令牌 + 全量组件样式（覆盖两页面全部 class 清单）。
+- teacher.html / student.html 的内联 `<style>` 替换为 `<link href="/css/theme.css">` + 页面级少量覆盖。
+- 视觉验证：教师端渐变 Hero + 玻璃统计网格 + 杂志风金句卡；学生端沉浸式深色背景 + 个性化 Hero + 金句卡。
+- 通过 `node --check` + `check-student-robustness.js` + Edge 截图。
+- git tag：`redesign-v1` · commit：`90b6926`
+- 存档：`phase-1-theme-system.zip`
+
+### Phase 2（2026-08-11 21:58）✅ 页脚 + 滚动行为
+- theme.css 新增 `.footer` 深色玻璃页脚 + `html{scroll-behavior:smooth}` + `main>section[id]{scroll-margin-top:84px}`。
+- teacher.html / student.html 注入 `<footer class="footer">`（品牌 + 副标 + 教师端/学员端链接）。
+- 通过健壮性 harness + Edge 截图（教师端顶部 + 底部页脚验证）。
+- git tag：`redesign-v2`
+- 存档：`phase-2-footer-and-scroll.zip`
