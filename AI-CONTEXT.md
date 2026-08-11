@@ -149,12 +149,13 @@ db = {
 - 复习提醒 Tab：`预览今日提醒名单` + `立即群发提醒邮件`（未配 SMTP 时按钮禁用并提示）。
 
 **student.html**（顶部 8 个 Tab，首页=学习仪表盘 + 登录弹窗）：📊 学习仪表盘 / 📚 课程 / 📝 考试答题 / 🌅 早读 / 👥 课堂练习 / ❌ 错题练习 / 🧠 记忆模式 / 📈 我的记录。
-- 学习仪表盘 `loadDashboard()`：课程总进度、答题正确率、记忆掌握、待巩固错题、今日早读、薄弱环节进度条。
+- 学习仪表盘 `loadDashboard()`：课程总进度、答题正确率、答题次数、记忆掌握、待巩固错题、今日早读、薄弱环节进度条。**注意**：`getStudentStats`（store.js）的「总体正确率/专题正确率」同时计入 `exam` 与 `homework`（早读作业）两种真实作答；错题练习仅存在于错题库、不计入正确率。新增 `attemptCount`（考试+作业次数）。前端已对 `d`/`prog`/`stats` 做防御性取值，兼容后端不同版本（progress 缺 `byTop` 也不会崩）。
 - 课程 `loadCourses / openCourse / toggleLesson`：课程卡片网格 → 章节/课时详情 → 标记完成（进度实时）。
 - 早读 `loadMorning`：今日打卡（老师推送+自建）、早读记忆复习（艾宾浩斯）、我的早读规划（自建）、复习日程表（14 天）、早读作业提交。
 - 首次打开若未登录，自动弹出**注册/登录**弹窗（注册=邮箱+姓名+密码；登录=邮箱+密码）。登录态存 `localStorage.quiz_student_key`（邮箱）与 `quiz_student_name`。
 - 身份相关函数：`showWho / openAuth / switchAuth / doRegister / doLogin`。
-- 考试答题模块（重点·最新改造）：`loadExamList` 按 `category` 归并为**两大可折叠块「📘 国省考真题 / 📚 专题训练」**，块头显示「已完成 X / 共 Y (Z%)」进度条；国省考真题块内再按 国考/省考/选调 折叠、省考按省份折叠；卡片带「草稿·已答 N/M」「✓ 已完成」徽标。`enterExam` 先弹「本次练习几题」面板（全部/10/20/30/50/自定义，支持部分作答），有草稿时显示「继续上次作答/重新开始」。`renderExamQuestions` 顶部 sticky 工具栏（交卷/暂存进度/返回列表）+ 题号导航；`saveDraftNow` 暂存、`backToExams` 返回前自动暂存防丢、`submitExam` 支持 `questionIds` 只交练习子集。
+- 考试答题模块（重点·最新改造）：`loadExamList` 按 `category` 归并为**两大可折叠块「📘 国省考真题 / 📚 专题训练」**，块头显示「已完成 X / 共 Y (Z%)」进度条；**默认全部折叠**（大类与国考/省考/选调/其他真题子块均 `display:none` + caret ▸，点击 `tg()` 展开）。国省考真题块内按 国考/省考/选调/其他真题 折叠、省考按省份折叠；`category` 兜底为「其他真题」也会显示（不再漏题）。卡片带「草稿·已答 N/M」「✓ 已完成」徽标。`enterExam` 先弹「本次练习几题」面板（全部/10/20/30/50/自定义，支持部分作答），有草稿时显示「继续上次作答/重新开始」。`renderExamQuestions` 顶部 sticky 工具栏（交卷/暂存进度/返回列表）+ 题号导航；`saveDraftNow` 暂存、`backToExams` 返回前自动暂存防丢、`submitExam` 支持 `questionIds` 只交练习子集。
+- 我的记录 `loadMine`：顶部统计卡（总体正确率/答对/总题/答题次数/待巩固错题），下方「📊 按专题正确率」与「🕓 历史记录」均为**可折叠块（默认折叠）**，点击 `tg('mine-topic')` / `tg('mine-hist')` 展开。
 
 ---
 

@@ -500,27 +500,30 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
 async function loadExamList(){
   if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
   try{
-    const [exams, prog, draftsRes] = await Promise.all([
+    const [exams, progRes, draftsRes] = await Promise.all([
       api('/api/exams'),
       api('/api/exams/progress?key='+encodeURIComponent(studentKey)),
       api('/api/drafts?key='+encodeURIComponent(studentKey))
     ]);
     const box=$('#exam-list');
-    if(!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
+    if(!exams||!exams.length){box.innerHTML='<p class="muted">老师还没有发布考试。</p>';return;}
+    // 防御性取值：兼容后端不同版本（可能未返回 byTop / doneExamIds）
+    const prog = (progRes&&typeof progRes==='object')?progRes:{};
+    const byTop = prog.byTop||{};
     const doneSet = new Set(prog.doneExamIds||[]);
     const draftMap = (draftsRes&&draftsRes.drafts)||{};
     // 顶层两大块
     const tops = [
-      { key:'国省考真题', label:'📘 国省考真题', subCats:['国考真题','省考真题','选调真题'] },
+      { key:'国省考真题', label:'📘 国省考真题', subCats:['国考真题','省考真题','选调真题','国省考真题'] },
       { key:'专题', label:'📚 专题训练', subCats:['专题'] },
     ];
     const byCat={};
-    exams.forEach(e=>{const c=e.category||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
+    exams.forEach(e=>{const c=(e&&e.category)||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
     const provNames=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
     const catLabel={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题' };
 
     box.innerHTML = tops.map(top=>{
-      const t = prog.byTop[top.key]||{done:0,total:0,percent:0};
+      const t = byTop[top.key]||{done:0,total:0,percent:0};
       if(!t.total) return '';
       let body;
       if(top.key==='国省考真题'){
@@ -530,16 +533,16 @@ async function loadExamList(){
             const sub={};
             list.forEach(e=>{const m=provNames.find(p=>(e.title||'').includes(p))||'其他';(sub[m]=sub[m]||[]).push(e);});
             return `<div class="exam-group">
-              <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▾</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
-              <div class="eg-body" id="eg-${c}">${Object.keys(sub).map(p=>`<div class="exam-group">
+              <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▸</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
+              <div class="eg-body" id="eg-${c}" style="display:none">${Object.keys(sub).map(p=>`<div class="exam-group">
                 <div class="exam-group-head" onclick="tg('eg-${c}-${p}')"><span class="caret" id="caret-eg-${c}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
                 <div class="eg-body" id="eg-${c}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
               </div>`).join('')}</div>
             </div>`;
           }
           return `<div class="exam-group">
-            <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▾</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
-            <div class="eg-body" id="eg-${c}">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+            <div class="exam-group-head" onclick="tg('eg-${c}')"><span class="caret" id="caret-eg-${c}">▸</span><b>${catLabel[c]}</b><span class="muted">(${list.length}套)</span></div>
+            <div class="eg-body" id="eg-${c}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
           </div>`;
         }).join('');
       }else{
@@ -548,17 +551,17 @@ async function loadExamList(){
       }
       return `<div class="exam-group">
         <div class="exam-group-head" onclick="tg('eg-top-${top.key}')">
-          <span class="caret" id="caret-eg-top-${top.key}">▾</span>
+          <span class="caret" id="caret-eg-top-${top.key}">▸</span>
           <b>${top.label}</b>
           <span class="cat-progress">已完成 ${t.done} / 共 ${t.total}
             <span class="cat-bar"><i style="width:${t.percent}%"></i></span>
             <b style="color:var(--ok)">${t.percent}%</b>
           </span>
         </div>
-        <div class="eg-body" id="eg-top-${top.key}" style="border-left:none;margin-left:0;padding-left:0">${body}</div>
+        <div class="eg-body" id="eg-top-${top.key}" style="border-left:none;margin-left:0;padding-left:0;display:none">${body}</div>
       </div>`;
     }).join('');
-    if(prog.byTop['国省考真题'].total) tg('eg-top-国省考真题');
+    // 默认全部折叠，无需额外展开
   }catch(e){toast(e.message,'err');}
 }
 function examCardHTML(e, doneSet, draft){
@@ -855,16 +858,31 @@ async function loadMine(){
   if(!studentKey){$('#mine-body').innerHTML='<p class="muted">请先登录/注册。</p>';return;}
   try{const stats=await api('/api/students/'+encodeURIComponent(studentKey)+'/stats');
     const records=await api('/api/students/'+encodeURIComponent(studentKey)+'/records');
+    const s=(stats&&typeof stats==='object')?stats:{};
+    const overall=s.overall||{percent:0,correct:0,total:0};
+    const byTopic=s.byTopic||{};
+    const att=s.attemptCount||s.examCount||0;
     let h=`<div class="stat-grid">
-      <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
-      <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题</div></div>
-      <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">考试次数</div></div>
-      <div class="stat-box"><div class="num" style="color:var(--err)">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div></div>`;
-    const topics=Object.keys(stats.byTopic);
-    if(topics.length){h+='<h2 style="font-size:15px;margin:16px 0 8px">按专题正确率</h2><div class="stat-grid">';topics.forEach(t=>{const b=stats.byTopic[t];h+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});h+='</div>';}
-    h+='<h2 style="font-size:15px;margin:16px 0 8px">历史记录</h2>';
-    if(!records.length)h+='<p class="muted">暂无记录。</p>';
-    records.forEach(r=>{h+=`<div class="exam-card"><div class="info"><b>${esc(r.refTitle)}</b><div class="meta">${new Date(r.date).toLocaleString()} · 得分 ${r.correct}/${r.total}</div></div></div>`;});
+      <div class="stat-box"><div class="num">${overall.percent}%</div><div class="lbl">总体正确率</div></div>
+      <div class="stat-box"><div class="num">${overall.correct}/${overall.total}</div><div class="lbl">答对/总题</div></div>
+      <div class="stat-box"><div class="num">${att}</div><div class="lbl">答题次数</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--err)">${s.wrongCount||0}</div><div class="lbl">待巩固错题</div></div></div>`;
+    const topics=Object.keys(byTopic);
+    if(topics.length){
+      let tb='';
+      topics.forEach(t=>{const b=byTopic[t];tb+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});
+      h+=`<div class="exam-group" style="margin-top:16px">
+        <div class="exam-group-head" onclick="tg('mine-topic')"><span class="caret" id="caret-mine-topic">▸</span><b>📊 按专题正确率</b><span class="muted">（${topics.length} 类）</span></div>
+        <div class="eg-body" id="mine-topic" style="display:none;margin-top:8px"><div class="stat-grid">${tb}</div></div>
+      </div>`;
+    }
+    const recs=Array.isArray(records)?records:[];
+    let rb=recs.length?'':`<p class="muted">暂无记录。</p>`;
+    recs.forEach(r=>{rb+=`<div class="exam-card"><div class="info"><b>${esc(r.refTitle)}</b><div class="meta">${new Date(r.date).toLocaleString()} · 得分 ${r.correct}/${r.total}</div></div></div>`;});
+    h+=`<div class="exam-group" style="margin-top:12px">
+      <div class="exam-group-head" onclick="tg('mine-hist')"><span class="caret" id="caret-mine-hist">▸</span><b>🕓 历史记录</b><span class="muted">（${recs.length} 条）</span></div>
+      <div class="eg-body" id="mine-hist" style="display:none;margin-top:8px">${rb}</div>
+    </div>`;
     $('#mine-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
 }
@@ -882,26 +900,34 @@ async function loadDashboard(){
     return;
   }
   try{
-    const d=await api('/api/dashboard/student?key='+encodeURIComponent(studentKey));
-    let h=quoteCardHTML()+`<div class="hero"><div><h2>你好，${esc(studentName||studentKey)} 👋</h2><div class="date">${new Date().toLocaleDateString('zh-CN')} · 选调生备考进度看板</div></div><div class="hero-stat">今日早读：${d.morning.done?'已打卡 ✅':(d.morning.pending?('待打卡 '+d.morning.pending+' 项'):'暂无任务')}</div></div>`;
+    const dRaw=await api('/api/dashboard/student?key='+encodeURIComponent(studentKey));
+    const d=(dRaw&&typeof dRaw==='object')?dRaw:{};
+    const courses=d.courses||{list:[],avgPercent:0,completedLessons:0,totalLessons:0};
+    const quiz=d.quiz||{percent:0,correct:0,total:0,attemptCount:0};
+    const mastery=d.mastery||{mastered:0};
+    const morning=d.morning||{done:false,pending:0,total:0,items:[]};
+    const weak=Array.isArray(d.weak)?d.weak:[];
+    const wrong=(typeof d.wrong==='number')?d.wrong:0;
+    let h=quoteCardHTML()+`<div class="hero"><div><h2>你好，${esc(studentName||studentKey)} 👋</h2><div class="date">${new Date().toLocaleDateString('zh-CN')} · 选调生备考进度看板</div></div><div class="hero-stat">今日早读：${morning.done?'已打卡 ✅':(morning.pending?('待打卡 '+morning.pending+' 项'):'暂无任务')}</div></div>`;
     h+='<div class="dash-grid">';
-    h+=dashTile('课程总进度',d.courses.avgPercent+'%',d.courses.completedLessons+'/'+d.courses.totalLessons+' 课时');
-    h+=dashTile('答题正确率',d.quiz.percent+'%',d.quiz.correct+'/'+d.quiz.total+' 题');
-    h+=dashTile('记忆掌握',d.mastery.mastered,'已掌握卡片');
-    h+=dashTile('待巩固错题',d.wrong,'需复习');
-    h+=dashTile('今日早读',d.morning.done?'已完成':(d.morning.pending?'待打卡':'无'),d.morning.total+' 项');
+    h+=dashTile('课程总进度',courses.avgPercent+'%',courses.completedLessons+'/'+courses.totalLessons+' 课时');
+    h+=dashTile('答题正确率',quiz.percent+'%',quiz.correct+'/'+quiz.total+' 题');
+    h+=dashTile('答题次数',quiz.attemptCount||0,'次练习');
+    h+=dashTile('记忆掌握',mastery.mastered,'已掌握卡片');
+    h+=dashTile('待巩固错题',wrong,'需复习');
+    h+=dashTile('今日早读',morning.done?'已完成':(morning.pending?'待打卡':'无'),morning.total+' 项');
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>📚 课程学习进度</h2>';
-    if(!d.courses.list.length){h+='<p class="muted">还没有课程，去「课程」页查看。</p>';}
-    else{d.courses.list.forEach(c=>{h+=`<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(c.title)}</b><span class="muted">${c.completed}/${c.total} 课时 · ${c.percent}%</span></div><div class="prog"><span style="width:${c.percent}%"></span></div></div>`;});}
+    if(!courses.list.length){h+='<p class="muted">还没有课程，去「课程」页查看。</p>';}
+    else{courses.list.forEach(c=>{h+=`<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(c.title)}</b><span class="muted">${c.completed}/${c.total} 课时 · ${c.percent}%</span></div><div class="prog"><span style="width:${c.percent}%"></span></div></div>`;});}
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>🌅 今日早读</h2>';
-    if(!d.morning.items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。</p>';}
-    else{h+=`<p class="muted">${d.morning.done?'你已完成今日早读打卡 🎉':'请完成早读打卡（每日必做）'}</p><button class="btn" onclick="goMorning()">${d.morning.done?'查看早读':'去早读打卡'}</button>`;}
+    if(!morning.items.length){h+='<p class="muted">老师尚未推送早读，也没有自建早读。</p>';}
+    else{h+=`<p class="muted">${morning.done?'你已完成今日早读打卡 🎉':'请完成早读打卡（每日必做）'}</p><button class="btn" onclick="goMorning()">${morning.done?'查看早读':'去早读打卡'}</button>`;}
     h+='</div>';
     h+='<div class="card" style="margin-top:18px"><h2>⚠️ 薄弱环节（专题正确率偏低）</h2>';
-    if(!d.weak.length){h+='<p class="muted">答题数据不足，多做几套题即可看到薄弱点。</p>';}
-    else{d.weak.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
+    if(!weak.length){h+='<p class="muted">答题数据不足，多做几套题即可看到薄弱点。</p>';}
+    else{weak.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#f59e0b,#e11d48)"></span></div></div>`;});}
     h+='</div>';
     $('#dash-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
