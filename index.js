@@ -17,33 +17,6 @@ function fail(msg, code = 400) {
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'online-quiz', time: Date.now() }));
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
-// 临时调试:文件系统探针(验证持久卷 DATA_DIR 实际路径与可写性)
-app.get('/api/debug/fs', (req, res) => {
-  try {
-    const fs = require('fs');
-    const out = { dataDir: process.env.DATA_DIR || '/data', env: process.env.DATA_DIR || '(未设置)' };
-    ['/data', '/mnt'].forEach((dir) => {
-      try {
-        const f = dir + '/__probe__.txt';
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(f, 'x');
-        const ok = fs.readFileSync(f, 'utf8') === 'x';
-        try { fs.unlinkSync(f); } catch (e) {}
-        out[dir] = { writable: ok };
-      } catch (e) {
-        out[dir] = { writable: false, error: e.message };
-      }
-    });
-    try {
-      const m = fs.readFileSync('/proc/mounts', 'utf8');
-      out.mounts = m.split('\n').filter((l) => /fuse|cosfs|storage|data|mnt|s3fs|tcb/i.test(l)).slice(0, 15);
-    } catch (e) { out.mounts = 'n/a'; }
-    res.json(out);
-  } catch (e) {
-    res.json({ error: e.message });
-  }
-});
-
 // ================= 题目管理 =================
 app.get('/api/questions', (req, res) => {
   const { type, topic } = req.query;
