@@ -21,17 +21,26 @@ app.get('/healthz', (req, res) => res.status(200).send('ok'));
 app.get('/api/debug/fs', (req, res) => {
   try {
     const fs = require('fs');
-    const dir = process.env.DATA_DIR || '/data';
-    const f = path.join(dir, '__fs_probe__.txt');
-    fs.mkdirSync(dir, { recursive: true });
-    const stamp = String(Date.now());
-    fs.writeFileSync(f, stamp);
-    const back = fs.readFileSync(f, 'utf8');
-    let unlinkOk = true;
-    try { fs.unlinkSync(f); } catch (e) { unlinkOk = false; }
-    res.json({ dataDir: dir, writeOk: back === stamp, unlinkOk, probe: back });
+    const out = { dataDir: process.env.DATA_DIR || '/data', env: process.env.DATA_DIR || '(未设置)' };
+    ['/data', '/mnt'].forEach((dir) => {
+      try {
+        const f = dir + '/__probe__.txt';
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(f, 'x');
+        const ok = fs.readFileSync(f, 'utf8') === 'x';
+        try { fs.unlinkSync(f); } catch (e) {}
+        out[dir] = { writable: ok };
+      } catch (e) {
+        out[dir] = { writable: false, error: e.message };
+      }
+    });
+    try {
+      const m = fs.readFileSync('/proc/mounts', 'utf8');
+      out.mounts = m.split('\n').filter((l) => /fuse|cosfs|storage|data|mnt|s3fs|tcb/i.test(l)).slice(0, 15);
+    } catch (e) { out.mounts = 'n/a'; }
+    res.json(out);
   } catch (e) {
-    res.json({ dataDir: process.env.DATA_DIR || '/data', writeOk: false, error: e.message });
+    res.json({ error: e.message });
   }
 });
 
