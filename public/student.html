@@ -96,6 +96,102 @@
   .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
   .tag{display:inline-block;font-size:11px;background:var(--primary-l);color:var(--primary);padding:2px 8px;border-radius:6px;font-weight:600;vertical-align:middle}
   @media(max-width:640px){.opt{padding:14px}}
+  /* ===== 高级视觉升级：麦田沉浸式背景 + 玻璃拟态 ===== */
+  body{
+    background:
+      linear-gradient(180deg, rgba(15,23,42,.34) 0%, rgba(15,23,42,.58) 100%),
+      url('/images/bg-hero.jpg') center/cover no-repeat fixed;
+    min-height:100vh;
+  }
+  header{
+    background: rgba(255,255,255,.12);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 4px 30px rgba(0,0,0,.08);
+  }
+  header h1{color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.25)}
+  header .logo{filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+  .who{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff}
+  .who .muted{color:rgba(255,255,255,.82)}
+  .who button{background:rgba(255,255,255,.28);transition:.2s}
+  .who button:hover{background:rgba(255,255,255,.42)}
+  .nav{max-width:1100px;padding:18px 16px 0}
+  .nav button{
+    background:rgba(255,255,255,.84);
+    backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    transition:.2s;
+  }
+  .nav button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  .nav button.active{background:var(--primary);color:#fff;border-color:transparent;box-shadow:0 6px 20px rgba(37,99,235,.35)}
+  main{max-width:1100px;padding-bottom:40px}
+  .card{
+    background:rgba(255,255,255,.86);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.55);
+    box-shadow:0 12px 40px rgba(15,23,42,.12);
+  }
+  .card h2{color:#1e293b}
+  .hero{
+    background: rgba(255,255,255,.14);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border:1px solid rgba(255,255,255,.28);
+    color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.25);
+    padding:34px 32px;
+    border-radius:20px;
+  }
+  .hero h2{font-size:28px;font-weight:800;letter-spacing:-.3px}
+  .hero .date{opacity:.92;font-size:15px}
+  .hero-stat{
+    background:rgba(255,255,255,.2);
+    border:1px solid rgba(255,255,255,.3);
+    backdrop-filter:blur(8px);
+    padding:12px 18px;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:700;
+  }
+  .dash-card{
+    background:rgba(255,255,255,.9);
+    border:1px solid rgba(255,255,255,.6);
+    border-radius:18px;
+    transition:.25s;
+  }
+  .dash-card:hover{transform:translateY(-3px);box-shadow:0 16px 44px rgba(15,23,42,.14)}
+  .dash-card .big{font-size:32px}
+  .modal{background:rgba(15,23,42,.62);backdrop-filter:blur(6px)}
+  .modal-box{
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:1px solid rgba(255,255,255,.65);
+    box-shadow:0 28px 70px rgba(0,0,0,.28);
+    border-radius:20px;
+  }
+  .modal-tabs button{background:rgba(241,245,249,.8);border:1px solid var(--border)}
+  input,select,textarea{background:rgba(255,255,255,.96)}
+  .result-head{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.55)}
+  .stat-box{background:rgba(248,250,252,.88);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.45)}
+  .q{background:rgba(248,250,252,.86);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.52)}
+  .opt{background:rgba(255,255,255,.82)}
+  .exam-card{background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.48)}
+  .lesson,.morning-item{background:rgba(255,255,255,.8);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.45)}
+  .morning-item.checked,.lesson.done{background:rgba(240,253,244,.88)}
+  .live{background:rgba(30,41,59,.88);backdrop-filter:blur(8px)}
+  .toast{background:rgba(30,41,59,.92);backdrop-filter:blur(8px)}
+  .tag{background:rgba(239,246,255,.9)}
+  .prog{background:rgba(226,232,240,.7)}
+  @media(max-width:640px){
+    header{padding:14px 16px}
+    .hero{padding:24px 20px;border-radius:18px}
+    .hero h2{font-size:22px}
+    .nav button{padding:8px 14px;font-size:13px}
+  }
 </style>
 </head>
 <body>
@@ -460,7 +556,15 @@ async function loadMine(){
 // ---- 仪表盘 ----
 let morningToday=null, mrData=null, mrAnswers={}, curDoneSet=new Set(), hwState=null;
 async function loadDashboard(){
-  if(!studentKey){$('#dash-body').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
+  if(!studentKey){
+    $('#dash-body').innerHTML=`<div class="hero" style="text-align:center;padding:56px 24px;margin-top:8vh">
+      <div style="font-size:48px;margin-bottom:14px">🌾</div>
+      <h2 style="font-size:32px">选调生学习系统</h2>
+      <p style="opacity:.9;font-size:16px;margin:12px 0 24px">扎根基层 · 勤学善思 · 乡村振兴</p>
+      <button class="btn" style="padding:14px 32px;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.2)" onclick="openAuth()">登录 / 注册</button>
+    </div>`;
+    return;
+  }
   try{
     const d=await api('/api/dashboard/student?key='+encodeURIComponent(studentKey));
     let h=`<div class="hero"><div><h2>你好，${esc(studentName||studentKey)} 👋</h2><div class="date">${new Date().toLocaleDateString('zh-CN')} · 选调生备考进度看板</div></div><div class="hero-stat">今日早读：${d.morning.done?'已打卡 ✅':(d.morning.pending?('待打卡 '+d.morning.pending+' 项'):'暂无任务')}</div></div>`;

@@ -108,6 +108,75 @@
   .hero h2{font-size:20px;font-weight:800}
   @media print{.no-print{display:none!important}.card,.card.shadow{box-shadow:none}}
   @media(max-width:640px){.opts-grid{grid-template-columns:1fr}.nav button{padding:7px 12px;font-size:13px}}
+  /* ===== 高级视觉升级：统一背景与玻璃拟态 ===== */
+  body{
+    background:
+      linear-gradient(180deg, rgba(248,250,252,.94) 0%, rgba(241,245,249,.92) 100%),
+      url('/images/bg-hero.jpg') center/cover no-repeat fixed;
+    min-height:100vh;
+  }
+  header{
+    background: rgba(30,58,138,.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 30px rgba(0,0,0,.1);
+  }
+  header h1{text-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .nav button{
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.2);
+    backdrop-filter: blur(6px);
+    transition:.2s;
+  }
+  .nav button:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+  .nav button.active{background:#fff;color:var(--primary);border-color:transparent;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+  main{max-width:1120px;padding-bottom:40px}
+  .card{
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: 0 12px 40px rgba(15,23,42,.1);
+    border-radius:18px;
+  }
+  .card h2{color:#1e293b}
+  .hero{
+    background: linear-gradient(135deg, rgba(37,99,235,.92), rgba(30,58,138,.92));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.25);
+    color:#fff;
+    text-shadow:0 2px 8px rgba(0,0,0,.2);
+    padding:28px 28px;
+    border-radius:18px;
+  }
+  .hero h2{font-size:22px;font-weight:800}
+  .dash-card{
+    background: rgba(255,255,255,.92);
+    border:1px solid rgba(255,255,255,.6);
+    border-radius:16px;
+    transition:.25s;
+  }
+  .dash-card:hover{transform:translateY(-3px);box-shadow:0 16px 44px rgba(15,23,42,.12)}
+  .dash-card .big{font-size:32px}
+  .course-card{background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.55)}
+  .course-card:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(15,23,42,.14)}
+  .lesson,.morning-item{background:rgba(255,255,255,.82);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.45)}
+  .qlist{background:rgba(255,255,255,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.45)}
+  .qitem{background:rgba(255,255,255,.55)}
+  .stat-box{background:rgba(248,250,252,.9);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.45)}
+  .live-stats .s{background:rgba(248,250,252,.9)}
+  .linkbox{background:rgba(248,250,252,.85);border:1px dashed rgba(148,163,184,.4)}
+  .toast{background:rgba(30,41,59,.92);backdrop-filter:blur(8px)}
+  input,select,textarea{background:rgba(255,255,255,.95)}
+  table th{background:rgba(248,250,252,.9)}
+  tr:hover td{background:rgba(241,245,249,.7)}
+  .print-area{background:#fff}
+  @media(max-width:640px){
+    header{padding:14px 16px}
+    .hero{padding:22px 20px}
+  }
 </style>
 </head>
 <body>
