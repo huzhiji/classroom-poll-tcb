@@ -52,3 +52,13 @@
 - 通过健壮性 harness + Edge 截图（教师端顶部 + 底部页脚验证）。
 - git tag：`redesign-v2`
 - 存档：`phase-2-footer-and-scroll.zip`
+
+### Phase 3（2026-08-11 22:01）✅ 专业首页 index.html
+- 新建 `public/index.html`（根路径 `/` 之前 404，现为杂志感着陆页）：
+  - 玻璃深色头栏 + 大字号衬线 Hero「备考从未如此 从容高效」+ 金色 eyebrow + 双 CTA
+  - 每日金句卡（与两端组件复用）
+  - 6 张功能特性卡（课程/答题/早读/记忆/错题/课堂）+ 分隔线 + 给学员/给老师 双 CTA
+  - 共享页脚
+- 通过内联脚本语法校验 + Edge 截图验证。
+- git tag：`redesign-v3`
+- 存档：`phase-3-landing-and-dual-cta.zip`
