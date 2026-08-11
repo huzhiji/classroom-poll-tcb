@@ -10,7 +10,7 @@ RUN npm install --production
 # 复制源码
 COPY . .
 
-# 云托管访问端口默认为 80，应用监听 process.env.PORT || 3000
+# 云托管访问端口默认为 80，应用监听 process.env.PORT || 80（探活固定 :80，切勿改回 3000）
 EXPOSE 80
 
 CMD ["node", "index.js"]
