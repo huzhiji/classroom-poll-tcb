@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260814">
+<link rel="stylesheet" href="/css/theme.css?v=20260815">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -334,6 +334,22 @@ function examCardHTML(e, doneSet, draft, variant, ansCounts){
   const head = (variant==='grid') ? `<div class="ev-card-top"><span class="ev-card-ico">${catIcon(e.category)}</span>${catTag}</div>` : '';
   return `<div class="exam-card${variant?(' ev-'+variant):''}${done?' done':''}">${head}<div class="info"><b>${esc(e.title)}</b>${tags}<div class="meta">${qn} 题 · ${new Date(e.createdAt).toLocaleDateString()} · 不限时</div></div><div class="acts">${actions}</div></div>`;
 }
+// 专项训练：按 20 题一组拆分，套件折叠、组卡直接作答（不走选题数面板）
+function topicGroupHTML(e, ansCounts){
+  const qids=(e.questionIds||[]);
+  const n=qids.length;
+  const g=Math.max(1,Math.ceil(n/20));
+  const ansN=(ansCounts&&ansCounts[e.id])?ansCounts[e.id]:0;
+  let cards='';
+  for(let i=0;i<g;i++){
+    const a=i*20+1, b=Math.min((i+1)*20,n);
+    cards+=`<div class="exam-card"><div class="info"><b>第 ${i+1} 组</b><div class="meta">第 ${a}-${b} 题 · ${b-a+1} 题 · 直接作答</div></div><div class="acts"><button class="btn sm" onclick="enterExamGroup('${e.id}',${i})">开始答题</button></div></div>`;
+  }
+  return `<div class="exam-group">
+    <div class="exam-group-head" onclick="tg('eg-topic-${e.id}')"><span class="caret" id="caret-eg-topic-${e.id}">▸</span><b>${esc(e.title)}</b><span class="muted">共 ${n} 题 · ${g} 组（每组20题）${ansN?` · 已答 ${ansN}/${n}`:''}</span></div>
+    <div class="eg-body" id="eg-topic-${e.id}" style="display:none">${cards}</div>
+  </div>`;
+}
 function tg(id){
   const body=document.getElementById(id),caret=document.getElementById('caret-'+id);
   if(!body)return;
@@ -362,7 +378,7 @@ function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
       });
     }else if(top==='专项'){
       const list=flattenCat(byCat,'专项');
-      if(list.length) body+=`<div class="eg-body" style="border-left:none;margin-left:0;padding-left:0">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>`;
+      if(list.length) body+=`<div class="eg-body" style="border-left:none;margin-left:0;padding-left:0">${list.map(e=>topicGroupHTML(e,ansCounts)).join('')}</div>`;
     }else{
       const cats=Object.keys(byCat).filter(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length);
       body=cats.map(c=>renderCatGroup(c,byCat[c],doneSet,draftMap,ansCounts)).join('');
@@ -445,6 +461,20 @@ async function enterExam(id){
     h+=`</div>`;
     $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
     window.scrollTo(0,0);
+  }catch(e){toast(e.message,'err');}
+}
+// 专项组模式：直接进入某一组（20题一组，按原顺序作答，无选题数面板）
+async function enterExamGroup(id, gi){
+  try{
+    examIdCurrent=id;
+    const ed=await api('/api/exams/'+id);
+    if(!ed||typeof ed!=='object')throw new Error('考试不存在');
+    if(!Array.isArray(ed.questions))ed.questions=[];
+    examData=ed;
+    const seq=ed.questions.slice(gi*20,gi*20+20).map(q=>q.id);
+    if(!seq.length){toast('该组暂无题目','err');return;}
+    examSeq=seq;examTotal=seq.length;examAnswers={};_ppCount=null;
+    renderExamQuestions();
   }catch(e){toast(e.message,'err');}
 }
 function pickCount(el,n){
