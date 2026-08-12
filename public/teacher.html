@@ -209,6 +209,15 @@
       </div>
       <div id="rec-result"></div>
     </div>
+    <div class="card" style="margin-top:14px">
+      <h2>重置学生密码 <span class="tag">忘密码救急</span></h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>学生邮箱</label><input id="rp-email" placeholder="如 student@school.edu"></div>
+        <div><label>新密码（≥4 位）</label><input id="rp-pass" type="text" placeholder="输入新密码"></div>
+        <div style="flex:0"><button class="btn" onclick="resetPass()">重置密码</button></div>
+      </div>
+      <div id="rp-msg" class="muted" style="margin-top:8px;font-size:13px"></div>
+    </div>
   </section>
 
   <!-- ========== 错题导出 ========== -->
@@ -442,6 +451,21 @@ async function pollLoop(){
 }
 
 // ---- 学生记录 ----
+async function resetPass(){
+  const email=($('#rp-email').value||'').trim();
+  const pass=$('#rp-pass').value||'';
+  if(!email){toast('请输入学生邮箱','err');return;}
+  if(pass.length<4){toast('新密码至少 4 位','err');return;}
+  if(!confirm(`确认为 ${email} 重置密码？学习记录/错题/记忆进度都会保留。`))return;
+  try{
+    const r=await api('/api/students/'+encodeURIComponent(email)+'/password',{method:'POST',body:JSON.stringify({password:pass})});
+    if(r&&r.ok){
+      toast('密码已重置','ok');
+      $('#rp-pass').value='';
+      $('#rp-msg').textContent='✅ 已为学生 '+email+' 设置新密码，学生用新密码登录即可，历史记录保留。';
+    }else toast((r&&r.message)||'重置失败','err');
+  }catch(e){toast(e.message,'err');}
+}
 async function loadStudent(){
   const key=$('#rec-key').value.trim();if(!key){toast('请输入学生标识','err');return;}
   try{

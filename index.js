@@ -444,6 +444,15 @@ app.post('/api/login', (req, res) => {
   } catch (e) { res.status(500).json(fail('登录失败: ' + e.message)); }
 });
 
+// 教师重置学生密码
+app.post('/api/students/:email/password', (req, res) => {
+  try {
+    const r = store.resetStudentPassword({ email: req.params.email, password: (req.body || {}).password });
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('重置失败: ' + e.message)); }
+});
+
 // ================= 复习提醒（邮件） =================
 // SMTP 配置通过环境变量注入（云托管控制台设置）：
 //   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM / APP_URL / REMINDER_HOUR / AUTO_REMINDER
