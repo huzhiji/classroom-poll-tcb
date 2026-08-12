@@ -6,12 +6,12 @@
 <title>选调生学习系统 · 学生端</title>
 <link rel="stylesheet" href="/css/theme.css?v=20260812">
 <style>
-  /* ===== 学生端页面级覆盖：墨韵深色渐变 ===== */
+  /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩 ===== */
   body{
     background:
-      radial-gradient(1200px 620px at 82% -12%, rgba(95,179,163,.08), transparent 58%),
-      radial-gradient(800px 500px at 18% 85%, rgba(125,138,158,.05), transparent 50%),
-      linear-gradient(180deg, var(--bg-page) 0%, rgba(10,13,18,.96) 100%) fixed;
+      radial-gradient(1200px 620px at 82% -12%, rgba(95,179,163,.07), transparent 58%),
+      linear-gradient(180deg, rgba(14,18,25,.72) 0%, rgba(10,13,18,.90) 100%),
+      url(/images/bg-hero.jpg) center/cover no-repeat fixed;
   }
   .who .muted{color:var(--text)}
   .nav{max-width:1120px;margin:16px auto 0;padding:0 16px}
@@ -271,36 +271,32 @@ function renderExamListView(){
   if(!examDataCache) return;
   const {byCat,doneSet,draftMap,byTop,ansCounts}=examDataCache;
   const box=$('#exam-list');
-  const topsOrder=['国省考真题','常识判断','公共基础','专题'];
+  const topsOrder=['国省考真题','专项','公共基础'];
   const tops=topsOrder.filter(top=>Object.keys(byCat).some(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length));
   box.innerHTML=renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts);
 }
 // 顶层大类映射（与后端 examTop 保持一致）
 function examTopLocal(cat){
-  if(cat==='常识判断'||cat==='公共基础'||cat==='专题') return cat;
+  if(cat==='专项'||cat==='公共基础') return cat;
   return '国省考真题';
 }
 function topLabel(t){
-  return {'国省考真题':'📘 国省考真题','常识判断':'🔆 常识判断','公共基础':'📓 公共基础','专题':'📚 专题训练'}[t]||t;
+  return {'国省考真题':'📘 国省考真题','专项':'📚 专项训练','公共基础':'📓 公共基础'}[t]||t;
 }
 const PROV_NAMES=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
-const CAT_LABEL={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识判断','公共基础':'📓 公共基础' };
-// 渲染某分类下的试卷列表（省考真题按省份折叠；常识判断按专项/真题分组；其余直接列出）
+const CAT_LABEL={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项':'📚 专项训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识真题','政治理论':'📜 政治理论','公共基础':'📓 公共基础' };
+// 渲染某分类下的试卷列表（省考真题按省份折叠；其余直接列出）
 function renderCatGroup(catKey, list, doneSet, draftMap, ansCounts){
-  if(catKey==='省考真题' || catKey==='常识判断'){
+  if(catKey==='省考真题'){
     const sub={};
     list.forEach(e=>{
-      let m;
-      if(catKey==='省考真题'){ m=PROV_NAMES.find(p=>(e.title||'').includes(p))||'其他'; }
-      else { m=(e.mode==='topic')?'📓 专项常识':'📘 常识真题'; }
+      const m=PROV_NAMES.find(p=>(e.title||'').includes(p))||'其他';
       (sub[m]=sub[m]||[]).push(e);
     });
-    const subLabel={};
-    if(catKey==='常识判断'){ subLabel['📓 专项常识']='📓 专项常识'; subLabel['📘 常识真题']='📘 常识真题'; }
     return `<div class="exam-group">
       <div class="exam-group-head" onclick="tg('eg-${catKey}')"><span class="caret" id="caret-eg-${catKey}">▸</span><b>${CAT_LABEL[catKey]||catKey}</b><span class="muted">(${list.length}套)</span></div>
       <div class="eg-body" id="eg-${catKey}" style="display:none">${Object.keys(sub).map(p=>`<div class="exam-group">
-        <div class="exam-group-head" onclick="tg('eg-${catKey}-${p}')"><span class="caret" id="caret-eg-${catKey}-${p}">▸</span><b>${esc(subLabel[p]||p)}</b><span class="muted">(${sub[p].length}套)</span></div>
+        <div class="exam-group-head" onclick="tg('eg-${catKey}-${p}')"><span class="caret" id="caret-eg-${catKey}-${p}">▸</span><b>${esc(p)}</b><span class="muted">(${sub[p].length}套)</span></div>
         <div class="eg-body" id="eg-${catKey}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>
       </div>`).join('')}</div>
     </div>`;
@@ -316,6 +312,9 @@ function examCardHTML(e, doneSet, draft, variant, ansCounts){
   const ansN = ansCounts && ansCounts[e.id] ? ansCounts[e.id] : 0;
   let actions = `<button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button>`;
   let tags = '';
+  if((e.title||'').includes('政治理论')){
+    tags += `<span class="tag-draft" style="border-color:var(--warn)">⚠️ 已过时 · 仅作参考</span>`;
+  }
   if(draft&&typeof draft==='object'){
     tags += `<span class="tag-draft">草稿·已答 ${(draft.answered||0)}/${(draft.total||0)}</span>`;
     actions = `<button class="btn sm" onclick="enterExam('${e.id}')">继续作答</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`;
@@ -340,20 +339,30 @@ function tg(id){
 
 // 顶层大类图标 / 类别图标
 function topIcon(top){return {'国省考真题':'📘','常识判断':'🔆','公共基础':'📓','专题':'📚'}[top]||'📁';}
-function catIcon(cat){return {'国考真题':'📘','省考真题':'📗','选调真题':'📕','专题':'📚','国省考真题':'📙','常识判断':'🔆','公共基础':'📓'}[cat]||'•';}
+function catIcon(cat){return {'国考真题':'📘','省考真题':'📗','选调真题':'📕','专项':'📚','国省考真题':'📙','常识判断':'🔆','政治理论':'📜','公共基础':'📓'}[cat]||'•';}
 
-// 折叠（手风琴）视图：复用原有分组折叠逻辑
+// 折叠（手风琴）视图：国省考真题(常识/政治理论/其他) + 专项独立列表 + 公共基础
 function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
   return tops.map(top=>{
     const t=byTop[top]||{done:0,total:0,percent:0};
-    const cats=Object.keys(byCat).filter(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length);
-    if(!cats.length) return '';
-    let body;
-    if(cats.length===1 && cats[0]===top && top!=='常识判断'){
-      body=byCat[cats[0]].map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('');
+    let body='';
+    if(top==='国省考真题'){
+      // 常识真题 / 政治理论(过时) / 其他真题(国考省考选调,省考按省份)
+      const cn=flattenCat(byCat,'常识判断');
+      const zz=flattenCat(byCat,'政治理论');
+      if(cn.length) body+=subGroup('eg-top-gk-cn','🔆 常识真题',cn,doneSet,draftMap,ansCounts);
+      if(zz.length) body+=subGroup('eg-top-gk-zz','📜 政治理论（已过时 · 仅作参考）',zz,doneSet,draftMap,ansCounts);
+      ['国考真题','省考真题','选调真题','国省考真题'].forEach(c=>{
+        if(byCat[c]&&byCat[c].length) body+=renderCatGroup(c,byCat[c],doneSet,draftMap,ansCounts);
+      });
+    }else if(top==='专项'){
+      const list=flattenCat(byCat,'专项');
+      if(list.length) body+=`<div class="eg-body" style="border-left:none;margin-left:0;padding-left:0">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>`;
     }else{
+      const cats=Object.keys(byCat).filter(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length);
       body=cats.map(c=>renderCatGroup(c,byCat[c],doneSet,draftMap,ansCounts)).join('');
     }
+    if(!body) return '';
     return `<div class="exam-group">
       <div class="exam-group-head" onclick="tg('eg-top-${top}')">
         <span class="caret" id="caret-eg-top-${top}">▸</span>
@@ -366,6 +375,13 @@ function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
       <div class="eg-body" id="eg-top-${top}" style="border-left:none;margin-left:0;padding-left:0;display:none">${body}</div>
     </div>`;
   }).join('');
+}
+function flattenCat(byCat,key){return (byCat[key]&&byCat[key].length)?byCat[key]:[];}
+function subGroup(id,label,list,doneSet,draftMap,ansCounts){
+  return `<div class="exam-group">
+    <div class="exam-group-head" onclick="tg('${id}')"><span class="caret" id="caret-${id}">▸</span><b>${label}</b><span class="muted">(${list.length}套)</span></div>
+    <div class="eg-body" id="${id}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>
+  </div>`;
 }
 
 // ---- 考试答题 ----
@@ -947,11 +963,7 @@ async function submitHw(){
 <button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 <footer class="footer">
   <div class="brand">🎓 选调生学习系统</div>
-  <div class="sub-foot">教师/学员一体化学习平台</div>
-  <div>
-    <a href="/teacher.html">教师端</a>
-    <a href="/student.html">学员端</a>
-  </div>
+  <div><a href="/student.html">学员端</a></div>
 </footer>
 </body>
 </html>
