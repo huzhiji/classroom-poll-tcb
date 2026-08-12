@@ -73,7 +73,7 @@
       <label>选择题目（勾选加入作业）</label>
       <div class="qlist" id="hw-pick" style="max-height:260px"></div>
       <div class="btnrow"><button class="btn" onclick="assignHomework()">布置作业</button></div>
-      <div id="hw-list" style="margin-top:12px"></div>
+      <div id="hw-list" class="mt-3"></div>
     </div>
     <div class="card">
       <h2>📊 今日打卡统计 <span class="tag" id="ci-date"></span></h2>
@@ -111,7 +111,7 @@
         <div class="opt-row"><b>C</b><input data-i="2" value="C"></div>
         <div class="opt-row"><b>D</b><input data-i="3" value="D"></div>
       </div>
-      <div class="row" style="margin-top:10px">
+      <div class="row mt-3">
         <div>
           <label>正确答案</label>
           <select id="q-answer"></select>
@@ -121,7 +121,7 @@
           <input id="q-analysis" placeholder="讲解 / 考点说明">
         </div>
       </div>
-      <div style="margin-top:14px"><button class="btn" onclick="addQuestion()">保存题目</button></div>
+      <div class="mt-4"><button class="btn" onclick="addQuestion()">保存题目</button></div>
     </div>
 
     <div class="card">
@@ -142,7 +142,7 @@
 专题：常识</pre>
       </details>
       <textarea id="batch-text" placeholder="在此粘贴题目文本或 JSON 数组…"></textarea>
-      <div style="margin-top:10px"><button class="btn" onclick="batchImport()">解析并导入</button></div>
+      <div class="mt-3"><button class="btn" onclick="batchImport()">解析并导入</button></div>
     </div>
 
     <div class="card">
@@ -164,7 +164,7 @@
       <input id="exam-title" placeholder="如：第一章单元测试 / 民法典专题">
       <label>从题库选题（勾选加入试卷）</label>
       <div class="qlist" id="exam-pick" style="max-height:300px"></div>
-      <div style="margin-top:14px"><button class="btn" onclick="createExam()">生成考试</button></div>
+      <div class="mt-4"><button class="btn" onclick="createExam()">生成考试</button></div>
     </div>
     <div class="card">
       <h2>考试列表</h2>
@@ -177,19 +177,19 @@
     <div class="card" id="cr-create">
       <h2>课堂答题 <span class="tag">即时发布</span></h2>
       <p class="muted">创建房间后，从题库选题即时发布，学生扫码/链接即可作答，实时查看统计。</p>
-      <div style="margin-top:12px"><button class="btn" onclick="createRoom()">创建课堂房间</button></div>
+      <div class="mt-3"><button class="btn" onclick="createRoom()">创建课堂房间</button></div>
     </div>
     <div class="card hidden" id="cr-panel">
       <h2>课堂控制面板 <span class="tag" id="cr-id"></span></h2>
       <div class="linkbox" id="cr-link"></div>
       <label>从题库选择本堂题目（勾选后加载）</label>
       <div class="qlist" id="cr-pick" style="max-height:260px"></div>
-      <div style="margin-top:10px"><button class="btn ghost sm" onclick="loadRoomQuestions()">加载选中题目到房间</button> <button class="btn danger sm" onclick="closeRoom()">关闭房间</button></div>
+      <div class="mt-3"><button class="btn ghost sm" onclick="loadRoomQuestions()">加载选中题目到房间</button> <button class="btn danger sm" onclick="closeRoom()">关闭房间</button></div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
       <h2 style="font-size:15px">当前题目发布</h2>
       <div id="cr-current" class="muted">尚未发布题目</div>
       <div class="live-stats" id="cr-stats"></div>
-      <div id="cr-controls" class="hidden" style="margin-top:6px">
+      <div id="cr-controls" class="hidden mt-2">
         <button class="btn sm" onclick="publishNext(-1)">发布上一题</button>
         <button class="btn sm" onclick="publishNext(1)">发布下一题</button>
         <button class="btn sm ghost" id="cr-reveal" onclick="endQuestion()">结束并公布答案</button>
@@ -209,7 +209,7 @@
       </div>
       <div id="rec-result"></div>
     </div>
-    <div class="card" style="margin-top:14px">
+    <div class="card mt-4">
       <h2>重置学生密码 <span class="tag">忘密码救急</span></h2>
       <div class="row" style="align-items:flex-end">
         <div><label>学生邮箱</label><input id="rp-email" placeholder="如 student@school.edu"></div>
@@ -245,7 +245,7 @@
         <button class="btn" onclick="downloadBackup()">⬇️ 下载完整数据到本地</button>
         <button class="btn ghost" onclick="createSnapshot()">☁️ 在云端创建快照</button>
       </div>
-      <p class="muted" style="margin-top:12px">说明：①「下载到本地」会把全部数据存成 JSON 文件到你的电脑，最安全；②「云端快照」只保存在服务器持久卷，用于防服务器误删/快速回滚，<b>不等于本地备份</b>。要实现「定期自动存到本地」，请用项目里的 <code>backup-to-local.ps1</code> 配合 Windows 任务计划（详见说明）。</p>
+      <p class="muted mt-3">说明：①「下载到本地」会把全部数据存成 JSON 文件到你的电脑，最安全；②「云端快照」只保存在服务器持久卷，用于防服务器误删/快速回滚，<b>不等于本地备份</b>。要实现「定期自动存到本地」，请用项目里的 <code>backup-to-local.ps1</code> 配合 Windows 任务计划（详见说明）。</p>
     </div>
     <div class="card">
       <h2>云端快照列表</h2>
@@ -259,7 +259,7 @@
       <h2>复习提醒（邮件） <span class="tag">邮箱推送</span></h2>
       <p class="muted">已用邮箱注册的学生，若当天有到期复习题，可手动群发提醒邮件；也可在云托管设置 <code>AUTO_REMINDER=1</code> 开启每日定时自动发送（需先配置 SMTP）。</p>
       <div id="reminder-status" class="muted" style="margin:10px 0">点击「预览」查看今日需提醒的学生。</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="flex gap-3 wrap">
         <button class="btn" onclick="previewReminder()">预览今日提醒名单</button>
         <button class="btn ghost" id="reminder-send-btn" onclick="sendReminder()" disabled>立即群发提醒邮件</button>
       </div>
@@ -475,7 +475,7 @@ async function loadStudent(){
       <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
       <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题数</div></div>
       <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">参与考试数</div></div>
-      <div class="stat-box"><div class="num" style="color:var(--err)">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div>
+      <div class="stat-box"><div class="num text-err">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div>
     </div>`;
     const topics=Object.keys(stats.byTopic);
     if(topics.length){html+='<h2 style="font-size:15px;margin-top:16px">按专题正确率</h2><div class="stat-grid">';topics.forEach(t=>{const b=stats.byTopic[t];html+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});html+='</div>';}
@@ -564,12 +564,12 @@ async function loadTeacherDashboard(){
     h+=tdashTile('全班答题正确率',d.overall.percent+'%',d.overall.correct+'/'+d.overall.total+' 题');
     h+=tdashTile('在学记忆学生',d.masteryOverview.studentsWithMemory,'开启复习');
     h+='</div>';
-    h+='<div class="card" style="margin-top:18px"><h2>📊 今日早读打卡</h2><div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+t.checked+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+t.unchecked+'</div><div class="lbl">未打卡</div></div></div>';
-    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+t.checkedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.checkedList.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+t.uncheckedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.uncheckedList.map(s=>'<span class="pill" style="background:rgba(217,114,138,.14);color:var(--err)">'+esc(s.name)+'</span>').join('')+'</div></div></div>';
+    h+='<div class="card" class="mt-5"><h2>📊 今日早读打卡</h2><div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+t.checked+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num text-err">'+t.unchecked+'</div><div class="lbl">未打卡</div></div></div>';
+    h+='<div class="row mt-3"><div><h2 style="font-size:15px">✅ 已打卡（'+t.checkedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.checkedList.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+t.uncheckedList.length+'）</h2><div style="max-height:160px;overflow:auto">'+t.uncheckedList.map(s=>'<span class="pill" style="background:rgba(211,90,90,.14);color:var(--err)">'+esc(s.name)+'</span>').join('')+'</div></div></div>';
     h+='</div>';
-    h+='<div class="card" style="margin-top:18px"><h2>⚠️ 班级薄弱专题（正确率偏低）</h2>';
+    h+='<div class="card" class="mt-5"><h2>⚠️ 班级薄弱专题（正确率偏低）</h2>';
     if(!d.weakTopics.length){h+='<p class="muted">答题数据不足。</p>';}
-    else{d.weakTopics.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted" style="color:var(--err)">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,#d9b779,#d9728a)"></span></div></div>`;});}
+    else{d.weakTopics.forEach(w=>{h+=`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>${esc(w.topic)}</b><span class="muted text-err">${w.percent}%</span></div><div class="prog"><span style="width:${w.percent}%;background:linear-gradient(90deg,var(--primary),var(--accent))"></span></div></div>`;});}
     h+='</div>';
     $('#tdash-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
@@ -603,20 +603,20 @@ async function createCourseT(){
 async function editCourse(id){
   try{
     const c=await api('/api/courses/'+id);
-    let h=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>✏️ 编辑课程：${esc(c.title)}</h2><button class="btn danger sm" onclick="delCourse('${id}')">删除课程</button></div>`;
+    let h=`<div class="card"><div class="flex-between"><h2>✏️ 编辑课程：${esc(c.title)}</h2><button class="btn danger sm" onclick="delCourse('${id}')">删除课程</button></div>`;
     h+=`<div class="row"><div style="flex:2"><label>标题</label><input id="ec-title" value="${esc(c.title)}"></div></div><label>简介</label><textarea id="ec-desc">${esc(c.description||'')}</textarea><div class="btnrow"><button class="btn sm" onclick="saveCourse('${id}')">保存信息</button></div>`;
     h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📂 章节</h2>';
     if(!c.chapters.length){h+='<p class="muted">暂无章节。</p>';}
     c.chapters.forEach(ch=>{
-      h+=`<div class="lesson"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(ch.title)}</b><button class="btn danger sm" onclick="delChapter('${id}','${ch.id}')">删除章</button></div>`;
-      if(ch.lessons.length){h+='<div style="margin-top:8px">'+ch.lessons.map(ls=>{
+      h+=`<div class="lesson"><div class="flex-between"><b>${esc(ch.title)}</b><button class="btn danger sm" onclick="delChapter('${id}','${ch.id}')">删除章</button></div>`;
+      if(ch.lessons.length){h+='<div class="mt-2">'+ch.lessons.map(ls=>{
         const mat=(ls.materials&&ls.materials.length)?ls.materials.map(m=>esc(m.title||m.url)).join('、'):'';
         return `<div class="qitem"><div class="qtitle"><div><b>${esc(ls.title)}</b> ${ls.type==='material'?'<span class="tag">资料</span>':''}${ls.practiceExamId?' <span class="tag">含练习</span>':''}</div><div class="meta">${mat?('资料：'+mat):''}</div></div><button class="btn danger sm" onclick="delLesson('${id}','${ch.id}','${ls.id}')">删除</button></div>`;
       }).join('')+'</div>';}
-      h+=`<div class="row" style="margin-top:8px"><div style="flex:2"><input id="nl-title-${ch.id}" placeholder="新课时标题"></div><div><select id="nl-type-${ch.id}"><option value="text">文本课时</option><option value="material">资料课时</option></select></div><div style="flex:0"><button class="btn ghost sm" onclick="addLesson('${id}','${ch.id}')">添加课时</button></div></div>`;
+      h+=`<div class="row mt-2"><div style="flex:2"><input id="nl-title-${ch.id}" placeholder="新课时标题"></div><div><select id="nl-type-${ch.id}"><option value="text">文本课时</option><option value="material">资料课时</option></select></div><div style="flex:0"><button class="btn ghost sm" onclick="addLesson('${id}','${ch.id}')">添加课时</button></div></div>`;
       h+='</div>';
     });
-    h+='<div class="row" style="margin-top:12px"><div style="flex:2"><input id="nch-title" placeholder="新章节标题"></div><div style="flex:0"><button class="btn ghost sm" onclick="addChapter(\''+id+'\')">添加章节</button></div></div>';
+    h+='<div class="row mt-3"><div style="flex:2"><input id="nch-title" placeholder="新章节标题"></div><div style="flex:0"><button class="btn ghost sm" onclick="addChapter(\''+id+'\')">添加章节</button></div></div>';
     h+='</div>';
     $('#course-editor').innerHTML=h;window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
@@ -637,7 +637,7 @@ async function loadMorningList(){
     if(!list.length){box.innerHTML='<p class="muted">还没有早读内容，先创建一条吧。</p>';return;}
     box.innerHTML=list.map(m=>{
       const pushed=m.push&&m.push.mode==='all';
-      return `<div class="morning-item"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.title)}</b><span class="tag" style="${pushed?'background:rgba(95,184,138,.14);color:var(--ok)':''}">${pushed?('已推送 '+m.push.pushDate):'未推送'}</span></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div><div class="btnrow"><button class="btn sm ${pushed?'ghost':''}" onclick="pushMorning('${m.id}')">${pushed?'重新推送':'一键推送全班'}</button><button class="btn ghost sm" onclick="editMorning('${m.id}')">编辑</button><button class="btn danger sm" onclick="delMorning('${m.id}')">删除</button></div></div>`;
+      return `<div class="morning-item"><div class="flex-between"><b>${esc(m.title)}</b><span class="tag" style="${pushed?'background:rgba(95,184,138,.14);color:var(--ok)':''}">${pushed?('已推送 '+m.push.pushDate):'未推送'}</span></div><div class="muted" style="white-space:pre-wrap;margin-top:4px">${esc(m.content||'')}</div><div class="btnrow"><button class="btn sm ${pushed?'ghost':''}" onclick="pushMorning('${m.id}')">${pushed?'重新推送':'一键推送全班'}</button><button class="btn ghost sm" onclick="editMorning('${m.id}')">编辑</button><button class="btn danger sm" onclick="delMorning('${m.id}')">删除</button></div></div>`;
     }).join('');
   }catch(e){toast(e.message,'err');}
 }
@@ -669,8 +669,8 @@ async function loadCheckinStats(){
   $('#ci-date').textContent=d;
   try{
     const s=await api('/api/morning/checkin/stats?date='+d);
-    let h='<div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+s.checkedCount+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num" style="color:var(--err)">'+s.uncheckedCount+'</div><div class="lbl">未打卡</div></div><div class="stat-box"><div class="num">'+s.total+'</div><div class="lbl">总人数</div></div></div>';
-    h+='<div class="row" style="margin-top:12px"><div><h2 style="font-size:15px">✅ 已打卡（'+s.checked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.checked.map(x=>'<span class="pill">'+esc(x.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+s.unchecked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.unchecked.map(x=>'<span class="pill" style="background:rgba(217,114,138,.14);color:var(--err)">'+esc(x.name)+'</span>').join('')+'</div></div></div>';
+    let h='<div class="stat-grid"><div class="stat-box"><div class="num" style="color:var(--ok)">'+s.checkedCount+'</div><div class="lbl">已打卡</div></div><div class="stat-box"><div class="num text-err">'+s.uncheckedCount+'</div><div class="lbl">未打卡</div></div><div class="stat-box"><div class="num">'+s.total+'</div><div class="lbl">总人数</div></div></div>';
+    h+='<div class="row mt-3"><div><h2 style="font-size:15px">✅ 已打卡（'+s.checked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.checked.map(x=>'<span class="pill">'+esc(x.name)+'</span>').join('')+'</div></div><div><h2 style="font-size:15px">⚠️ 未打卡（'+s.unchecked.length+'）</h2><div style="max-height:200px;overflow:auto">'+s.unchecked.map(x=>'<span class="pill" style="background:rgba(211,90,90,.14);color:var(--err)">'+esc(x.name)+'</span>').join('')+'</div></div></div>';
     $('#ci-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
 }

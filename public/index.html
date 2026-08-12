@@ -9,40 +9,40 @@
   /* ===== 首页专属 ===== */
   body{
     background:
-      radial-gradient(1200px 620px at 82% -12%, rgba(217,183,121,.10), transparent 58%),
-      linear-gradient(180deg, rgba(7,10,18,.58) 0%, rgba(7,10,18,.82) 100%),
+      radial-gradient(1200px 620px at 82% -12%, rgba(95,179,163,.08), transparent 58%),
+      linear-gradient(180deg, rgba(14,18,25,.55) 0%, rgba(14,18,25,.82) 100%),
       url('/images/bg-hero.jpg') center/cover no-repeat fixed;
   }
   header h1 .logo{font-size:22px}
   .nav a.nav-link{
     display:inline-flex;align-items:center;
-    background:rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.2);
-    color:#fff;text-decoration:none;
+    background:var(--surface-2);
+    border:1px solid var(--border-strong);
+    color:var(--ink);text-decoration:none;
     padding:8px 16px;border-radius:999px;
     font-size:13.5px;font-weight:500;
-    transition:background var(--t),color var(--t),transform var(--t);
+    transition:background var(--t),color var(--t),transform var(--t),border-color var(--t);
   }
-  .nav a.nav-link:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+  .nav a.nav-link:hover{background:var(--surface-3);border-color:var(--hairline-primary);transform:translateY(-1px);color:var(--primary)}
 
   /* 沉浸式 Hero */
   .landing-hero{text-align:center;padding:80px 24px 36px;position:relative}
   .landing-hero .eyebrow{
-    display:inline-block;font-size:12px;letter-spacing:.32em;font-weight:600;
-    color:rgba(212,175,55,.95);
-    border:1px solid rgba(212,175,55,.4);background:rgba(212,175,55,.08);
+    display:inline-block;font-size:12px;letter-spacing:.28em;font-weight:600;
+    color:var(--primary);
+    border:1px solid var(--hairline-primary);background:var(--primary-l);
     backdrop-filter:blur(6px);
     padding:6px 16px;border-radius:999px;margin-bottom:22px;
   }
   .landing-hero h1{
     font-family:var(--font-serif);
-    font-size:58px;font-weight:700;color:#fff;
+    font-size:58px;font-weight:700;color:var(--ink);
     letter-spacing:.02em;line-height:1.2;
     text-shadow:0 6px 32px rgba(0,0,0,.45);
   }
-  .landing-hero h1 em{font-style:normal;color:#f1da8c}
+  .landing-hero h1 em{font-style:normal;color:var(--primary)}
   .landing-hero .sub{
-    color:rgba(255,255,255,.86);font-size:17px;margin-top:18px;font-weight:300;
+    color:var(--text);font-size:17px;margin-top:18px;font-weight:300;
     letter-spacing:.05em;
   }
   .cta-row{display:flex;gap:16px;justify-content:center;margin-top:34px;flex-wrap:wrap}
@@ -53,38 +53,38 @@
   /* 功能区 */
   main{padding-bottom:0}
   .features{max-width:1180px;margin:30px auto 8px;padding:0 20px}
-  .features-head{text-align:center;color:rgba(255,255,255,.88);margin-bottom:26px}
-  .features-head h2{font-size:26px;font-weight:700;color:#fff;letter-spacing:.01em;font-family:var(--font-serif)}
-  .features-head p{color:rgba(255,255,255,.7);font-size:14px;margin-top:8px}
+  .features-head{text-align:center;color:var(--text);margin-bottom:26px}
+  .features-head h2{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:.01em;font-family:var(--font-serif)}
+  .features-head p{color:var(--muted);font-size:14px;margin-top:8px}
   .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
   .feature{
     background:var(--glass);backdrop-filter:blur(18px);
-    border:1px solid rgba(255,255,255,.55);
-    border-radius:18px;padding:26px;box-shadow:var(--shadow);
-    transition:transform var(--t),box-shadow var(--t);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);padding:26px;box-shadow:var(--shadow);
+    transition:transform var(--t),box-shadow var(--t),border-color var(--t);
   }
-  .feature:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+  .feature:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg);border-color:var(--hairline-primary)}
   .feature .ico{
     width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;
     font-size:24px;border-radius:12px;
-    background:linear-gradient(135deg,rgba(217,183,121,.18),rgba(217,183,121,.04));
-    color:var(--gold);
+    background:linear-gradient(135deg,rgba(95,179,163,.18),rgba(95,179,163,.04));
+    color:var(--primary);
   }
   .feature h3{font-size:16px;color:var(--ink);margin:14px 0 8px;font-weight:700;letter-spacing:.01em}
   .feature p{color:var(--muted);font-size:13.5px;line-height:1.75}
 
-  .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);margin:48px auto;max-width:800px}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border-strong),transparent);margin:48px auto;max-width:800px}
 
   .dual-cta{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1180px;margin:0 auto;padding:0 20px}
   .dual-cta .feature{position:relative;overflow:hidden}
   .dual-cta .feature::after{
     content:'';position:absolute;inset:auto -40px -40px auto;
     width:160px;height:160px;border-radius:50%;
-    background:radial-gradient(circle, rgba(217,183,121,.16), transparent 70%);
+    background:radial-gradient(circle, rgba(95,179,163,.14), transparent 70%);
     pointer-events:none;
   }
-  .dual-cta .feature .ico{background:linear-gradient(135deg,rgba(217,183,121,.20),rgba(217,183,121,.05));color:var(--gold)}
-  .dual-cta .feature.right .ico{background:linear-gradient(135deg,rgba(180,190,210,.16),rgba(180,190,210,.04));color:#C7CDDA}
+  .dual-cta .feature .ico{background:linear-gradient(135deg,rgba(95,179,163,.20),rgba(95,179,163,.05));color:var(--primary)}
+  .dual-cta .feature.right .ico{background:linear-gradient(135deg,rgba(125,138,158,.18),rgba(125,138,158,.05));color:var(--secondary)}
 
   /* 响应式 */
   @media(max-width:760px){
@@ -115,7 +115,7 @@
   <div class="sub">课程 · 答题 · 早读 · 记忆 · 一站式</div>
   <div class="cta-row">
     <a class="btn btn-xl" href="/student.html">📝 进入学员端</a>
-    <a class="btn btn-xl ghost" href="/teacher.html" style="background:rgba(255,255,255,.94)">📊 进入教师端</a>
+    <a class="btn btn-xl ghost" href="/teacher.html">📊 进入教师端</a>
   </div>
 </section>
 
@@ -144,13 +144,13 @@
       <div class="ico">🎓</div>
       <h3>给学员</h3>
       <p>注册即拥有个人学习仪表盘、错题本、记忆卡、每日早读与复习计划。</p>
-      <div class="btnrow" style="margin-top:18px"><a class="btn" href="/student.html">进入学员端 →</a></div>
+      <div class="btnrow mt-4"><a class="btn" href="/student.html">进入学员端 →</a></div>
     </div>
     <div class="feature right">
       <div class="ico">📋</div>
       <h3>给老师</h3>
       <p>建课程 / 推早读 / 出考试 / 班级仪表盘 / 数据备份 / 邮件复习提醒。</p>
-      <div class="btnrow" style="margin-top:18px"><a class="btn ghost" href="/teacher.html">进入教师端 →</a></div>
+      <div class="btnrow mt-4"><a class="btn ghost" href="/teacher.html">进入教师端 →</a></div>
     </div>
   </section>
 </main>
