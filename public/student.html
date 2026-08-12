@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260813">
+<link rel="stylesheet" href="/css/theme.css?v=20260814">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -410,28 +410,9 @@ async function enterExam(id){
     const answered=examAnsweredQids.length;
     let h=`<div class="start-panel">
       <h2>${esc(examData.title)}</h2>
-      <p class="muted">共 ${total} 题 · 不限时 · 可随时「暂存进度」后离开，下次继续作答</p>`;
-    if(draft&&Array.isArray(draft.seq)&&draft.seq.length){
-      const dAnswered=Object.keys(draft.answers||{}).length;
-      h+=`<div class="draft-box">
-        <div class="draft-tip">📌 检测到上次暂存的草稿</div>
-        <button class="btn" onclick="resumeExam('${id}')">继续上次作答（${(draft.seq||[]).length} 题 · 已答 ${dAnswered}）</button>
-        <button class="btn ghost" onclick="clearAndStart('${id}')">重新开始</button>
-      </div>`;
-    }else if(answered>0&&answered<total){
-      h+=`<div class="draft-box">
-        <div class="draft-tip">📈 已做 ${answered} / ${total} 题</div>
-        <button class="btn" onclick="continueExam('${id}')">接着做剩余 ${total-answered} 题</button>
-        <button class="btn ghost" onclick="clearAndStart('${id}')">重新开始</button>
-      </div>`;
-    }else if(answered>=total){
-      h+=`<div class="draft-box">
-        <div class="draft-tip">✅ 本卷已全部完成（${total} 题）</div>
-        <button class="btn" onclick="redoExam('${id}')">再做一次</button>
-      </div>`;
-    }else{
-      h+=`<div class="practice-pick">
-        <div class="pp-title">本次练习几题？</div>
+      <p class="muted">共 ${total} 题 · 不限时 · 每次「开始练习」都会<b>重新随机抽取</b>一套（不沿用上次题目）</p>
+      <div class="practice-pick">
+        <div class="pp-title">本次练习几题？（每次随机重抽）</div>
         <div class="pp-opts" id="pp-opts">`;
       const presets=[10,20,30,50].filter(n=>n<total);
       let optsHtml=`<button class="pp-btn${total<=10?' active':''}" data-n="${total}" onclick="pickCount(this,${total})">全部（${total}）</button>`;
@@ -440,7 +421,26 @@ async function enterExam(id){
       h+=optsHtml+`</div>
         <div id="pp-custom-wrap" style="display:none;margin-top:10px">自定义题数：<input id="pp-custom" type="number" min="1" max="${total}" value="${Math.min(10,total)}" style="width:90px;padding:6px;border:1px solid var(--border);border-radius:8px"> <span class="muted">（最多 ${total}）</span></div>
       </div>
-      <button class="btn" onclick="startExamPractice('${id}')">开始练习</button>`;
+      <button class="btn" onclick="startExamPractice('${id}')">开始练习（全新随机）</button>`;
+    // 已答过 → 额外提供「接着做未答的题」（不重复）与「清空记录」，但主入口仍是上面的全新随机
+    if(answered>0&&answered<total){
+      h+=`<div class="draft-box" style="margin-top:14px">
+        <div class="draft-tip">📈 已做 ${answered} / ${total} 题</div>
+        <button class="btn ghost" onclick="continueExam('${id}')">接着做剩余未答的 ${total-answered} 题（不重复）</button>
+        <button class="btn ghost" onclick="clearAndStart('${id}')">清空记录·从头开始</button>
+      </div>`;
+    }else if(answered>=total){
+      h+=`<div class="draft-box" style="margin-top:14px">
+        <div class="draft-tip">✅ 本卷已全部完成（${total} 题）</div>
+        <button class="btn ghost" onclick="redoExam('${id}')">再做一次（全新随机）</button>
+      </div>`;
+    }
+    if(draft&&Array.isArray(draft.seq)&&draft.seq.length){
+      const dAnswered=Object.keys(draft.answers||{}).length;
+      h+=`<div class="draft-box" style="margin-top:14px">
+        <div class="draft-tip">📌 检测到上次暂存的草稿</div>
+        <button class="btn ghost" onclick="resumeExam('${id}')">继续上次作答（${(draft.seq||[]).length} 题 · 已答 ${dAnswered}）</button>
+      </div>`;
     }
     h+=`</div>`;
     $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
