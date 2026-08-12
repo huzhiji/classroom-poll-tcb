@@ -386,6 +386,62 @@ tr:hover td{background:var(--surface)}
   box-shadow:var(--shadow-lg);
   animation:fadeUp .35s var(--ease);
 }
+
+/* ============ 8. 动画增强 ============ */
+/* 点击标签减暗(聚焦效果) */
+body.tab-focus::before{
+  content:'';position:fixed;inset:0;z-index:500;pointer-events:none;
+  background:rgba(10,13,18,.28);
+  animation:dimPulse .55s ease-out forwards;
+}
+@keyframes dimPulse{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
+
+/* 卡片悬停浮起 */
+.card,.exam-card,.dash-card,.stat-box{transition:transform var(--t),box-shadow var(--t),border-color var(--t)}
+.card:hover,.exam-card:hover,.dash-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--border-strong)}
+.stat-box:hover{transform:translateY(-2px);border-color:var(--hairline-primary)}
+
+/* 按钮点击波纹 */
+button.btn,a.btn,.pp-btn,.modal-tabs button{position:relative;overflow:hidden}
+button.btn::after,a.btn::after,.pp-btn::after,.modal-tabs button::after{content:'';position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.5) 0%,transparent 65%);opacity:0;transform:scale(0);transition:transform .5s,opacity .5s}
+button.btn:active::after,a.btn:active::after,.pp-btn:active::after,.modal-tabs button:active::after{opacity:1;transform:scale(2);transition:transform 0s,opacity 0s}
+
+/* 进度条平滑过渡 */
+.prog i,.cat-bar i{transition:width .8s cubic-bezier(.2,.7,.2,1)}
+
+/* 选项点击反馈 */
+.opt{transition:background var(--t),border-color var(--t),transform .15s}
+.opt:active{transform:scale(.99)}
+.opt.sel{animation:optSel .35s ease}
+@keyframes optSel{0%{transform:scale(1)}40%{transform:scale(1.025)}100%{transform:scale(1)}}
+
+/* 题目切换淡入 */
+.q,.opt:not(.sel),.qa-row{animation:qFade .4s var(--ease) both}
+@keyframes qFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* 得分动画 */
+.result-head .score{display:inline-block;animation:scorePop .7s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes scorePop{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* 标题渐入 */
+h1,.page-title,.start-panel h2,.landing-hero h1{animation:titleSlide .6s var(--ease) both}
+@keyframes titleSlide{from{opacity:0;transform:translateY(-8px);letter-spacing:.02em}to{opacity:1;transform:translateY(0);letter-spacing:0}}
+
+/* 标签按钮激活波纹 + 选中 */
+.nav button,.seg button,.tabs-mini button{transition:background var(--t),color var(--t),border-color var(--t),transform .15s}
+.nav button:hover,.seg button:hover,.tabs-mini button:hover{transform:translateY(-1px)}
+
+/* 数字滚动 */
+.stat-box .num{transition:transform .4s ease}
+.stat-box:hover .num{transform:scale(1.05)}
+
+/* 正在加载 */
+.skeleton{background:linear-gradient(90deg,var(--surface) 0%,var(--surface-3) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.6s linear infinite}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 .modal-box h3{margin:0 0 12px;font-size:var(--fs-h2);color:var(--ink)}
 .modal-box textarea{width:100%;min-height:200px;font-size:13px;font-family:inherit;padding:10px;border:1px solid var(--border);border-radius:10px;box-sizing:border-box;background:var(--surface);color:var(--ink)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
