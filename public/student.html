@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260820">
+<link rel="stylesheet" href="/css/theme.css?v=20260821">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -665,10 +665,19 @@ let lawState=null;
 async function loadLawStudent(){
   const card=document.getElementById('law-card');if(!card)return;
   try{
-    const pushs=await api('/api/law/push');
+    const [pushs, mine]=await Promise.all([
+      api('/api/law/push'),
+      api('/api/law/myrecords?key='+encodeURIComponent(studentKey))
+    ]);
     const box=document.getElementById('law-push-list');if(!box)return;
     if(!pushs||!pushs.length){box.innerHTML='<p class="muted">老师尚未推送练习，请稍候。</p>';return;}
-    box.innerHTML=pushs.map(p=>`<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b></div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`).join('');
+    const secMap={};
+    (mine&&mine.sections||[]).forEach(s=>{secMap[s.cat+'|'+s.section]=s.percent;});
+    box.innerHTML=pushs.map(p=>{
+      const my=secMap[p.cat+'|'+p.section];
+      const meta=my!==undefined?`<div class="meta">我的正确率 <b style="color:var(--ok)">${my}%</b></div>`:'<div class="meta">尚未作答</div>';
+      return `<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b>${meta}</div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`;
+    }).join('');
   }catch(e){}
 }
 async function startLaw(cat,section){
@@ -712,7 +721,7 @@ async function submitLawQ(){
   try{ r=await api('/api/law/submit',{method:'POST',body:JSON.stringify({studentKey,cat:s.cat,section:s.section,answers:s.answers})}); }
   catch(e){toast(e.message,'err');return;}
   const card=document.getElementById('law-card');if(!card)return;
-  let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题</div></div>`;
+  let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded?` · 已加入错题本 ${r.wrongAdded} 题`:''}</div></div>`;
   (r.details||[]).forEach((d,i)=>{
     h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge err">✗ 错误</span>'} ${d.type==='judge'?'<span class="badge judge">判断</span>':''}</div>`;
     if(d.type==='judge'){
@@ -857,6 +866,20 @@ async function loadMine(){
       <div class="exam-group-head" onclick="tg('mine-hist')"><span class="caret" id="caret-mine-hist">▸</span><b>🕓 历史记录</b><span class="muted">（${recs.length} 条）</span></div>
       <div class="eg-body" id="mine-hist" style="display:none;margin-top:8px">${rb}</div>
     </div>`;
+    try{
+      const lr=await api('/api/law/myrecords?key='+encodeURIComponent(studentKey));
+      if(lr&&lr.recent&&lr.recent.length){
+        const lb=(lr.sections||[]).map(s=>`<div class="stat-box"><div class="num">${s.percent}%</div><div class="lbl">${esc(s.cat)}·${esc(s.section)} (${s.correct}/${s.total})</div></div>`).join('');
+        const recent=(lr.recent||[]).slice(0,10).map(r=>`<div class="exam-card"><div class="info"><b>${esc(r.cat)} · ${esc(r.section)}</b><div class="meta">${new Date(r.ts).toLocaleString()} · 得分 ${r.correct}/${r.total}（${r.percent}%）</div></div></div>`).join('');
+        h+=`<div class="exam-group" class="mt-3">
+          <div class="exam-group-head" onclick="tg('mine-law')"><span class="caret" id="caret-mine-law">▸</span><b>📘 法律常识练习正确率</b><span class="muted">（${(lr.sections||[]).length} 部分）</span></div>
+          <div class="eg-body" id="mine-law" style="display:none;margin-top:8px">
+            <div class="stat-grid">${lb}</div>
+            <p class="muted" style="margin-top:8px">最近作答：</p>${recent}
+          </div>
+        </div>`;
+      }
+    }catch(e){}
     $('#mine-body').innerHTML=h;
   }catch(e){toast(e.message,'err');}
 }

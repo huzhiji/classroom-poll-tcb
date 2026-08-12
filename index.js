@@ -772,6 +772,10 @@ app.get('/api/law/stats', (req, res) => {
   try { res.json(store.getLawStats()); }
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
+app.get('/api/law/myrecords', (req, res) => {
+  try { res.json(store.getLawMyRecords(String(req.query.key || ''))); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
 app.get('/api/law/questions', (req, res) => {
   try { res.json(store.getLawQuestions(String(req.query.cat || ''), String(req.query.section || ''))); }
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
