@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260815">
+<link rel="stylesheet" href="/css/theme.css?v=20260816">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -912,6 +912,11 @@ async function loadMorning(){
       if(hw.length){h+='<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><h2 style="font-size:15px">📋 今日早读作业</h2>';hw.forEach(hh=>{h+=`<div class="lesson"><div class="flex-between"><b>${esc(hh.title)}</b><button class="btn ghost sm" onclick="doHomework('${hh.id}')">去完成</button></div><div class="muted" style="margin-top:4px">${Array.isArray(hh.questionIds)?hh.questionIds.length:0} 题${hh.examId?'（来自考试）':''}</div></div>`;});}
     }
     h+='</div>';
+    h+='<div class="card" class="mt-5"><h2>📝 规范词记忆卡 <span class="tag">Anki 式</span></h2>';
+    h+='<p class="muted" class="mt-2">每天 10 个新词 + 按记忆曲线复习旧词。先看应用场景回忆规范词，点击翻面后再选「记得 / 模糊 / 不记得」，系统按你的选择安排下次推送。</p>';
+    h+='<div class="stat-grid" class="mt-2"><div class="stat-box"><div class="num" id="sp-total">0</div><div class="lbl">词库</div></div><div class="stat-box"><div class="num" id="sp-learned">0</div><div class="lbl">已学</div></div><div class="stat-box"><div class="num" id="sp-due">0</div><div class="lbl">待复习</div></div><div class="stat-box"><div class="num" id="sp-new">0/10</div><div class="lbl">今日新词</div></div></div>';
+    h+='<div class="btnrow"><button class="btn" id="sp-start" onclick="startSpSession()">开始今日记忆</button></div>';
+    h+='</div>';
     h+='<div class="card" class="mt-5"><h2>🧠 早读记忆复习 <span class="tag">艾宾浩斯</span></h2>';
     h+=`<div class="stat-grid" class="mt-2"><div class="stat-box"><div class="num" class="text-err">${mr.due}</div><div class="lbl">今日待复习</div></div><div class="stat-box"><div class="num">${mr.learning}</div><div class="lbl">学习中</div></div><div class="stat-box"><div class="num">${mr.mastered}</div><div class="lbl">已掌握</div></div><div class="stat-box"><div class="num">${mr.total}</div><div class="lbl">记忆卡</div></div></div>`;
     h+='<p class="muted" class="mt-2">把已打卡的早读加入记忆后，系统按遗忘曲线自动安排复习。</p>';
@@ -920,8 +925,76 @@ async function loadMorning(){
     h+='<div class="card" class="mt-5"><h2>🗓️ 我的早读规划（自建）</h2><div class="row"><div style="flex:2"><label>标题</label><input id="mr-title" placeholder="如：背诵习近平金句 10 条"></div></div><label>内容</label><textarea id="mr-content" placeholder="早读文本 / 知识点…"></textarea><div class="btnrow"><button class="btn" onclick="addMyMorning()">添加我的早读</button></div><div id="my-morning-list" class="mt-3"></div></div>';
     h+='<div class="card" class="mt-5"><h2>📅 早读复习日程表</h2><div id="mr-schedule"></div></div>';
     $('#morning-body').innerHTML=h;
-    renderMyMorning(ownArr);renderSchedule();
+    renderMyMorning(ownArr);renderSchedule();loadSpWidget();
   }catch(e){toast(e.message,'err');}
+}
+// ---- 规范词记忆卡（Anki 式：记得/模糊/不记得三选） ----
+let spState=null;
+async function loadSpWidget(){
+  if(!studentKey)return;
+  try{
+    const d=await api('/api/spwords/daily?key='+encodeURIComponent(studentKey));
+    const s=d.stats||{};
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    set('sp-total',s.total||0);set('sp-learned',s.learned||0);set('sp-due',s.due||0);
+    set('sp-new',(d.todayNew||0)+'/'+(d.newLimit||10));
+    const btn=document.getElementById('sp-start');
+    if(btn)btn.disabled=!(d.dueCards&&d.dueCards.length)&&!(d.newCards&&d.newCards.length);
+  }catch(e){}
+}
+async function startSpSession(){
+  if(!studentKey){toast('请先登录/注册','err');return;}
+  let d;
+  try{ d=await api('/api/spwords/daily?key='+encodeURIComponent(studentKey)); }
+  catch(e){toast(e.message,'err');return;}
+  // 先复习旧词，再学新词
+  const queue=(d.dueCards||[]).map(c=>Object.assign({isNew:false},c))
+    .concat((d.newCards||[]).map(c=>Object.assign({isNew:true},c)));
+  if(!queue.length){toast('今日没有需要记忆的词，明天再来 🎉','ok');return;}
+  spState={queue,idx:0};
+  renderSpCard();
+}
+function renderSpCard(){
+  if(!spState)return;
+  if(spState.idx>=spState.queue.length){spDone();return;}
+  const c=spState.queue[spState.idx], total=spState.queue.length;
+  const tag=c.isNew?'<span class="tag-draft">新词</span>':'<span class="tag-done">复习</span>';
+  $('#morning-body').innerHTML=`<div class="card">
+    <div class="flex-between"><button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><span>${tag} 第 ${spState.idx+1}/${total} 张</span></div>
+    <div class="sp-card" id="sp-card" onclick="flipSp()">
+      <div class="sp-label">应用场景（点击翻面看规范词）</div>
+      <div class="sp-scene">${esc(c.scene||'')}</div>
+    </div>
+    <div class="btnrow" id="sp-actions" style="display:none">
+      <button class="btn danger" onclick="gradeSp('forgot')">不记得</button>
+      <button class="btn" onclick="gradeSp('fuzzy')">模糊</button>
+      <button class="btn ok" onclick="gradeSp('remember')">记得</button>
+    </div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+function flipSp(){
+  const card=document.getElementById('sp-card');if(!card||!spState)return;
+  const c=spState.queue[spState.idx];
+  card.innerHTML=`<div class="sp-label">规范词</div>
+    <div class="sp-word">${esc(c.word||'')}</div>
+    <div class="sp-cat muted">分类：${esc(c.cat||'')}</div>
+    <div class="muted" style="margin-top:12px;font-size:12px">↺ 点击返回场景</div>`;
+  card.onclick=renderSpCard;
+  const acts=document.getElementById('sp-actions');if(acts)acts.style.display='flex';
+}
+async function gradeSp(grade){
+  const c=spState.queue[spState.idx];
+  try{await api('/api/spwords/review',{method:'POST',body:JSON.stringify({studentKey,wordId:c.id,grade})});}
+  catch(e){toast(e.message,'err');return;}
+  spState.idx++;
+  renderSpCard();
+}
+function spDone(){
+  $('#morning-body').innerHTML=`<div class="card"><h2>🎉 今日记忆完成</h2>
+    <p class="muted">系统已按你的选择安排下次复习时间，明天继续。</p>
+    <div class="btnrow"><button class="btn" onclick="loadMorning()">返回早读</button></div></div>`;
+  loadDashboard();
 }
 function toggleIds(){const all=[...document.querySelectorAll('.mchk')].map(c=>c.value);const checked=[...document.querySelectorAll('.mchk:checked')].map(c=>c.value);return checked.length?checked:all;}
 async function doCheckin(){

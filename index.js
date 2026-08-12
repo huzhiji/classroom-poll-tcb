@@ -701,6 +701,26 @@ app.post('/api/morning/memory/review', (req, res) => {
   } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
 });
 
+// ================= 规范词记忆卡 =================
+app.get('/api/spwords', (req, res) => res.json(store.listSpWords()));
+app.get('/api/spwords/daily', (req, res) => {
+  try { res.json(store.getSpDaily(String(req.query.key || ''))); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/spwords/stats', (req, res) => {
+  try { res.json(store.getSpStats(String(req.query.key || ''))); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.post('/api/spwords/review', (req, res) => {
+  try {
+    const { studentKey, wordId, grade } = req.body || {};
+    if (!studentKey || !wordId || !grade) return res.status(400).json(fail('参数不完整'));
+    const r = store.reviewSpWord(studentKey, wordId, grade);
+    if (r && r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
 // ================= 仪表盘 =================
 app.get('/api/dashboard/student', (req, res) => {
   const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
