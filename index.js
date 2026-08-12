@@ -721,6 +721,31 @@ app.post('/api/spwords/review', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 法律常识课堂练习 =================
+app.get('/api/law/sections', (req, res) => {
+  try { res.json(store.getLawSections()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/law/push', (req, res) => res.json(store.getLawPush()));
+app.post('/api/law/push', (req, res) => {
+  try {
+    const { active, cat, section, showAnswer, showAnalysis } = req.body || {};
+    if (active && !section) return res.status(400).json(fail('请选择要推送的部分'));
+    res.json(store.setLawPush({ active, cat, section, showAnswer, showAnalysis }));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/law/questions', (req, res) => {
+  try { res.json(store.getLawQuestions(String(req.query.cat || ''), String(req.query.section || ''))); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.post('/api/law/submit', (req, res) => {
+  try {
+    const { studentKey, cat, section, answers } = req.body || {};
+    if (!studentKey || !section) return res.status(400).json(fail('参数不完整'));
+    res.json(store.submitLaw(studentKey, cat, section, answers || {}));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
 // ================= 仪表盘 =================
 app.get('/api/dashboard/student', (req, res) => {
   const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));
