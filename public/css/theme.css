@@ -951,3 +951,12 @@ button.btn.ok:hover{filter:brightness(1.05);box-shadow:0 8px 22px rgba(62,156,12
 .sp-check-result{margin-top:12px;font-size:14px}
 .sp-ok{color:var(--ok);font-weight:600}
 .sp-err{color:var(--accent);font-weight:600}
+
+/* 法律练习推送选择区 */
+.law-cat{border:1px solid var(--hairline-primary);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:rgba(255,255,255,.03)}
+.law-cat-head{font-weight:700;margin-bottom:8px;font-size:14px}
+.law-cat-body{display:flex;flex-wrap:wrap;gap:6px 10px}
+.law-chk-item{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--hairline-primary);border-radius:999px;cursor:pointer;font-size:13px;background:rgba(255,255,255,.02);transition:border-color .15s}
+.law-chk-item:hover{border-color:var(--primary)}
+.law-chk-item input{accent-color:var(--primary);cursor:pointer}
+.law-chk-item .muted{font-size:12px}

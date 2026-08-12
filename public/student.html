@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260818">
+<link rel="stylesheet" href="/css/theme.css?v=20260820">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -668,7 +668,7 @@ async function loadLawStudent(){
     const pushs=await api('/api/law/push');
     const box=document.getElementById('law-push-list');if(!box)return;
     if(!pushs||!pushs.length){box.innerHTML='<p class="muted">老师尚未推送练习，请稍候。</p>';return;}
-    box.innerHTML=pushs.map(p=>`<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b><div class="meta">${p.showAnswer?'可看答案':'不看答案'}${p.showAnalysis?' · 可看解析':' · 不看解析'}</div></div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`).join('');
+    box.innerHTML=pushs.map(p=>`<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b></div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`).join('');
   }catch(e){}
 }
 async function startLaw(cat,section){

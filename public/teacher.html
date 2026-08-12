@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 教师端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260819">
+<link rel="stylesheet" href="/css/theme.css?v=20260820">
 <style>
   /* ===== 教师端页面级覆盖 ===== */
   header h1{font-size:20px}
@@ -437,10 +437,12 @@ async function loadLawAdmin(){
     const tree=await api('/api/law/sections');
     const box=document.getElementById('law-tree');
     if(box){
-      box.innerHTML=(tree||[]).map(c=>
-        `<div style="margin-top:6px"><b>${esc(c.cat)}</b> <span class="muted">(${c.sections.reduce((n,s)=>n+s.count,0)}题)</span></div>`+
-        c.sections.map(s=>`<label class="law-opt" style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;margin-top:3px"><input type="checkbox" class="law-chk" value="${esc(c.cat)}|${esc(s.name)}"> ${esc(s.name)}（${s.count}题）</label>`).join('')
-      ).join('');
+      box.innerHTML=(tree||[]).map(c=>{
+        const chks=c.sections.map(s=>
+          `<label class="law-chk-item"><input type="checkbox" class="law-chk" value="${esc(c.cat)}|${esc(s.name)}"> ${esc(s.name)}<span class="muted">${s.count}题</span></label>`
+        ).join('');
+        return `<div class="law-cat"><div class="law-cat-head">${esc(c.cat)} <span class="muted">(${c.sections.reduce((n,s)=>n+s.count,0)}题)</span></div><div class="law-cat-body">${chks}</div></div>`;
+      }).join('');
     }
     await renderLawPushList();
     await loadLawStats();
