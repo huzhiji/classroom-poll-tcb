@@ -882,3 +882,55 @@ main>section[id]{scroll-margin-top:84px}
   .ev-table td{display:flex;justify-content:space-between;gap:12px;border:none;padding:7px 12px;text-align:right}
   .ev-table td:before{content:attr(data-label);color:var(--muted);font-weight:600;text-align:left}
 }
+
+/* ============ 玻璃拟态升级（部分卡片：小型数据卡 / 列表项 / 标签） ============ */
+/* 仅作用于小卡片；大内容卡 .card 与题目 .q 等保持原样，确保长文可读性 */
+.glass,
+.dash-card,
+.stat-box,
+.hero-stat,
+.course-card,
+.exam-card,
+.exam-group-head,
+.pill,
+.live-stats .s{
+  position:relative;overflow:hidden;
+  background:linear-gradient(155deg, rgba(34,43,58,.52), rgba(19,25,35,.40));
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 10px 32px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.22);
+}
+/* 顶部玻璃高光（course-card 除外，避免遮挡彩色标题条） */
+.glass::before,
+.dash-card::before,
+.stat-box::before,
+.hero-stat::before,
+.exam-card::before,
+.exam-group-head::before,
+.pill::before,
+.live-stats .s::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:48%;
+  pointer-events:none;
+  background:linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,0));
+  border-radius:inherit;
+}
+/* 悬停：提亮 + 更通透（保留原位移动效） */
+.glass:hover,
+.dash-card:hover,
+.course-card:hover,
+.exam-card:hover,
+.exam-group-head:hover,
+.pill:hover,
+.live-stats .s:hover{
+  border-color:rgba(255,255,255,.30);
+  background:linear-gradient(155deg, rgba(40,50,66,.60), rgba(22,29,40,.48));
+  box-shadow:0 14px 40px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.30);
+}
+.stat-box:hover,
+.live-stats .s:hover{
+  border-color:rgba(255,255,255,.28);
+  background:linear-gradient(155deg, rgba(40,50,66,.58), rgba(22,29,40,.46));
+  box-shadow:0 12px 30px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.28);
+  transform:translateY(-2px);
+}
