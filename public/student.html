@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260817">
+<link rel="stylesheet" href="/css/theme.css?v=20260818">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -66,9 +66,8 @@
       <div id="cr-live-stats" class="mt-3"></div>
     </div>
     <div class="card" id="law-card">
-      <h2>📘 法律常识练习 <span class="tag tag-draft" id="law-push-tag">未推送</span></h2>
-      <div id="law-push-info" class="muted">老师尚未推送练习，请稍候。</div>
-      <div class="mt-3"><button class="btn" id="law-start" style="display:none" onclick="startLaw()">开始练习</button></div>
+      <h2>📘 法律常识练习</h2>
+      <div id="law-push-list" class="muted">老师尚未推送练习，请稍候。</div>
     </div>
   </section>
 
@@ -661,41 +660,31 @@ async function sendAnswer(idx,j,el){
   try{await api('/api/submit-answer',{method:'POST',body:JSON.stringify({roomId:crRoomId,studentId:crStudentId,answer:j})});}catch(e){toast(e.message,'err');}
 }
 
-// ---- 法律常识课堂练习（学生端） ----
+// ---- 法律常识课堂练习（学生端：多推送列表） ----
 let lawState=null;
 async function loadLawStudent(){
   const card=document.getElementById('law-card');if(!card)return;
   try{
-    const push=await api('/api/law/push');
-    const tag=document.getElementById('law-push-tag'), info=document.getElementById('law-push-info'), btn=document.getElementById('law-start');
-    if(push&&push.active&&push.section){
-      if(tag){tag.textContent='已推送';tag.className='tag tag-done';}
-      if(info)info.innerHTML=`当前练习：<b>${esc(push.cat||'')} · ${esc(push.section)}</b>${push.showAnswer?'（可看答案）':'（不看答案）'}${push.showAnalysis?' / 可看解析':' / 不看解析'}`;
-      if(btn)btn.style.display='';
-    }else{
-      if(tag){tag.textContent='未推送';tag.className='tag tag-draft';}
-      if(info)info.innerHTML='老师尚未推送练习，请稍候。';
-      if(btn)btn.style.display='none';
-    }
+    const pushs=await api('/api/law/push');
+    const box=document.getElementById('law-push-list');if(!box)return;
+    if(!pushs||!pushs.length){box.innerHTML='<p class="muted">老师尚未推送练习，请稍候。</p>';return;}
+    box.innerHTML=pushs.map(p=>`<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b><div class="meta">${p.showAnswer?'可看答案':'不看答案'}${p.showAnalysis?' · 可看解析':' · 不看解析'}</div></div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`).join('');
   }catch(e){}
 }
-async function startLaw(){
+async function startLaw(cat,section){
   if(!studentKey){toast('请先登录/注册','err');return;}
-  let push;
-  try{ push=await api('/api/law/push'); }catch(e){toast(e.message,'err');return;}
-  if(!push||!push.active||!push.section){toast('老师尚未推送练习','err');return;}
   let qs;
-  try{ qs=await api('/api/law/questions?cat='+encodeURIComponent(push.cat||'')+'&section='+encodeURIComponent(push.section)); }
+  try{ qs=await api('/api/law/questions?cat='+encodeURIComponent(cat||'')+'&section='+encodeURIComponent(section)); }
   catch(e){toast(e.message,'err');return;}
   if(!qs||!qs.length){toast('该部分暂无题目','err');return;}
-  lawState={cat:push.cat,section:push.section,questions:qs,answers:{}};
+  lawState={cat:cat||'',section,questions:qs,answers:{}};
   renderLawQ();
 }
 function renderLawQ(){
   const s=lawState;if(!s)return;
   const card=document.getElementById('law-card');if(!card)return;
   const total=s.questions.length;
-  let h=`<div class="flex-between"><button class="btn ghost sm" onclick="exitLaw()">← 返回</button><span>📘 ${esc(s.section||'')} · ${total} 题</span></div>`;
+  let h=`<div class="flex-between"><button class="btn ghost sm" onclick="exitLaw()">← 返回</button><span>📘 ${esc(s.cat||'')} · ${esc(s.section||'')} · ${total} 题</span></div>`;
   s.questions.forEach((q,i)=>{
     h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)} ${q.type==='judge'?'<span class="badge judge">判断</span>':''}</div>`;
     if(q.type==='judge'){
@@ -745,9 +734,8 @@ async function submitLawQ(){
 function exitLaw(){
   lawState=null;
   const card=document.getElementById('law-card');if(!card)return;
-  card.innerHTML=`<h2>📘 法律常识练习 <span class="tag tag-draft" id="law-push-tag">未推送</span></h2>
-    <div id="law-push-info" class="muted">老师尚未推送练习，请稍候。</div>
-    <div class="mt-3"><button class="btn" id="law-start" style="display:none" onclick="startLaw()">开始练习</button></div>`;
+  card.innerHTML=`<h2>📘 法律常识练习</h2>
+    <div id="law-push-list" class="muted">老师尚未推送练习，请稍候。</div>`;
   loadLawStudent();
 }
 
@@ -1057,26 +1045,35 @@ function renderSpCard(){
   const tag=c.isNew?'<span class="tag-draft">新词</span>':'<span class="tag-done">复习</span>';
   $('#morning-body').innerHTML=`<div class="card">
     <div class="flex-between"><button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><span>${tag} 第 ${spState.idx+1}/${total} 张</span></div>
-    <div class="sp-card" id="sp-card" onclick="flipSp()">
-      <div class="sp-label">应用场景（点击翻面看规范词）</div>
+    <div class="sp-card">
+      <div class="sp-label">应用场景 · 请填写对应的规范词</div>
       <div class="sp-scene">${esc(c.scene||'')}</div>
+      <input class="sp-input" id="sp-input" placeholder="输入规范词…" autocomplete="off">
+      <div class="btnrow"><button class="btn" onclick="checkSp()">检查</button></div>
+      <div id="sp-check-result" class="sp-check-result"></div>
     </div>
     <div class="btnrow" id="sp-actions" style="display:none">
-      <button class="btn danger" onclick="gradeSp('forgot')">不记得</button>
+      <button class="btn danger" onclick="gradeSp('forgot')">不熟悉</button>
       <button class="btn" onclick="gradeSp('fuzzy')">模糊</button>
-      <button class="btn ok" onclick="gradeSp('remember')">记得</button>
+      <button class="btn ok" onclick="gradeSp('remember')">熟悉</button>
     </div>
   </div>`;
   window.scrollTo(0,0);
 }
-function flipSp(){
-  const card=document.getElementById('sp-card');if(!card||!spState)return;
+async function checkSp(){
+  if(!spState)return;
   const c=spState.queue[spState.idx];
-  card.innerHTML=`<div class="sp-label">规范词</div>
-    <div class="sp-word">${esc(c.word||'')}</div>
-    <div class="sp-cat muted">分类：${esc(c.cat||'')}</div>
-    <div class="muted" style="margin-top:12px;font-size:12px">↺ 点击返回场景</div>`;
-  card.onclick=renderSpCard;
+  const inp=document.getElementById('sp-input');if(!inp)return;
+  const ans=inp.value.trim();
+  if(!ans){toast('请先填写规范词','err');return;}
+  let r;
+  try{ r=await api('/api/spwords/check',{method:'POST',body:JSON.stringify({studentKey,wordId:c.id,answer:ans})}); }
+  catch(e){toast(e.message,'err');return;}
+  const box=document.getElementById('sp-check-result');
+  if(box)box.innerHTML=r.correct
+    ?`<div class="sp-ok">✅ 回答正确：<b>${esc(r.word)}</b></div>`
+    :`<div class="sp-err">❌ 回答错误，正确规范词：<b>${esc(r.word)}</b></div>`;
+  inp.disabled=true;
   const acts=document.getElementById('sp-actions');if(acts)acts.style.display='flex';
 }
 async function gradeSp(grade){

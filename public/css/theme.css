@@ -944,3 +944,10 @@ main>section[id]{scroll-margin-top:84px}
 .sp-cat{margin-top:8px;font-size:13px}
 button.btn.ok, a.btn.ok{background:linear-gradient(135deg,#58B99B,#3E9C7E);color:#fff;box-shadow:0 4px 14px rgba(62,156,126,.24)}
 button.btn.ok:hover{filter:brightness(1.05);box-shadow:0 8px 22px rgba(62,156,126,.30)}
+
+/* 规范词填空 */
+.sp-input{width:100%;box-sizing:border-box;margin-top:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--hairline-primary);background:rgba(255,255,255,.05);color:var(--text);font-size:15px}
+.sp-input:focus{outline:none;border-color:var(--primary)}
+.sp-check-result{margin-top:12px;font-size:14px}
+.sp-ok{color:var(--ok);font-weight:600}
+.sp-err{color:var(--accent);font-weight:600}

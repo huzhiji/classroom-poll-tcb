@@ -720,6 +720,15 @@ app.post('/api/spwords/review', (req, res) => {
     res.json(r);
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
+app.post('/api/spwords/check', (req, res) => {
+  try {
+    const { studentKey, wordId, answer } = req.body || {};
+    if (!wordId || answer === undefined) return res.status(400).json(fail('参数不完整'));
+    const r = store.checkSpWord(studentKey, wordId, answer);
+    if (r && r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
 
 // ================= 法律常识课堂练习 =================
 app.get('/api/law/sections', (req, res) => {
@@ -729,10 +738,18 @@ app.get('/api/law/sections', (req, res) => {
 app.get('/api/law/push', (req, res) => res.json(store.getLawPush()));
 app.post('/api/law/push', (req, res) => {
   try {
-    const { active, cat, section, showAnswer, showAnalysis } = req.body || {};
-    if (active && !section) return res.status(400).json(fail('请选择要推送的部分'));
-    res.json(store.setLawPush({ active, cat, section, showAnswer, showAnalysis }));
+    const { action, items, id } = req.body || {};
+    if (action === 'remove') return res.json(store.removeLawPush(id));
+    if (action === 'clear') return res.json(store.clearLawPush());
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) return res.status(400).json(fail('请选择要推送的部分'));
+    if (list.some((it) => !it.section)) return res.status(400).json(fail('推送配置缺少部分名'));
+    res.json(store.addLawPush(list));
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/law/stats', (req, res) => {
+  try { res.json(store.getLawStats()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 app.get('/api/law/questions', (req, res) => {
   try { res.json(store.getLawQuestions(String(req.query.cat || ''), String(req.query.section || ''))); }
