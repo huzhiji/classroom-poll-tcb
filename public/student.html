@@ -600,7 +600,7 @@ async function submitExam(id){
   const unanswered=examTotal-answeredCount;
   if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
   try{
-    const r=(await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:examAnswers,questionIds:examSeq})}))||{};
+    const r=(await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentName,answers:examAnswers,questionIds:examSeq})}))||{};
     const wrongAdded=Array.isArray(r.wrongAdded)?r.wrongAdded:[];
     const details=Array.isArray(r.details)?r.details:[];
     let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / 共 ${r.total||0} 题${wrongAdded.length?` · 新增 ${wrongAdded.length} 道错题`:''}</div></div>`;
@@ -1167,7 +1167,7 @@ async function doHomework(id){
 }
 function pickHw(qid,j,el,multi){pickGen(hwState.answers,qid,j,el,multi);}
 async function submitHw(){
-  try{const r=(await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentKey,answers:hwState.answers})}))||{};
+  try{const r=(await api('/api/morning/homework/'+hwState.id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentName,answers:hwState.answers})}))||{};
     const details=Array.isArray(r.details)?r.details:[];
     let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / ${r.total||0} 题</div></div>`;
     details.forEach((d,i)=>{h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓</span>':'<span class="badge err">✗</span>'}</div>`+detailOptsHTML(d)+(isMultiQ(d)&&hasAns(d)?`<div class="ana">正确答案：<b>${correctLetters(d)}</b></div>`:'')+(d.analysis?`<div class="ana">解析：${esc(d.analysis)}</div>`:'')+`</div>`;});
