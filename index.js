@@ -121,7 +121,7 @@ app.get('/api/exams/:id/draft', (req, res) => {
   try {
     const key = req.query.key;
     if (!key) return res.status(400).json(fail('缺少学生标识'));
-    res.json({ draft: store.getDraft(key, req.params.id) });
+    res.json({ draft: store.getDraft(key, req.params.id), answeredQids: store.getExamAnsweredQids(key, req.params.id) });
   } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
 });
 app.delete('/api/exams/:id/draft', (req, res) => {

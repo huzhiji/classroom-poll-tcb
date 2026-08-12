@@ -49,14 +49,6 @@
   <section id="tab-exam" class="hidden">
     <div class="card" id="exam-list-card">
       <h2>可参加的考试 / 专题</h2>
-      <div class="view-switch" id="view-switch">
-        <button data-view="grid" onclick="setExamView('grid')"><span class="ic">▦</span> 网格</button>
-        <button data-view="list" onclick="setExamView('list')"><span class="ic">☰</span> 列表</button>
-        <button data-view="timeline" onclick="setExamView('timeline')"><span class="ic">⌥</span> 时间轴</button>
-        <button data-view="table" onclick="setExamView('table')"><span class="ic">▤</span> 表格</button>
-        <button data-view="carousel" onclick="setExamView('carousel')"><span class="ic">◧</span> 轮播</button>
-        <button data-view="accordion" onclick="setExamView('accordion')"><span class="ic">▾</span> 折叠</button>
-      </div>
       <div id="exam-list"></div>
     </div>
     <div class="card hidden" id="exam-do-card"><div id="exam-do"></div></div>
@@ -249,12 +241,8 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab==='morning')loadMorning();
 });
 
-// ---- 考试列表 ----
-// 多视图布局：列表 / 网格 / 时间轴 / 表格 / 轮播 / 折叠（手风琴）
-let examView = localStorage.getItem('quiz_exam_view') || 'grid';
+// ---- 考试列表（折叠视图） ----
 let examDataCache = null;
-let evCarouselIdx = 0;
-let tableSort = { key:'cat', dir:1 };
 
 async function loadExamList(){
   if(!studentKey){$('#exam-list').innerHTML='<p class="muted">请先点右上角「登录/注册」进入。</p>';return;}
@@ -269,39 +257,23 @@ async function loadExamList(){
     const prog = (progRes&&typeof progRes==='object')?progRes:{};
     const byTop = prog.byTop||{};
     const doneSet = new Set(prog.doneExamIds||[]);
+    const ansCounts = prog.answeredCounts||{};
     const draftMap = (draftsRes&&draftsRes.drafts)||{};
     const byCat={};
     exams.forEach(e=>{const c=(e&&e.category)||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
-    examDataCache={exams,byCat,doneSet,draftMap,byTop};
+    examDataCache={exams,byCat,doneSet,draftMap,byTop,ansCounts};
     renderExamListView();
   }catch(e){toast(e.message,'err');}
 }
 
-// 根据当前所选视图渲染列表（数据已缓存，切换视图无需重新请求）
+// 折叠（手风琴）视图：按顶层大类分组，可逐级折叠展开
 function renderExamListView(){
   if(!examDataCache) return;
-  const {exams,byCat,doneSet,draftMap,byTop}=examDataCache;
+  const {byCat,doneSet,draftMap,byTop,ansCounts}=examDataCache;
   const box=$('#exam-list');
-  document.querySelectorAll('#view-switch button').forEach(b=>b.classList.toggle('active',b.dataset.view===examView));
   const topsOrder=['国省考真题','常识判断','公共基础','专题'];
   const tops=topsOrder.filter(top=>Object.keys(byCat).some(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length));
-  let inner='';
-  if(examView==='list') inner=renderList(tops,byCat,doneSet,draftMap,byTop);
-  else if(examView==='timeline') inner=renderTimeline(exams,doneSet,draftMap,byTop);
-  else if(examView==='table') inner=renderTable(exams,byCat,doneSet,draftMap);
-  else if(examView==='carousel') inner=renderCarousel(tops,byCat,doneSet,draftMap,byTop);
-  else if(examView==='accordion') inner=renderAccordion(tops,byCat,doneSet,draftMap,byTop);
-  else inner=renderGrid(tops,byCat,doneSet,draftMap,byTop); // 默认：网格
-  box.innerHTML=`<div class="ev-view ev-${examView}">${inner}</div>`;
-  if(examView==='carousel') evCarouselGo(0);
-}
-
-// 切换视图（持久化到 localStorage，下次进入沿用）
-function setExamView(v){
-  if(examView===v) return;
-  examView=v; localStorage.setItem('quiz_exam_view',v);
-  document.querySelectorAll('#view-switch button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
-  if(examDataCache) renderExamListView();
+  box.innerHTML=renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts);
 }
 // 顶层大类映射（与后端 examTop 保持一致）
 function examTopLocal(cat){
@@ -314,7 +286,7 @@ function topLabel(t){
 const PROV_NAMES=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
 const CAT_LABEL={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专题':'📚 专题训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识判断','公共基础':'📓 公共基础' };
 // 渲染某分类下的试卷列表（省考真题按省份折叠；常识判断按专项/真题分组；其余直接列出）
-function renderCatGroup(catKey, list, doneSet, draftMap){
+function renderCatGroup(catKey, list, doneSet, draftMap, ansCounts){
   if(catKey==='省考真题' || catKey==='常识判断'){
     const sub={};
     list.forEach(e=>{
@@ -329,18 +301,19 @@ function renderCatGroup(catKey, list, doneSet, draftMap){
       <div class="exam-group-head" onclick="tg('eg-${catKey}')"><span class="caret" id="caret-eg-${catKey}">▸</span><b>${CAT_LABEL[catKey]||catKey}</b><span class="muted">(${list.length}套)</span></div>
       <div class="eg-body" id="eg-${catKey}" style="display:none">${Object.keys(sub).map(p=>`<div class="exam-group">
         <div class="exam-group-head" onclick="tg('eg-${catKey}-${p}')"><span class="caret" id="caret-eg-${catKey}-${p}">▸</span><b>${esc(subLabel[p]||p)}</b><span class="muted">(${sub[p].length}套)</span></div>
-        <div class="eg-body" id="eg-${catKey}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+        <div class="eg-body" id="eg-${catKey}-${p}" style="display:none">${sub[p].map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>
       </div>`).join('')}</div>
     </div>`;
   }
   return `<div class="exam-group">
     <div class="exam-group-head" onclick="tg('eg-${catKey}')"><span class="caret" id="caret-eg-${catKey}">▸</span><b>${CAT_LABEL[catKey]||catKey}</b><span class="muted">(${list.length}套)</span></div>
-    <div class="eg-body" id="eg-${catKey}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('')}</div>
+    <div class="eg-body" id="eg-${catKey}" style="display:none">${list.map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('')}</div>
   </div>`;
 }
-function examCardHTML(e, doneSet, draft, variant){
+function examCardHTML(e, doneSet, draft, variant, ansCounts){
   const done = doneSet && doneSet.has(e.id);
   const qn = (e.questionIds||[]).length;
+  const ansN = ansCounts && ansCounts[e.id] ? ansCounts[e.id] : 0;
   let actions = `<button class="btn sm" onclick="enterExam('${e.id}')">开始答题</button>`;
   let tags = '';
   if(draft&&typeof draft==='object'){
@@ -349,6 +322,9 @@ function examCardHTML(e, doneSet, draft, variant){
   } else if(done){
     tags += `<span class="tag-done">✓ 已完成</span>`;
     actions = `<button class="btn sm" onclick="enterExam('${e.id}')">再做一次</button>`;
+  } else if(ansN>0 && ansN<qn){
+    tags += `<span class="tag-draft">已做 ${ansN}/${qn}</span>`;
+    actions = `<button class="btn sm" onclick="enterExam('${e.id}')">继续作答</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`;
   }
   const catTag = e.category ? `<span class="ev-cat-tag">${CAT_LABEL[e.category]||e.category}</span>` : '';
   const head = (variant==='grid') ? `<div class="ev-card-top"><span class="ev-card-ico">${catIcon(e.category)}</span>${catTag}</div>` : '';
@@ -365,156 +341,18 @@ function tg(id){
 // 顶层大类图标 / 类别图标
 function topIcon(top){return {'国省考真题':'📘','常识判断':'🔆','公共基础':'📓','专题':'📚'}[top]||'📁';}
 function catIcon(cat){return {'国考真题':'📘','省考真题':'📗','选调真题':'📕','专题':'📚','国省考真题':'📙','常识判断':'🔆','公共基础':'📓'}[cat]||'•';}
-// 取某顶层大类下的全部试卷（跨子分类扁平化）
-function flattenTop(top,byCat){
-  const cats=Object.keys(byCat).filter(c=>examTopLocal(c)===top);
-  let arr=[];cats.forEach(c=>{if(byCat[c])arr=arr.concat(byCat[c]);});return arr;
-}
-function fmtDate(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-
-// 网格视图（卡片网格，含类别图标与标签）
-function renderGrid(tops,byCat,doneSet,draftMap,byTop){
-  return tops.map(top=>{
-    const t=byTop[top]||{done:0,total:0,percent:0};
-    const exams=flattenTop(top,byCat);
-    if(!exams.length) return '';
-    return `<section class="ev-sec">
-      <div class="ev-sec-head"><span class="ev-sec-ico">${topIcon(top)}</span><b>${topLabel(top)}</b>
-        <span class="cat-progress">已完成 ${t.done}/${t.total} · <b style="color:var(--ok)">${t.percent}%</b></span></div>
-      <div class="ev-grid">${exams.map(e=>examCardHTML(e,doneSet,draftMap[e.id],'grid')).join('')}</div>
-    </section>`;
-  }).join('');
-}
-
-// 列表视图（紧凑横向行）
-function renderList(tops,byCat,doneSet,draftMap,byTop){
-  return tops.map(top=>{
-    const t=byTop[top]||{done:0,total:0,percent:0};
-    const exams=flattenTop(top,byCat);
-    if(!exams.length) return '';
-    return `<section class="ev-sec">
-      <div class="ev-sec-head"><span class="ev-sec-ico">${topIcon(top)}</span><b>${topLabel(top)}</b>
-        <span class="cat-progress">${t.done}/${t.total}</span></div>
-      <div class="ev-list">${exams.map(e=>examRowHTML(e,doneSet,draftMap[e.id])).join('')}</div>
-    </section>`;
-  }).join('');
-}
-function examRowHTML(e,doneSet,draft){
-  const done=doneSet&&doneSet.has(e.id);
-  const qn=(e.questionIds||[]).length;
-  const draftObj=draft&&typeof draft==='object'?draft:null;
-  let status = draftObj?`<span class="tag-draft">草稿·已答 ${draftObj.answered||0}/${draftObj.total||0}</span>`:(done?`<span class="tag-done">✓ 已完成</span>`:`<span class="tag-open">未开始</span>`);
-  let act = draftObj?`<button class="btn sm" onclick="enterExam('${e.id}')">继续</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`:`<button class="btn sm" onclick="enterExam('${e.id}')">${done?'再做':'开始'}答题</button>`;
-  return `<div class="ev-row${done?' done':''}">
-    <span class="ev-dot" data-cat="${e.category||''}"></span>
-    <div class="ev-row-main"><b>${esc(e.title)}</b><div class="meta">${CAT_LABEL[e.category]||e.category||''} · ${qn} 题 · ${fmtDate(e.createdAt)}</div></div>
-    ${status}
-    <div class="acts">${act}</div>
-  </div>`;
-}
-
-// 时间轴视图（按日期倒序，左侧时间轴）
-function renderTimeline(exams,doneSet,draftMap){
-  const sorted=exams.slice().sort((a,b)=>b.createdAt-a.createdAt);
-  const groups={};
-  sorted.forEach(e=>{const d=fmtDate(e.createdAt);(groups[d]=groups[d]||[]).push(e);});
-  return `<div class="ev-timeline">`+Object.keys(groups).map(d=>{
-    return `<div class="ev-tl-date">${d} · ${groups[d].length} 套</div>`+groups[d].map(e=>{
-      const done=doneSet&&doneSet.has(e.id);
-      const draftObj=draftMap&&draftMap[e.id]&&typeof draftMap[e.id]==='object'?draftMap[e.id]:null;
-      const act=draftObj?`<button class="btn sm" onclick="enterExam('${e.id}')">继续</button> <button class="btn ghost sm" onclick="restartExam('${e.id}')">重做</button>`:`<button class="btn sm" onclick="enterExam('${e.id}')">${done?'再做':'开始'}答题</button>`;
-      return `<div class="ev-tl-item${done?' done':''}">
-        <div class="ev-tl-card">
-          <span class="ev-tl-cat">${CAT_LABEL[e.category]||e.category||''}</span>
-          <b>${esc(e.title)}</b>
-          <div class="meta">${(e.questionIds||[]).length} 题 · 不限时</div>
-          <div class="acts">${act}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }).join('')+`</div>`;
-}
-
-// 表格视图（点击表头排序）
-function renderTable(exams,byCat,doneSet,draftMap){
-  const rows=exams.slice();
-  rows.sort((a,b)=>{
-    let va,vb;
-    if(tableSort.key==='title'){va=a.title||'';vb=b.title||'';return va.localeCompare(vb,'zh')*tableSort.dir;}
-    if(tableSort.key==='cat'){va=a.category||'';vb=b.category||'';return va.localeCompare(vb,'zh')*tableSort.dir;}
-    if(tableSort.key==='qn'){va=(a.questionIds||[]).length;vb=(b.questionIds||[]).length;return (va-vb)*tableSort.dir;}
-    if(tableSort.key==='date'){va=a.createdAt||0;vb=b.createdAt||0;return (va-vb)*tableSort.dir;}
-    return 0;
-  });
-  const arrow=k=>tableSort.key===k?(tableSort.dir>0?' ▲':' ▼'):'';
-  const body=rows.map(e=>{
-    const done=doneSet&&doneSet.has(e.id);
-    const draftObj=draftMap&&draftMap[e.id]&&typeof draftMap[e.id]==='object'?draftMap[e.id]:null;
-    const status=draftObj?`<span class="tag-draft">草稿</span>`:(done?`<span class="tag-done">已完成</span>`:`<span class="tag-open">未开始</span>`);
-    const act=`<button class="btn sm" onclick="enterExam('${e.id}')">${draftObj?'继续':(done?'再做':'开始')}</button>`;
-    return `<tr>
-      <td data-label="试卷">${esc(e.title)}</td>
-      <td data-label="类别">${CAT_LABEL[e.category]||e.category||''}</td>
-      <td data-label="题数" class="num">${(e.questionIds||[]).length}</td>
-      <td data-label="日期">${fmtDate(e.createdAt)}</td>
-      <td data-label="状态">${status}</td>
-      <td data-label="操作">${act}</td>
-    </tr>`;
-  }).join('');
-  return `<div class="ev-table-wrap"><table class="ev-table">
-    <thead><tr>
-      <th onclick="evTableSort('title')">试卷${arrow('title')}</th>
-      <th onclick="evTableSort('cat')">类别${arrow('cat')}</th>
-      <th onclick="evTableSort('qn')">题数${arrow('qn')}</th>
-      <th onclick="evTableSort('date')">日期${arrow('date')}</th>
-      <th>状态</th><th>操作</th>
-    </tr></thead>
-    <tbody>${body}</tbody>
-  </table></div>`;
-}
-function evTableSort(key){ if(tableSort.key===key)tableSort.dir*=-1; else {tableSort.key=key;tableSort.dir=1;} renderExamListView(); }
-
-// 轮播视图（按顶层大类分片，左右切换 + 圆点）
-function renderCarousel(tops,byCat,doneSet,draftMap,byTop){
-  if(!tops.length) return '';
-  const slides=tops.map((top)=>{
-    const t=byTop[top]||{done:0,total:0,percent:0};
-    const exams=flattenTop(top,byCat);
-    return `<div class="ev-carousel-slide">
-      <div class="ev-sec-head"><span class="ev-sec-ico">${topIcon(top)}</span><b>${topLabel(top)}</b>
-        <span class="cat-progress">已完成 ${t.done}/${t.total} · <b style="color:var(--ok)">${t.percent}%</b></span></div>
-      <div class="ev-carousel-grid">${exams.map(e=>examCardHTML(e,doneSet,draftMap[e.id],'grid')).join('')}</div>
-    </div>`;
-  }).join('');
-  const dots=tops.map((top,i)=>`<button class="ev-dot${i===0?' active':''}" onclick="evCarouselGo(${i})" aria-label="${esc(topLabel(top))}"></button>`).join('');
-  return `<div class="ev-carousel" id="ev-carousel">
-    <button class="ev-carousel-btn prev" onclick="evCarouselGo(evCarouselIdx-1)" aria-label="上一张">‹</button>
-    <div class="ev-carousel-viewport"><div class="ev-carousel-track" id="ev-carousel-track">${slides}</div></div>
-    <button class="ev-carousel-btn next" onclick="evCarouselGo(evCarouselIdx+1)" aria-label="下一张">›</button>
-    <div class="ev-carousel-dots">${dots}</div>
-  </div>`;
-}
-function evCarouselGo(i){
-  const track=document.getElementById('ev-carousel-track');
-  if(!track) return;
-  const n=track.children.length; if(!n) return;
-  evCarouselIdx=((i%n)+n)%n;
-  track.style.transform='translateX(-'+(evCarouselIdx*100)+'%)';
-  const dots=document.querySelectorAll('#ev-carousel .ev-dot');
-  dots.forEach((d,k)=>d.classList.toggle('active',k===evCarouselIdx));
-}
 
 // 折叠（手风琴）视图：复用原有分组折叠逻辑
-function renderAccordion(tops,byCat,doneSet,draftMap,byTop){
+function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
   return tops.map(top=>{
     const t=byTop[top]||{done:0,total:0,percent:0};
     const cats=Object.keys(byCat).filter(c=>examTopLocal(c)===top && byCat[c] && byCat[c].length);
     if(!cats.length) return '';
     let body;
     if(cats.length===1 && cats[0]===top && top!=='常识判断'){
-      body=byCat[cats[0]].map(e=>examCardHTML(e,doneSet,draftMap[e.id])).join('');
+      body=byCat[cats[0]].map(e=>examCardHTML(e,doneSet,draftMap[e.id],null,ansCounts)).join('');
     }else{
-      body=cats.map(c=>renderCatGroup(c,byCat[c],doneSet,draftMap)).join('');
+      body=cats.map(c=>renderCatGroup(c,byCat[c],doneSet,draftMap,ansCounts)).join('');
     }
     return `<div class="exam-group">
       <div class="exam-group-head" onclick="tg('eg-top-${top}')">
@@ -532,9 +370,10 @@ function renderAccordion(tops,byCat,doneSet,draftMap,byTop){
 
 // ---- 考试答题 ----
 let examData=null,examAnswers={},examSeq=[],examTotal=0,examIdCurrent=null,_ppCount=null;
+let examAnsweredQids=[],_excludeAnswered=false;
 function pickOpt(qid,j,el,multi){pickGen(examAnswers,qid,j,el,multi);renderNav();}
 
-// 进入考试：展示「选练几题」开始面板（或草稿续作）
+// 进入考试：展示「选练几题」开始面板（或草稿续作 / 接着做剩余题）
 async function enterExam(id){
   try{
     examIdCurrent=id; _ppCount=null;
@@ -544,16 +383,30 @@ async function enterExam(id){
     examData=ed;
     const draftResp=await api('/api/exams/'+id+'/draft?key='+encodeURIComponent(studentKey));
     const draft=draftResp&&draftResp.draft;
+    examAnsweredQids=(draftResp&&draftResp.answeredQids)||[];
+    _excludeAnswered=false;
     const total=examData.questions.length;
+    const answered=examAnsweredQids.length;
     let h=`<div class="start-panel">
       <h2>${esc(examData.title)}</h2>
       <p class="muted">共 ${total} 题 · 不限时 · 可随时「暂存进度」后离开，下次继续作答</p>`;
     if(draft&&Array.isArray(draft.seq)&&draft.seq.length){
-      const answered=Object.keys(draft.answers||{}).length;
+      const dAnswered=Object.keys(draft.answers||{}).length;
       h+=`<div class="draft-box">
         <div class="draft-tip">📌 检测到上次暂存的草稿</div>
-        <button class="btn" onclick="resumeExam('${id}')">继续上次作答（${(draft.seq||[]).length} 题 · 已答 ${answered}）</button>
+        <button class="btn" onclick="resumeExam('${id}')">继续上次作答（${(draft.seq||[]).length} 题 · 已答 ${dAnswered}）</button>
         <button class="btn ghost" onclick="clearAndStart('${id}')">重新开始</button>
+      </div>`;
+    }else if(answered>0&&answered<total){
+      h+=`<div class="draft-box">
+        <div class="draft-tip">📈 已做 ${answered} / ${total} 题</div>
+        <button class="btn" onclick="continueExam('${id}')">接着做剩余 ${total-answered} 题</button>
+        <button class="btn ghost" onclick="clearAndStart('${id}')">重新开始</button>
+      </div>`;
+    }else if(answered>=total){
+      h+=`<div class="draft-box">
+        <div class="draft-tip">✅ 本卷已全部完成（${total} 题）</div>
+        <button class="btn" onclick="redoExam('${id}')">再做一次</button>
       </div>`;
     }else{
       h+=`<div class="practice-pick">
@@ -584,17 +437,29 @@ async function clearAndStart(id){
   enterExam(id);
 }
 function restartExam(id){clearAndStart(id);}
-// 开始一次新练习（按所选题数抽取）—— 注意：与错题练习的 startPractice(count) 区分，避免函数名覆盖
+// 接着做剩余题（练习池排除已做过的题）
+function continueExam(id){
+  _excludeAnswered=true; _ppCount=null;
+  startExamPractice(id);
+}
+// 全部做完后再做一次
+function redoExam(id){_excludeAnswered=false;_ppCount=null;startExamPractice(id);}
+// 开始一次新练习（按所选题数抽取；接着做时排除已答题）—— 注意：与错题练习的 startPractice(count) 区分
 async function startExamPractice(id){
   let n=_ppCount;
   if(n==='custom'){n=parseInt($('#pp-custom').value,10)||0;}
   if(!n||n<1){toast('请选择练习题数','err');return;}
   const total=examData.questions.length;
   n=Math.min(n,total);
+  let pool=examData.questions.slice();
+  if(_excludeAnswered){
+    const as=new Set(examAnsweredQids);
+    pool=pool.filter(q=>!as.has(q.id));
+    if(!pool.length)pool=examData.questions.slice(); // 已全部做完 → 重做
+  }
   let seq;
-  if(n>=total){seq=examData.questions.map(q=>q.id);}
+  if(n>=pool.length){seq=pool.map(q=>q.id);}
   else{
-    const pool=examData.questions.slice();
     for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
     seq=pool.slice(0,n).map(q=>q.id);
   }
