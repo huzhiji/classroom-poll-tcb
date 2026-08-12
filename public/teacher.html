@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 教师端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260818">
+<link rel="stylesheet" href="/css/theme.css?v=20260819">
 <style>
   /* ===== 教师端页面级覆盖 ===== */
   header h1{font-size:20px}
@@ -549,9 +549,12 @@ async function resetPass(){
 async function loadStudent(){
   const key=$('#rec-key').value.trim();if(!key){toast('请输入学生标识','err');return;}
   try{
+    const info=await api('/api/students/'+encodeURIComponent(key));
     const stats=await api('/api/students/'+encodeURIComponent(key)+'/stats');
     const records=await api('/api/students/'+encodeURIComponent(key)+'/records');
-    let html=`<div class="stat-grid">
+    let html=`<div class="flex-between" style="margin-bottom:10px"><b>学生：${esc(info.name||key)}</b>
+      <span><button class="btn ghost sm" onclick="editStuName('${esc(key)}')">修改姓名</button> <button class="btn danger sm" onclick="delStudent('${esc(key)}')">删除学生</button></span></div>`;
+    html+=`<div class="stat-grid">
       <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
       <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题数</div></div>
       <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">参与考试数</div></div>
@@ -564,6 +567,23 @@ async function loadStudent(){
     records.forEach(r=>{html+=`<div class="qitem"><div class="qtitle"><div><b>${esc(r.refTitle)}</b> · ${new Date(r.date).toLocaleString()}</div><div class="meta">得分 ${r.correct}/${r.total}（${r.total?Math.round(r.correct/r.total*100):0}%）</div></div></div>`;});
     html+='</div>';
     $('#rec-result').innerHTML=html;
+  }catch(e){toast(e.message,'err');}
+}
+async function editStuName(key){
+  const nm=prompt('输入新的姓名：', key);
+  if(nm===null)return;
+  try{
+    const r=await api('/api/students/'+encodeURIComponent(key)+'/name',{method:'PUT',body:JSON.stringify({name:nm})});
+    toast('已修改为 '+r.name,'ok');
+    loadStudent();
+  }catch(e){toast(e.message,'err');}
+}
+async function delStudent(key){
+  if(!confirm('确认删除学生 '+key+'？其所有答题记录、错题、记忆数据将被清除，不可恢复！'))return;
+  try{
+    await api('/api/students/'+encodeURIComponent(key),{method:'DELETE'});
+    toast('已删除学生','ok');
+    $('#rec-result').innerHTML='<p class="muted">已删除。</p>';
   }catch(e){toast(e.message,'err');}
 }
 

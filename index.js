@@ -158,6 +158,27 @@ app.post('/api/exams/:id/answers', (req, res) => {
 });
 
 // ================= 学生记录 & 错题 =================
+// 学生基础信息（含姓名，供教师端改名/删除）
+app.get('/api/students/:key', (req, res) => {
+  const info = store.getStudentInfo(req.params.key);
+  if (!info) return res.status(404).json(fail('学生不存在'));
+  res.json(info);
+});
+app.put('/api/students/:key/name', (req, res) => {
+  try {
+    const r = store.updateStudentName(req.params.key, (req.body || {}).name);
+    if (!r) return res.status(404).json(fail('学生不存在'));
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.delete('/api/students/:key', (req, res) => {
+  try {
+    const ok = store.deleteStudent(req.params.key);
+    if (!ok) return res.status(404).json(fail('学生不存在'));
+    res.json({ deleted: true });
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
 app.get('/api/students/:key/records', (req, res) => {
   res.json(store.getStudentRecords(req.params.key));
 });
