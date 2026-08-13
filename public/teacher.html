@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 教师端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20260820">
+<link rel="stylesheet" href="/css/theme.css?v=20260813">
 <style>
   /* ===== 教师端页面级覆盖 ===== */
   header h1{font-size:20px}
@@ -519,6 +519,19 @@ function renderStats(stats){
   if(!stats){$('#cr-stats').innerHTML='';return;}
   let html=`<div class="s"><div class="n">${stats.answered}/${stats.totalStudents}</div><div class="lbl">已答/总人数</div></div>`;
   stats.counts.forEach((c,i)=>{html+=`<div class="s"><div class="n">${stats.percentages[i]}%</div><div class="lbl">${i}. ${esc(crQuestions[crIdx].options[i])}</div></div>`;});
+  // 谁答对 / 答错 / 未答（默认折叠，点击展开）
+  if(stats.students && stats.students.length){
+    const optLetter=(i)=> i==null?'':(Array.isArray(i)?i.map(x=>String.fromCharCode(65+x)).join('/'):String.fromCharCode(65+i));
+    const right=stats.students.filter(s=>s.isCorrect);
+    const wrong=stats.students.filter(s=>s.answered&&!s.isCorrect);
+    const none=stats.students.filter(s=>!s.answered);
+    const chip=(s,cls)=>`<span class="who-chip ${cls}">${esc(s.name)}</span>`;
+    html+=`<details class="who-box"><summary>👥 谁答对 / 答错（${right.length} 人对 · ${wrong.length} 人错 · ${none.length} 人未答）</summary>`;
+    html+=`<div class="who-grp"><div class="who-h">✅ 答对（${right.length}）</div>${right.length?right.map(s=>chip(s,'ok')).join(''):'<span class="muted">无</span>'}</div>`;
+    html+=`<div class="who-grp"><div class="who-h">❌ 答错（${wrong.length}）</div>${wrong.length?wrong.map(s=>`<span class="who-chip bad">${esc(s.name)} <span class="who-sel">选 ${optLetter(s.selected)}</span></span>`).join(''):'<span class="muted">无</span>'}</div>`;
+    html+=`<div class="who-grp"><div class="who-h">⚪ 未作答（${none.length}）</div>${none.length?none.map(s=>chip(s,'na')).join(''):'<span class="muted">无</span>'}</div>`;
+    html+=`</details>`;
+  }
   $('#cr-stats').innerHTML=html;
 }
 async function endQuestion(reveal=true){try{const d=await api('/api/end-question',{method:'POST',body:JSON.stringify({roomId:crRoomId,revealAnswer:reveal})});renderStats(d.stats);toast(reveal?'已公布答案':'已结束（不公布）','ok');}catch(e){toast(e.message,'err');}}
