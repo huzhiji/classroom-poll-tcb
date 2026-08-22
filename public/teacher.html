@@ -69,6 +69,16 @@
   .law-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
   .law-toolbar .btnrow{margin-left:auto}
   .law-sel-num{font-weight:700;color:var(--primary)}
+  /* 吸底发布操作条：常驻屏幕底部，滚动选题时无需回到顶部 */
+  .law-sticky-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+  .law-sticky-bar .hint{font-size:13px;color:var(--muted)}
+  .law-sticky-bar .push-btn{margin-left:auto}
+  #tab-classroom{padding-bottom:64px}
+  @media(max-width:640px){
+    .law-sticky-bar{padding:12px 12px;box-shadow:0 -2px 10px rgba(0,0,0,.12)}
+    .law-sticky-bar .hint{font-size:12px}
+    .law-sticky-bar .push-btn{flex:1;max-width:60%}
+  }
   @media(max-width:640px){
     .law-q{padding:12px 12px 12px 12px}
     .law-q-row input{width:22px;height:22px}
@@ -285,7 +295,6 @@
         <div class="btnrow">
           <button class="btn ghost sm" onclick="toggleAllLawSec()">展开/收起全部部分</button>
           <button class="btn ghost sm" onclick="toggleAllLawAna()">展开/收起全部解析</button>
-          <button class="btn" onclick="pushLawSelected()">推送所选（<span class="law-sel-num" id="law-sel-count">0</span>）</button>
           <button class="btn ghost sm" onclick="clearLawPushs()">停止全部推送</button>
         </div>
       </div>
@@ -527,6 +536,13 @@ function updateLawSelCount(){
   const n=document.querySelectorAll('.law-chk:checked').length;
   const el=document.getElementById('law-sel-count');if(el)el.textContent=n;
 }
+// 吸底发布操作条：滚动选题时常驻屏幕底部，无需回到顶部点击
+function lawStickyBarHTML(){
+  return `<div class="law-sticky-bar">
+    <span class="hint">已选 <b id="law-sel-count">0</b> 题 · 滚动时此栏常驻</span>
+    <button class="btn push-btn" onclick="pushLawSelected()">📤 推送所选题目</button>
+  </div>`;
+}
 // 全选/清空 单个部分
 function toggleLawSec(cat,section,el){
   const rows=[...document.querySelectorAll('.law-chk')].filter(c=>c.dataset.cat===cat&&c.dataset.section===section);
@@ -567,7 +583,7 @@ function toggleLawVis(qid, kind, el){
 function lawOptsHTML(q, stQ){
   const opts = (stQ && stQ.options && stQ.options.length) ? stQ.options : (q.options||[]).map((t,idx)=>({idx,letter:optL(idx),text:t,count:0,pct:0,isCorrect:false}));
   if(!opts.length) return '';
-  const has = stQ && stQ.answered>0;
+  const has = stQ && stQ.options && stQ.options.length && (stQ.options.some(o=>o.count>0) || !stQ.hasLegacy);
   const letterHtml = (idx)=> q.type==='judge' ? '' : '<b>'+optL(idx)+'.</b>';
   return '<div class="law-q-opts">'+opts.map((o,idx)=>{
     const cls = has ? (o.isCorrect?'opt-correct':(o.count>0?'opt-wrong':'')) : '';
@@ -580,7 +596,8 @@ function lawRateBadge(st,qid){
   const s=st&&st[qid];
   if(!s||!s.answered) return '<span class="badge rate-none">暂无作答</span>';
   const cls=s.percent>=80?'rate-ok':(s.percent>=50?'rate-mid':'rate-low');
-  return `<span class="badge ${cls}">正确率 ${s.percent}%<span style="opacity:.75">（${s.correct}/${s.total}）</span></span>`;
+  const legacy=s.hasLegacy?'<span style="opacity:.7"> ·含历史</span>':'';
+  return `<span class="badge ${cls}">正确率 ${s.percent}%<span style="opacity:.75">（${s.correct}/${s.total}）</span>${legacy}</span>`;
 }
 // 逐题可见性配置（qid -> {ans, ana}），推送时按此发送
 let lawVis = {};
@@ -588,6 +605,7 @@ async function loadLawAdmin(){
   try{
     const [bank, stRaw, pushsRaw]=await Promise.all([api('/api/law/bank'), api('/api/law/stats'), api('/api/law/push')]);
     const st={};(stRaw.questions||[]).forEach(x=>st[x.id]=x);
+    if(stRaw.qrates) Object.keys(stRaw.qrates).forEach(qid=>{ if(!st[qid]) st[qid]=stRaw.qrates[qid]; });
     const pushCfg={};(pushsRaw||[]).forEach(p=>{
       if(p.items&&p.items.length){ p.items.forEach(it=>{pushCfg[String(it.qid)]={ans:it.showAnswer!==false, ana:it.showAnalysis!==false};}); }
       else if(p.qids&&p.qids.length){ p.qids.forEach(qid=>{pushCfg[String(qid)]={ans:p.showAnswer!==false, ana:p.showAnalysis!==false};}); }
@@ -628,6 +646,7 @@ async function loadLawAdmin(){
         }).join('');
         return `<div class="law-cat"><div class="law-cat-head">${esc(c.cat)} <span class="muted">${c.sections.reduce((n,s)=>n+s.questions.length,0)}题</span></div>${secs}</div>`;
       }).join('')||'<p class="muted">题库为空。</p>';
+      box.innerHTML += lawStickyBarHTML();
     }
     await renderLawPushList();
     await loadLawStats();

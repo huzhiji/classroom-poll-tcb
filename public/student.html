@@ -1093,21 +1093,41 @@ function renderSpCard(){
   if(spState.idx>=spState.queue.length){spDone();return;}
   const c=spState.queue[spState.idx], total=spState.queue.length;
   const tag=c.isNew?'<span class="tag-draft">新词</span>':'<span class="tag-done">复习</span>';
-  $('#morning-body').innerHTML=`<div class="card">
-    <div class="flex-between"><button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><span>${tag} 第 ${spState.idx+1}/${total} 张</span></div>
-    <div class="sp-card">
-      <div class="sp-label">应用场景 · 请填写对应的规范词</div>
-      <div class="sp-scene">${esc(c.scene||'')}</div>
-      <input class="sp-input" id="sp-input" placeholder="输入规范词…" autocomplete="off">
-      <div class="btnrow"><button class="btn" onclick="checkSp()">检查</button></div>
-      <div id="sp-check-result" class="sp-check-result"></div>
-    </div>
-    <div class="btnrow" id="sp-actions" style="display:none">
-      <button class="btn danger" onclick="gradeSp('forgot')">不熟悉</button>
-      <button class="btn" onclick="gradeSp('fuzzy')">模糊</button>
-      <button class="btn ok" onclick="gradeSp('remember')">熟悉</button>
-    </div>
-  </div>`;
+  const head=`<div class="flex-between"><button class="btn ghost sm" onclick="loadMorning()">← 返回早读</button><span>${tag} 第 ${spState.idx+1}/${total} 张</span></div>`;
+  if(c.isNew){
+    // 新词：先记住即可，直接展示规范词，无需输入答案，按记忆程度评级
+    $('#morning-body').innerHTML=`<div class="card">
+      ${head}
+      <div class="sp-card">
+        <div class="sp-label">应用场景</div>
+        <div class="sp-scene">${esc(c.scene||'')}</div>
+        <div class="sp-reveal">规范词：<span class="sp-word">${esc(c.word||'')}</span></div>
+        <p class="muted sm" style="margin:10px 0 0">新词先记住即可，无需输入。你觉得能记住它吗？</p>
+      </div>
+      <div class="btnrow">
+        <button class="btn danger" onclick="gradeSp('forgot')">不熟悉</button>
+        <button class="btn" onclick="gradeSp('fuzzy')">模糊</button>
+        <button class="btn ok" onclick="gradeSp('remember')">熟悉</button>
+      </div>
+    </div>`;
+  } else {
+    // 旧词复习：需主动回忆并输入规范词，检查后再评级
+    $('#morning-body').innerHTML=`<div class="card">
+      ${head}
+      <div class="sp-card">
+        <div class="sp-label">应用场景 · 请填写对应的规范词</div>
+        <div class="sp-scene">${esc(c.scene||'')}</div>
+        <input class="sp-input" id="sp-input" placeholder="输入规范词…" autocomplete="off">
+        <div class="btnrow"><button class="btn" onclick="checkSp()">检查</button></div>
+        <div id="sp-check-result" class="sp-check-result"></div>
+      </div>
+      <div class="btnrow" id="sp-actions" style="display:none">
+        <button class="btn danger" onclick="gradeSp('forgot')">不熟悉</button>
+        <button class="btn" onclick="gradeSp('fuzzy')">模糊</button>
+        <button class="btn ok" onclick="gradeSp('remember')">熟悉</button>
+      </div>
+    </div>`;
+  }
   window.scrollTo(0,0);
 }
 async function checkSp(){

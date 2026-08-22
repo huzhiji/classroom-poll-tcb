@@ -952,6 +952,8 @@ main>section[id]{scroll-margin-top:84px}
 .sp-card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.22);border-color:rgba(255,255,255,.25)}
 .sp-label{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:12px}
 .sp-scene{font-size:15px;line-height:1.9;color:var(--text);white-space:pre-wrap}
+.sp-reveal{margin:14px 0 4px;padding:12px 14px;border-radius:10px;background:rgba(88,185,155,.12);border:1px solid var(--ok);font-size:14px;color:var(--muted)}
+.sp-reveal .sp-word{font-size:24px;margin-left:4px}
 .sp-word{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:2px;line-height:1.5}
 .sp-cat{margin-top:8px;font-size:13px}
 button.btn.ok, a.btn.ok{background:linear-gradient(135deg,#58B99B,#3E9C7E);color:#fff;box-shadow:0 4px 14px rgba(62,156,126,.24)}
