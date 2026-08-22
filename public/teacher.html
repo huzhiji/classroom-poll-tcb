@@ -33,14 +33,39 @@
   .badge.rate-mid{background:rgba(230,174,73,.2);color:#b07d1f}
   .badge.rate-low{background:rgba(211,90,90,.16);color:var(--err)}
   .badge.rate-none{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
-  /* 每题选项 */
-  .law-q-opts{margin:8px 0 2px 28px;display:flex;flex-direction:column;gap:5px}
-  .law-q-opt{font-size:12.5px;color:#555;line-height:1.6;padding:4px 9px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);word-break:break-word}
-  .law-q-opt b{color:var(--muted);font-weight:600;margin-right:4px}
+  /* 每题选项 + 正确率分布（颜色+数字标注在选项上） */
+  .law-q-opts{margin:8px 0 2px 28px;display:flex;flex-direction:column;gap:6px}
+  .law-q-opt{font-size:12.5px;color:#444;line-height:1.55;padding:6px 10px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);word-break:break-word;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .law-q-opt b{color:var(--muted);font-weight:600;margin-right:2px}
+  .law-q-opt.opt-correct{border-color:#1d8a6f;background:rgba(95,179,163,.14)}
+  .law-q-opt.opt-wrong{border-color:rgba(211,90,90,.5);background:rgba(211,90,90,.08)}
+  .law-q-opt .opt-stat{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap}
+  .law-q-opt.opt-correct .opt-stat{color:#1d8a6f}
+  .law-q-opt.opt-wrong .opt-stat{color:var(--err)}
+  /* 题目头部：标题独占一行，元信息（题型 + 正确率）另起一行，避免挤压成三列 */
+  .law-q-meta{margin:6px 0 2px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .law-q-ana{margin:8px 0 2px 28px;font-size:13px}
-  .law-q-ana summary{cursor:pointer;color:var(--primary);font-size:12.5px;user-select:none}
+  .law-q-ana summary{cursor:pointer;color:var(--primary);font-size:12.5px;user-select:none;padding:3px 0}
   .law-q-ans{margin-top:7px;font-weight:600;color:var(--ink)}
   .law-q-ana .ana{font-size:13px;color:#555;margin-top:6px;background:var(--surface-2);border-radius:8px;padding:8px 10px;line-height:1.7;border:1px solid var(--border)}
+  /* 逐题可见性开关（答案 / 解析） */
+  .law-q-vis{margin:8px 0 2px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .law-q-vis .lbl{font-size:12px;color:var(--muted)}
+  .vis-chip{font-size:11.5px;line-height:1;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;user-select:none}
+  .vis-chip.on{background:var(--primary-l);color:var(--primary);border-color:var(--primary-l)}
+  .law-batch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%;margin-bottom:4px}
+  .law-batch .muted.sm{font-size:12px}
+  .btn.xs{padding:4px 10px;font-size:12px}
+  .law-sec-act{margin-left:auto;font-size:12px;color:var(--primary);font-weight:400;cursor:pointer}
+  /* 统计区：每名学生正确率 / 每题选项分布 */
+  .law-stu-grid{display:flex;flex-wrap:wrap;gap:6px}
+  .law-stu-mini{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .law-stu-tag{font-size:11.5px;padding:3px 8px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:#555}
+  .law-stu-tag.ok{border-color:#1d8a6f;color:#1d8a6f;background:rgba(95,179,163,.12)}
+  .law-stu-tag.no{border-color:rgba(211,90,90,.5);color:var(--err);background:rgba(211,90,90,.08)}
+  .law-q-stat{border:1px solid var(--border);border-radius:8px;margin:6px 0;padding:6px 10px;background:#fff}
+  .law-q-stat summary{cursor:pointer;color:var(--text);font-size:13px;padding:2px 0;user-select:none}
+  .law-q-stat .law-q-opts{margin-top:8px}
   .law-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
   .law-toolbar .btnrow{margin-left:auto}
   .law-sel-num{font-weight:700;color:var(--primary)}
@@ -51,10 +76,12 @@
     .law-q-opts{margin-left:0}
     .law-q-opt{font-size:13px;padding:6px 10px}
     .law-q-ana{margin-left:0}
+    .law-q-meta{margin-left:0}
+    .law-q-vis{margin-left:0}
     .law-cat-head{font-size:14.5px}
     .law-sec-head{font-size:13.5px}
-    .law-toolbar .btnrow{width:100%;margin-left:0}
-    .law-toolbar .btnrow button{flex:1}
+    .law-toolbar .btnrow{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-left:0;margin-top:8px}
+    .law-toolbar .btnrow button{flex:0 0 auto}
   }
 </style>
 </head>
@@ -248,14 +275,21 @@
       <h2>📘 法律常识课堂题目 <span class="tag">勾选题目 → 推送</span></h2>
       <p class="muted">按「类别 → 部分」浏览题库，勾选要发布的题目（可跨部分多选）；每题点「查看答案与解析」展开讲解。推送后学生端「课堂」可见。</p>
       <div class="law-toolbar">
-        <label class="law-opt"><input type="checkbox" id="law-ans" checked> 学生可看答案</label>
-        <label class="law-opt"><input type="checkbox" id="law-ana" checked> 学生可看解析</label>
+        <div class="law-batch">
+          <span class="muted sm">批量设置可见性：</span>
+          <button class="btn ghost xs" onclick="setAllLawVis('ans',true)">答案可见</button>
+          <button class="btn ghost xs" onclick="setAllLawVis('ans',false)">答案隐藏</button>
+          <button class="btn ghost xs" onclick="setAllLawVis('ana',true)">解析可见</button>
+          <button class="btn ghost xs" onclick="setAllLawVis('ana',false)">解析隐藏</button>
+        </div>
         <div class="btnrow">
+          <button class="btn ghost sm" onclick="toggleAllLawSec()">展开/收起全部部分</button>
           <button class="btn ghost sm" onclick="toggleAllLawAna()">展开/收起全部解析</button>
-          <button class="btn" onclick="pushLawSelected()">推送所选（<span class="law-sel-num" id="law-sel-count">0</span> 题）</button>
+          <button class="btn" onclick="pushLawSelected()">推送所选（<span class="law-sel-num" id="law-sel-count">0</span>）</button>
           <button class="btn ghost sm" onclick="clearLawPushs()">停止全部推送</button>
         </div>
       </div>
+      <p class="muted sm" style="margin:2px 0 0">每题可单独开关「答案 / 解析」是否向学生公布；选项上的彩色标签 = 学生选择分布（绿=正确项，红=被选错的选项，数字=人数 / 占比）。默认各部分与解析均为折叠。</p>
       <div id="law-tree" class="mt-2"></div>
       <div id="law-push-list" class="mt-3"></div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
@@ -507,45 +541,89 @@ function toggleAllLawAna(){
   const open=!ds.some(d=>d.open);
   ds.forEach(d=>d.open=open);
 }
-function lawOptsHTML(q){
-  if(q.type==='judge') return '<div class="law-q-opts law-q-opts-inline"><div class="law-q-opt">正确</div><div class="law-q-opt">错误</div></div>';
-  if(!q.options||!q.options.length) return '';
-  return '<div class="law-q-opts">'+q.options.map((o,j)=>`<div class="law-q-opt"><b>${optL(j)}.</b>${esc(o)}</div>`).join('')+'</div>';
+// 展开/收起全部部分（默认折叠）
+function toggleAllLawSec(){
+  const ds=[...document.querySelectorAll('.law-sec')];
+  const open=!ds.some(d=>d.open);
+  ds.forEach(d=>d.open=open);
+}
+// 批量设置某类可见性（答案/解析）到所有已渲染题目
+function setAllLawVis(kind, val){
+  document.querySelectorAll('.vis-chip[data-kind="'+kind+'"]').forEach(el=>{
+    const qid=el.dataset.qid;
+    if(!lawVis[qid]) lawVis[qid]={ans:true, ana:true};
+    lawVis[qid][kind]=val;
+    el.classList.toggle('on', val);
+  });
+  toast((kind==='ans'?'答案':'解析')+(val?'已全部显示':'已全部隐藏'),'ok');
+}
+// 单题可见性开关
+function toggleLawVis(qid, kind, el){
+  if(!lawVis[qid]) lawVis[qid]={ans:true, ana:true};
+  lawVis[qid][kind]=!lawVis[qid][kind];
+  el.classList.toggle('on', lawVis[qid][kind]);
+}
+// 每题选项 + 学生选择分布（颜色：绿=正确项，红=被选错的选项；数字=人数/占比）
+function lawOptsHTML(q, stQ){
+  const opts = (stQ && stQ.options && stQ.options.length) ? stQ.options : (q.options||[]).map((t,idx)=>({idx,letter:optL(idx),text:t,count:0,pct:0,isCorrect:false}));
+  if(!opts.length) return '';
+  const has = stQ && stQ.answered>0;
+  const letterHtml = (idx)=> q.type==='judge' ? '' : '<b>'+optL(idx)+'.</b>';
+  return '<div class="law-q-opts">'+opts.map((o,idx)=>{
+    const cls = has ? (o.isCorrect?'opt-correct':(o.count>0?'opt-wrong':'')) : '';
+    const stat = has ? (o.count>0?`<span class="opt-stat">${o.count}人 · ${o.pct}%</span>`:'<span class="opt-stat">0人</span>') : '';
+    return `<div class="law-q-opt ${cls}">${letterHtml(o.idx)}<span>${esc(o.text)}</span>${stat}</div>`;
+  }).join('')+'</div>';
 }
 // 正确率徽章：绿≥80% / 黄50-79% / 红<50% / 无作答灰色
 function lawRateBadge(st,qid){
   const s=st&&st[qid];
-  if(!s||!s.total) return '<span class="badge rate-none">暂无作答</span>';
+  if(!s||!s.answered) return '<span class="badge rate-none">暂无作答</span>';
   const cls=s.percent>=80?'rate-ok':(s.percent>=50?'rate-mid':'rate-low');
   return `<span class="badge ${cls}">正确率 ${s.percent}%<span style="opacity:.75">（${s.correct}/${s.total}）</span></span>`;
 }
+// 逐题可见性配置（qid -> {ans, ana}），推送时按此发送
+let lawVis = {};
 async function loadLawAdmin(){
   try{
-    const [bank, stRaw]=await Promise.all([api('/api/law/bank'), api('/api/law/stats')]);
+    const [bank, stRaw, pushsRaw]=await Promise.all([api('/api/law/bank'), api('/api/law/stats'), api('/api/law/push')]);
     const st={};(stRaw.questions||[]).forEach(x=>st[x.id]=x);
+    const pushCfg={};(pushsRaw||[]).forEach(p=>{
+      if(p.items&&p.items.length){ p.items.forEach(it=>{pushCfg[String(it.qid)]={ans:it.showAnswer!==false, ana:it.showAnalysis!==false};}); }
+      else if(p.qids&&p.qids.length){ p.qids.forEach(qid=>{pushCfg[String(qid)]={ans:p.showAnswer!==false, ana:p.showAnalysis!==false};}); }
+    });
     const box=document.getElementById('law-tree');
     if(box){
       box.innerHTML=(bank||[]).map(c=>{
         const secs=c.sections.map(s=>{
           const rows=s.questions.map((q,i)=>{
             const tname=lawTypeName(q.type);
+            if(lawVis[q.id]===undefined) lawVis[q.id] = pushCfg[q.id] ? {ans:pushCfg[q.id].ans, ana:pushCfg[q.id].ana} : {ans:true, ana:true};
+            const v=lawVis[q.id];
             return `<div class="law-q">
               <label class="law-q-row">
                 <input type="checkbox" class="law-chk" data-cat="${esc(c.cat)}" data-section="${esc(s.name)}" data-qid="${esc(q.id)}" onchange="updateLawSelCount()">
                 <span class="law-q-title"><span class="no">${i+1}.</span> ${esc(q.title)}</span>
-                ${lawRateBadge(st,q.id)}
-                <span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${tname}</span>
               </label>
-              ${lawOptsHTML(q)}
+              <div class="law-q-meta">
+                <span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${tname}</span>
+                ${lawRateBadge(st,q.id)}
+              </div>
+              ${lawOptsHTML(q, st[q.id])}
+              <div class="law-q-vis">
+                <span class="lbl">向学生公布：</span>
+                <button type="button" class="vis-chip ${v.ans?'on':''}" data-qid="${esc(q.id)}" data-kind="ans" onclick="toggleLawVis('${esc(q.id)}','ans',this)">答案</button>
+                <button type="button" class="vis-chip ${v.ana?'on':''}" data-qid="${esc(q.id)}" data-kind="ana" onclick="toggleLawVis('${esc(q.id)}','ana',this)">解析</button>
+              </div>
               <details class="law-q-ana"><summary>查看答案与解析</summary>
                 <div class="law-q-ans">答案：${esc(lawAnsTxt(q))}</div>
                 <div class="ana">${esc(q.analysis||'（暂无解析）')}</div>
               </details>
             </div>`;
           }).join('');
-          return `<details class="law-sec" open>
+          return `<details class="law-sec">
             <summary class="law-sec-head">${esc(s.name)} <span class="muted">${s.questions.length}题</span>
-              <span style="margin-left:auto;font-size:12px;color:var(--primary);font-weight:400" onclick="event.preventDefault();event.stopPropagation();toggleLawSec('${esc(c.cat)}','${esc(s.name)}',this)">全选本部分</span>
+              <span class="law-sec-act" onclick="event.preventDefault();event.stopPropagation();toggleLawSec('${esc(c.cat)}','${esc(s.name)}',this)">全选本部分</span>
             </summary>${rows}</details>`;
         }).join('');
         return `<div class="law-cat"><div class="law-cat-head">${esc(c.cat)} <span class="muted">${c.sections.reduce((n,s)=>n+s.questions.length,0)}题</span></div>${secs}</div>`;
@@ -560,21 +638,23 @@ async function renderLawPushList(){
   const box=document.getElementById('law-push-list');if(!box)return;
   if(!pushs||!pushs.length){box.innerHTML='<p class="muted">当前没有推送。</p>';return;}
   box.innerHTML='<p class="muted">当前推送（学生端课堂可见）：</p>'+pushs.map(p=>
-    `<div class="exam-card" style="margin-bottom:6px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b><div class="meta">${p.count||0}题 · 答案${p.showAnswer?'可见':'隐藏'} · 解析${p.showAnalysis?'可见':'隐藏'}</div></div><div class="acts"><button class="btn danger sm" onclick="removeLawPush('${p.id}')">移除</button></div></div>`
+    `<div class="exam-card" style="margin-bottom:6px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b><div class="meta">${p.count||0}题 · 答案${p.ansVisible||0}/${p.count||0}可见 · 解析${p.anaVisible||0}/${p.count||0}可见</div></div><div class="acts"><button class="btn danger sm" onclick="removeLawPush('${p.id}')">移除</button></div></div>`
   ).join('');
 }
 async function pushLawSelected(){
   const chks=[...document.querySelectorAll('.law-chk:checked')];
   if(!chks.length){toast('请先勾选要推送的题目','err');return;}
-  const showAnswer=document.getElementById('law-ans')?document.getElementById('law-ans').checked:true;
-  const showAnalysis=document.getElementById('law-ana')?document.getElementById('law-ana').checked:true;
   const groups={};
   chks.forEach(c=>{
     const k=c.dataset.cat+'|'+c.dataset.section;
     if(!groups[k])groups[k]={cat:c.dataset.cat,section:c.dataset.section,qids:[]};
     groups[k].qids.push(c.dataset.qid);
   });
-  const items=Object.values(groups).map(g=>({cat:g.cat,section:g.section,qids:g.qids,showAnswer,showAnalysis}));
+  const items=Object.values(groups).map(g=>({cat:g.cat,section:g.section,configs:g.qids.map(qid=>({
+    qid,
+    showAnswer: lawVis[qid]?lawVis[qid].ans!==false:true,
+    showAnalysis: lawVis[qid]?lawVis[qid].ana!==false:true
+  }))}));
   try{
     await api('/api/law/push',{method:'POST',body:JSON.stringify({items})});
     toast('已推送 '+chks.length+' 题（'+items.length+' 个部分）','ok');
@@ -595,14 +675,44 @@ async function loadLawStats(){
   try{
     const st=await api('/api/law/stats');
     let h='';
-    if(!st.sections.length){h='<p class="muted">暂无作答数据，学生作答后这里会显示正确率。</p>';}
+    if(!st.sections.length){h='<p class="muted">当前没有推送，或尚无作答数据。先勾选题目推送，学生作答后这里显示正确率、选项分布与每名学生正确率。</p>';}
     else{
-      h+=`<table class="ev-table"><tr><th>类别 · 部分</th><th>正确率</th><th>对 / 总</th></tr>`;
-      st.sections.forEach(s=>{h+=`<tr><td>${esc(s.cat)} · ${esc(s.section)}</td><td><b>${s.percent}%</b></td><td>${s.correct}/${s.total}</td></tr>`;});
+      h+=`<table class="ev-table"><tr><th>类别 · 部分</th><th>题数</th><th>正确率</th><th>对/总</th></tr>`;
+      st.sections.forEach(s=>{
+        const pct = s.percent===null?'<span class="muted">暂无作答</span>':('<b>'+s.percent+'%</b>');
+        h+=`<tr><td>${esc(s.cat)} · ${esc(s.section)}</td><td>${s.questionCount}（已答${s.answeredCount}）</td><td>${pct}</td><td>${s.correct}/${s.total}</td></tr>`;
+      });
       h+=`</table>`;
-      h+=`<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--primary)">每题正确率（${st.questions.length} 题）</summary><table class="ev-table"><tr><th>类别</th><th>题目</th><th>正确率</th><th>对/总</th></tr>`;
-      st.questions.forEach(q=>{h+=`<tr><td>${esc(q.cat)}·${esc(q.section)}</td><td style="max-width:300px">${esc(q.title)}</td><td><b>${q.percent}%</b></td><td>${q.correct}/${q.total}</td></tr>`;});
-      h+=`</table></details>`;
+      if(st.students.length){
+        h+=`<h3 style="font-size:14px;margin:14px 0 6px">👤 每名学生正确率（${st.students.length}人）</h3><div class="law-stu-grid">`;
+        st.students.forEach(su=>{
+          const cls=su.percent>=80?'rate-ok':(su.percent>=50?'rate-mid':'rate-low');
+          h+=`<span class="badge ${cls}" title="${esc(su.name)}">${esc(su.name)} ${su.percent}%<span style="opacity:.75">（${su.correct}/${su.total}）</span></span>`;
+        });
+        h+=`</div>`;
+      }
+      h+=`<h3 style="font-size:14px;margin:14px 0 6px">🔎 每题选项分布（颜色=正确项/被选错项，数字=人数/占比）</h3>`;
+      st.questions.forEach(q=>{
+        const pct = q.percent===null?'<span class="muted">暂无作答</span>':('<b>'+q.percent+'%</b>');
+        let opts='';
+        if(q.answered>0){
+          opts='<div class="law-q-opts" style="margin-left:0">'+q.options.map(o=>{
+            const cls=o.isCorrect?'opt-correct':(o.count>0?'opt-wrong':'');
+            const letter=q.type==='judge'?'':'<b>'+esc(o.letter)+'.</b>';
+            return `<div class="law-q-opt ${cls}">${letter}<span>${esc(o.text)}</span><span class="opt-stat">${o.count}人 · ${o.pct}%</span></div>`;
+          }).join('')+'</div>';
+        } else {
+          opts='<div class="muted" style="font-size:12px">尚未有学生作答</div>';
+        }
+        let stu='';
+        if(q.students.length){
+          stu='<div class="law-stu-mini">'+q.students.map(su=>{
+            const sel = Array.isArray(su.selected)?su.selected.map(i=>optL(i)).join(''):(su.selected!==undefined&&su.selected!==null&&su.selected>=0?optL(su.selected):'未答');
+            return `<span class="law-stu-tag ${su.isCorrect?'ok':'no'}">${esc(su.name)}: ${esc(sel)}</span>`;
+          }).join('')+'</div>';
+        }
+        h+=`<details class="law-q-stat"><summary><b>${esc(q.title)}</b> · ${pct} <span class="muted">（${q.correct}/${q.total}）</span></summary>${opts}${stu}</details>`;
+      });
     }
     box.innerHTML=h;
   }catch(e){box.innerHTML='<p class="muted">统计加载失败</p>';}
