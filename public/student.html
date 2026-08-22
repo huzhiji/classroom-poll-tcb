@@ -15,6 +15,22 @@
   }
   .who .muted{color:var(--text)}
   .nav{max-width:1120px;margin:16px auto 0;padding:0 16px}
+  /* ---- 法律课堂练习：题目卡片 + 折叠解析 ---- */
+  .q .qt .badge{margin-left:6px;vertical-align:2px}
+  .badge{display:inline-block;font-size:11px;line-height:1;padding:3px 6px;border-radius:6px;background:var(--primary-l);color:var(--primary);white-space:nowrap}
+  .badge.multi{background:rgba(211,90,90,.16);color:var(--err)}
+  .badge.judge{background:rgba(95,179,163,.18);color:var(--ok)}
+  .badge.err{background:rgba(211,90,90,.16);color:var(--err)}
+  .law-ana-box{margin-top:9px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .law-ana-box summary{cursor:pointer;padding:8px 12px;font-size:13px;color:var(--primary);user-select:none;background:var(--surface-2)}
+  .law-ana-box .ana{border:none;border-top:1px solid var(--border);border-radius:0}
+  .multi-tip{font-size:12px;color:var(--muted);margin:2px 0 8px}
+  @media(max-width:640px){
+    .q{padding:14px;margin-bottom:12px}
+    .q .qt{font-size:15px;line-height:1.65}
+    .opt{font-size:14px;padding:11px 12px}
+    .law-ana-box summary{font-size:13.5px;padding:10px 12px}
+  }
 </style>
 </head>
 <body>
@@ -676,7 +692,7 @@ async function loadLawStudent(){
     box.innerHTML=pushs.map(p=>{
       const my=secMap[p.cat+'|'+p.section];
       const meta=my!==undefined?`<div class="meta">我的正确率 <b style="color:var(--ok)">${my}%</b></div>`:'<div class="meta">尚未作答</div>';
-      return `<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b>${meta}</div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`;
+      return `<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.cat)} · ${esc(p.section)}</b><div class="meta">${p.count||0} 题</div>${meta}</div><div class="acts"><button class="btn sm" onclick="startLaw('${esc(p.cat)}','${esc(p.section)}')">开始练习</button></div></div>`;
     }).join('');
   }catch(e){}
 }
@@ -689,29 +705,43 @@ async function startLaw(cat,section){
   lawState={cat:cat||'',section,questions:qs,answers:{}};
   renderLawQ();
 }
+function lawTypeBadge(t){return t==='judge'?'<span class="badge judge">判断</span>':(t==='multi'?'<span class="badge multi">多选</span>':'<span class="badge">单选</span>');}
 function renderLawQ(){
   const s=lawState;if(!s)return;
   const card=document.getElementById('law-card');if(!card)return;
   const total=s.questions.length;
   let h=`<div class="flex-between"><button class="btn ghost sm" onclick="exitLaw()">← 返回</button><span>📘 ${esc(s.cat||'')} · ${esc(s.section||'')} · ${total} 题</span></div>`;
   s.questions.forEach((q,i)=>{
-    h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)} ${q.type==='judge'?'<span class="badge judge">判断</span>':''}</div>`;
+    h+=`<div class="q"><div class="qt">${i+1}. ${esc(q.title)} ${lawTypeBadge(q.type)}</div>`;
     if(q.type==='judge'){
       h+=`<div class="opt${s.answers[q.id]===0?' sel':''}" onclick="lawPick('${q.id}',0,this)">正确</div><div class="opt${s.answers[q.id]===1?' sel':''}" onclick="lawPick('${q.id}',1,this)">错误</div>`;
     }else{
-      q.options.forEach((o,j)=>{
-        h+=`<div class="opt${s.answers[q.id]===j?' sel':''}" onclick="lawPick('${q.id}',${j},this)">${optL(j)}. ${esc(o)}</div>`;
-      });
+      const multi=q.type==='multi';
+      const selArr=multi?(s.answers[q.id]||[]):[];
+      h+=(q.options||[]).map((o,j)=>{
+        const sel=multi?selArr.includes(j):s.answers[q.id]===j;
+        const fn=multi?`lawPick('${q.id}',${j},this,true)`:`lawPick('${q.id}',${j},this)`;
+        return `<div class="opt${sel?' sel':''}" onclick="${fn}">${optL(j)}. ${esc(o)}</div>`;
+      }).join('');
+      if(multi)h+=`<div class="multi-tip">本题为多选，可点选多个选项（再点取消）。</div>`;
     }
     h+=`</div>`;
   });
   h+=`<div class="center" style="margin:18px 0"><button class="btn" onclick="submitLawQ()">提交练习</button> <button class="btn ghost" onclick="exitLaw()">返回</button></div>`;
   card.innerHTML=h;window.scrollTo(0,0);
 }
-function lawPick(qid,j,el){
-  lawState.answers[qid]=j;
-  [...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));
-  el.classList.add('sel');
+function lawPick(qid,j,el,multi){
+  if(multi){
+    const arr=(lawState.answers[qid]||[]).slice();
+    const i=arr.indexOf(j);
+    if(i>=0)arr.splice(i,1);else arr.push(j);
+    lawState.answers[qid]=arr.length?arr:undefined;
+    el.classList.toggle('sel',i<0);
+  }else{
+    lawState.answers[qid]=j;
+    [...el.parentElement.querySelectorAll('.opt')].forEach(o=>o.classList.remove('sel'));
+    el.classList.add('sel');
+  }
 }
 async function submitLawQ(){
   const s=lawState;if(!s)return;
@@ -723,18 +753,15 @@ async function submitLawQ(){
   const card=document.getElementById('law-card');if(!card)return;
   let h=`<div class="result-head"><div class="score">${r.score}分</div><div class="muted">答对 ${r.correct} / 共 ${r.total} 题${r.wrongAdded?` · 已加入错题本 ${r.wrongAdded} 题`:''}</div></div>`;
   (r.details||[]).forEach((d,i)=>{
-    h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge err">✗ 错误</span>'} ${d.type==='judge'?'<span class="badge judge">判断</span>':''}</div>`;
+    h+=`<div class="q"><div class="qt">${i+1}. ${esc(d.title)} ${d.isCorrect?'<span class="badge judge">✓ 正确</span>':'<span class="badge err">✗ 错误</span>'} ${lawTypeBadge(d.type)}</div>`;
     if(d.type==='judge'){
       h+=`<div class="opt ${d.isCorrect?'correct':(d.selected===0?'wrong':'')}">正确 ${d.correctAnswer!==undefined&&d.correctAnswer===0?'<span class="mk">✓</span>':''}</div><div class="opt ${d.isCorrect?'correct':(d.selected===1?'wrong':'')}">错误 ${d.correctAnswer!==undefined&&d.correctAnswer===1?'<span class="mk">✓</span>':''}</div>`;
     }else{
-      d.options.forEach((o,j)=>{
-        let cls='opt';
-        if(d.correctAnswer!==undefined&&d.correctAnswer===j)cls+=' correct';
-        if(d.selected===j&&d.isCorrect===false)cls+=' wrong';
-        h+=`<div class="${cls}">${optL(j)}. ${esc(o)} ${d.correctAnswer!==undefined&&d.correctAnswer===j?'<span class="mk">✓</span>':''}</div>`;
-      });
+      h+=detailOptsHTML(d);
     }
-    if(d.analysis!==undefined&&d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
+    if(d.analysis!==undefined&&d.analysis){
+      h+=`<details class="law-ana-box"><summary>查看解析</summary><div class="ana">${esc(d.analysis)}</div></details>`;
+    }
     h+=`</div>`;
   });
   h+=`<div class="center"><button class="btn ghost" onclick="exitLaw()">返回课堂</button></div>`;

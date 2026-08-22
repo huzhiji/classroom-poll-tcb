@@ -777,7 +777,15 @@ app.get('/api/law/myrecords', (req, res) => {
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 app.get('/api/law/questions', (req, res) => {
-  try { res.json(store.getLawQuestions(String(req.query.cat || ''), String(req.query.section || ''))); }
+  try {
+    const full = req.query.full === '1' || req.query.full === 'true';
+    res.json(store.getLawQuestions(String(req.query.cat || ''), String(req.query.section || ''), full));
+  }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 教师端题库浏览器（含答案与解析）
+app.get('/api/law/bank', (req, res) => {
+  try { res.json(store.getLawBank()); }
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 app.post('/api/law/submit', (req, res) => {
