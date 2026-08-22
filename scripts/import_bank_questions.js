@@ -56,7 +56,7 @@ function convertXingfa(raw) {
       section: xfSection[q.lecture] || q.lecture,
       type,
       title: String(q.question || '').replace(/\s+/g, ' ').trim(),
-      options: type === 'judge' ? ['正确', '错误'] : (q.options || []).map((o) => String(o)),
+      options: type === 'judge' ? ['正确', '错误'] : (q.options || []).map((o) => String(o).replace(/^\s*[A-Fa-f]\s*[.．、]\s*/, '')),
       correctAnswer,
       analysis,
       topic: q.topic || '',

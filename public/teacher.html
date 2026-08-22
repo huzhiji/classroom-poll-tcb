@@ -28,6 +28,15 @@
   .badge{display:inline-block;font-size:11px;line-height:1;padding:3px 6px;border-radius:6px;background:var(--primary-l);color:var(--primary);white-space:nowrap;flex:0 0 auto}
   .badge.multi{background:rgba(211,90,90,.14);color:var(--err)}
   .badge.judge{background:rgba(95,179,163,.16);color:var(--ok)}
+  /* 正确率徽章 */
+  .badge.rate-ok{background:rgba(95,179,163,.16);color:#1d8a6f}
+  .badge.rate-mid{background:rgba(230,174,73,.2);color:#b07d1f}
+  .badge.rate-low{background:rgba(211,90,90,.16);color:var(--err)}
+  .badge.rate-none{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
+  /* 每题选项 */
+  .law-q-opts{margin:8px 0 2px 28px;display:flex;flex-direction:column;gap:5px}
+  .law-q-opt{font-size:12.5px;color:#555;line-height:1.6;padding:4px 9px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);word-break:break-word}
+  .law-q-opt b{color:var(--muted);font-weight:600;margin-right:4px}
   .law-q-ana{margin:8px 0 2px 28px;font-size:13px}
   .law-q-ana summary{cursor:pointer;color:var(--primary);font-size:12.5px;user-select:none}
   .law-q-ans{margin-top:7px;font-weight:600;color:var(--ink)}
@@ -39,6 +48,8 @@
     .law-q{padding:12px 12px 12px 12px}
     .law-q-row input{width:22px;height:22px}
     .law-q-title{font-size:14.5px}
+    .law-q-opts{margin-left:0}
+    .law-q-opt{font-size:13px;padding:6px 10px}
     .law-q-ana{margin-left:0}
     .law-cat-head{font-size:14.5px}
     .law-sec-head{font-size:13.5px}
@@ -496,9 +507,22 @@ function toggleAllLawAna(){
   const open=!ds.some(d=>d.open);
   ds.forEach(d=>d.open=open);
 }
+function lawOptsHTML(q){
+  if(q.type==='judge') return '<div class="law-q-opts law-q-opts-inline"><div class="law-q-opt">正确</div><div class="law-q-opt">错误</div></div>';
+  if(!q.options||!q.options.length) return '';
+  return '<div class="law-q-opts">'+q.options.map((o,j)=>`<div class="law-q-opt"><b>${optL(j)}.</b>${esc(o)}</div>`).join('')+'</div>';
+}
+// 正确率徽章：绿≥80% / 黄50-79% / 红<50% / 无作答灰色
+function lawRateBadge(st,qid){
+  const s=st&&st[qid];
+  if(!s||!s.total) return '<span class="badge rate-none">暂无作答</span>';
+  const cls=s.percent>=80?'rate-ok':(s.percent>=50?'rate-mid':'rate-low');
+  return `<span class="badge ${cls}">正确率 ${s.percent}%<span style="opacity:.75">（${s.correct}/${s.total}）</span></span>`;
+}
 async function loadLawAdmin(){
   try{
-    const bank=await api('/api/law/bank');
+    const [bank, stRaw]=await Promise.all([api('/api/law/bank'), api('/api/law/stats')]);
+    const st={};(stRaw.questions||[]).forEach(x=>st[x.id]=x);
     const box=document.getElementById('law-tree');
     if(box){
       box.innerHTML=(bank||[]).map(c=>{
@@ -509,8 +533,10 @@ async function loadLawAdmin(){
               <label class="law-q-row">
                 <input type="checkbox" class="law-chk" data-cat="${esc(c.cat)}" data-section="${esc(s.name)}" data-qid="${esc(q.id)}" onchange="updateLawSelCount()">
                 <span class="law-q-title"><span class="no">${i+1}.</span> ${esc(q.title)}</span>
+                ${lawRateBadge(st,q.id)}
                 <span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${tname}</span>
               </label>
+              ${lawOptsHTML(q)}
               <details class="law-q-ana"><summary>查看答案与解析</summary>
                 <div class="law-q-ans">答案：${esc(lawAnsTxt(q))}</div>
                 <div class="ana">${esc(q.analysis||'（暂无解析）')}</div>
