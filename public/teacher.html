@@ -143,6 +143,19 @@
   .badge.yellow{background:rgba(230,174,73,.2);color:#b07d1f}
   .badge.red{background:rgba(211,90,90,.16);color:var(--err)}
   .badge.gray{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
+  .ai-box{background:var(--bg-soft,#f6f8fb);border-left:3px solid var(--accent,#3b6cf6);padding:10px 12px;border-radius:6px;white-space:pre-wrap;line-height:1.6;margin:6px 0;font-size:13px}
+  .warn{color:#d9534f;font-size:13px;margin:6px 0}
+  .bars{margin:8px 0}
+  .bar-item{margin:5px 0}
+  .bar-label{font-size:12px;margin-bottom:2px}
+  .bar-track{background:#eef1f5;height:9px;border-radius:5px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:5px}
+  .stu-row{border:1px solid var(--border,#e6e9ef);border-radius:8px;padding:10px;margin:8px 0}
+  .stu-head{font-size:13px;margin-bottom:4px}
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid var(--border,#e6e9ef);padding:6px 8px;text-align:left}
+  th{background:var(--bg-soft,#f6f8fb)}
 </style>
 </head>
 <body>
@@ -162,6 +175,7 @@
     <button data-tab="export">错题导出</button>
     <button data-tab="backup">数据备份</button>
     <button data-tab="reminder">复习提醒</button>
+    <button data-tab="reports">📈 学习报告</button>
   </nav>
 </header>
 
@@ -425,6 +439,47 @@
     <div class="card hidden" id="reminder-list-card">
       <h2>今日需提醒（<span id="reminder-count">0</span> 人）</h2>
       <div id="reminder-list"></div>
+    </div>
+  </section>
+
+  <!-- ========== 学习报告（周报/月报）========== -->
+  <section id="tab-reports" class="hidden">
+    <div class="card">
+      <h2>📈 学习报告 <span class="tag">AI 分析</span></h2>
+      <p class="muted">按时间窗统计全班与每个人的掌握情况、薄弱点及提升建议。可手动生成周报（近7天）或月报（本月累计）；若配置了大模型，报告将用 AI 生成分析文本，否则使用内置规则分析。</p>
+      <div class="flex gap-3 wrap">
+        <button class="btn" onclick="genReport('weekly')">生成本周报</button>
+        <button class="btn" onclick="genReport('monthly')">生成本月报</button>
+      </div>
+      <div id="report-msg" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>🤖 AI 分析配置 <span class="tag">可选</span></h2>
+      <p class="muted">填写 OpenAI 兼容的接口（如通义千问 / DeepSeek / 本地模型）。留空则用内置规则分析，无需联网。</p>
+      <div class="row">
+        <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"></div>
+        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="qwen-plus"></div>
+      </div>
+      <label>API Key</label><input id="ai-key" type="password" placeholder="sk-...">
+      <div class="btnrow">
+        <button class="btn" onclick="saveAIConfig()">保存配置</button>
+        <span id="ai-status" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📋 历史报告 <span class="tag" id="report-count">0</span></h2>
+      <div id="report-list" class="muted">暂无报告，点击上方按钮生成。</div>
+    </div>
+
+    <div class="card hidden" id="report-detail">
+      <h2 id="rd-title">报告详情</h2>
+      <div id="rd-class"></div>
+      <h3>🤖 AI 分析</h3>
+      <div id="rd-ai" class="ai-box"></div>
+      <h3>👥 学员掌握情况</h3>
+      <div id="rd-students"></div>
     </div>
   </section>
 </main>
@@ -1154,6 +1209,83 @@ loadQuestions();
 loadExamPick&&loadExamPick();
 initMorningPage();
 loadTeacherDashboard();
+
+// ========== 学习报告 ==========
+async function loadAIConfig() {
+  try {
+    const r = await fetch('/api/ai-config').then((x) => x.json());
+    if (r.config) {
+      document.getElementById('ai-endpoint').value = r.config.endpoint || '';
+      document.getElementById('ai-model').value = r.config.model || '';
+      document.getElementById('ai-key').value = r.config.key || '';
+      document.getElementById('ai-status').textContent = r.config.enabled ? '（已启用 AI 分析）' : '（未启用，使用规则分析）';
+    }
+  } catch (e) {}
+}
+async function saveAIConfig() {
+  const body = { endpoint: document.getElementById('ai-endpoint').value, model: document.getElementById('ai-model').value, key: document.getElementById('ai-key').value, enabled: true };
+  try {
+    const r = await fetch('/api/ai-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((x) => x.json());
+    document.getElementById('ai-status').textContent = r.config && r.config.enabled ? '（已启用 AI 分析）' : '（未启用，使用规则分析）';
+    if (r.config && r.config.key) document.getElementById('ai-key').value = '';
+  } catch (e) { alert('保存失败: ' + e.message); }
+}
+async function loadReports() {
+  try {
+    const r = await fetch('/api/reports').then((x) => x.json());
+    const list = r.reports || [];
+    document.getElementById('report-count').textContent = list.length;
+    const box = document.getElementById('report-list');
+    if (!list.length) { box.className = 'muted'; box.textContent = '暂无报告，点击上方按钮生成。'; return; }
+    box.className = '';
+    box.innerHTML = '<div class="tablewrap"><table><thead><tr><th>类型</th><th>区间</th><th>生成时间</th><th>活跃学员</th><th>整体正确率</th><th>分析来源</th><th></th></tr></thead><tbody>' +
+      list.map((x) => `<tr><td>${x.type === 'monthly' ? '月报' : '周报'}·${x.label || ''}</td><td>${new Date(x.periodStart).toLocaleDateString()}~${new Date(x.periodEnd).toLocaleDateString()}</td><td>${new Date(x.createdAt).toLocaleString()}</td><td>${x.activeStudents}</td><td>${Math.round((x.overallAccuracy || 0) * 100)}%</td><td>${x.aiSource === 'llm' ? 'AI' : '规则'}</td><td><button class="btn ghost" onclick="openReport('${x.id}')">查看</button></td></tr>`).join('') +
+      '</tbody></table></div>';
+  } catch (e) {}
+}
+async function genReport(type) {
+  const msg = document.getElementById('report-msg');
+  msg.textContent = '生成中…';
+  try {
+    const r = await fetch('/api/reports/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) }).then((x) => x.json());
+    if (!r.ok) { msg.textContent = '生成失败：' + (r.error || ''); return; }
+    msg.textContent = `已生成${type === 'monthly' ? '月报' : '周报'}（${r.report.label}），分析来源：${r.report.aiSource === 'llm' ? 'AI' : '规则'}。`;
+    loadReports();
+    openReport(r.report.id);
+  } catch (e) { msg.textContent = '生成失败: ' + e.message; }
+}
+async function openReport(id) {
+  try {
+    const r = await fetch('/api/reports/' + id).then((x) => x.json());
+    const rp = r.report; if (!rp) return;
+    document.getElementById('report-detail').classList.remove('hidden');
+    document.getElementById('rd-title').textContent = `${rp.type === 'monthly' ? '月报' : '周报'} · ${rp.label}（${new Date(rp.periodStart).toLocaleDateString()} ~ ${new Date(rp.periodEnd).toLocaleDateString()}）`;
+    const cs = rp.classSummary;
+    const fmt = (a) => Math.round((a || 0) * 100) + '%';
+    let html = `<p>全班 <b>${cs.totalStudents}</b> 人，活跃 <b>${cs.activeStudents}</b> 人，整体正确率 <b>${fmt(cs.overallAccuracy)}</b>（${cs.correct}/${cs.total}）。</p>`;
+    html += '<div class="bars">' + cs.byCategory.map((c) => catBar(c.label, c.accuracy, c.total)).join('') + '</div>';
+    if (cs.topWeak.length) html += '<p class="warn">⚠️ 薄弱板块：' + cs.topWeak.map((c) => `${c.label}(${fmt(c.accuracy)})`).join('、') + '</p>';
+    if (cs.lowStudents.length) html += '<p class="warn">需重点关注：' + cs.lowStudents.map((s) => `${s.name}(${fmt(s.accuracy)})`).join('、') + '</p>';
+    document.getElementById('rd-class').innerHTML = html;
+    document.getElementById('rd-ai').textContent = rp.aiText || '（无）';
+    const stus = (rp.students || []).map((s) => {
+      let h = `<div class="stu-row"><div class="stu-head"><b>${s.name}</b> · 正确率 ${fmt(s.overall.accuracy)}（${s.overall.correct}/${s.overall.total}）</div>`;
+      h += '<div class="bars">' + s.byCategory.map((c) => catBar(c.label, c.accuracy, c.total)).join('') + '</div>';
+      if (s.weak.length) h += '<div class="warn">薄弱：' + s.weak.map((w) => `${w.label}(${fmt(w.accuracy)})`).join('、') + '</div>';
+      h += '<div class="ai-box">' + (s.aiText || '') + '</div></div>';
+      return h;
+    }).join('');
+    document.getElementById('rd-students').innerHTML = stus || '<div class="muted">无学员数据</div>';
+  } catch (e) { alert('打开失败: ' + e.message); }
+}
+function catBar(label, acc, total) {
+  const p = Math.round((acc || 0) * 100);
+  const color = p >= 80 ? '#2e9e5b' : p >= 60 ? '#e0a800' : '#d9534f';
+  return `<div class="bar-item"><div class="bar-label">${label} <span class="muted">${p}% · ${total}题</span></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div></div>`;
+}
+// 进入报告页时刷新
+const _origShowTabReports = showTab;
+function showTab(name){ _origShowTabReports(name); if(name==='reports'){ loadReports(); loadAIConfig(); } }
 </script>
 
 <button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>

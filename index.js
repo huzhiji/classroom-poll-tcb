@@ -214,6 +214,52 @@ app.post('/api/wrong/remove', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 学习周报 / 月报 =================
+app.post('/api/reports/generate', async (req, res) => {
+  try {
+    const type = (req.body && req.body.type) === 'monthly' ? 'monthly' : 'weekly';
+    const report = await store.createReport(type);
+    res.json({ ok: true, report });
+  } catch (e) { res.status(500).json(fail('生成失败: ' + e.message)); }
+});
+
+app.get('/api/reports', (req, res) => {
+  try { res.json({ reports: store.listReports() }); }
+  catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.get('/api/reports/:id', (req, res) => {
+  try {
+    const r = store.getReport(req.params.id);
+    if (!r) return res.status(404).json(fail('报告不存在'));
+    res.json({ report: r });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.get('/api/reports/mine', (req, res) => {
+  try {
+    const key = req.query.key;
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const data = store.getMyReport(key);
+    if (!data) return res.json({ report: null, student: null });
+    res.json(data);
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.get('/api/ai-config', (req, res) => {
+  try {
+    const cfg = store.getAIConfig();
+    res.json({ config: { endpoint: cfg.endpoint, model: cfg.model, enabled: cfg.enabled, key: cfg.key ? '******' : '' } });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.post('/api/ai-config', (req, res) => {
+  try {
+    const cfg = store.saveAIConfig(req.body || {});
+    res.json({ ok: true, config: { endpoint: cfg.endpoint, model: cfg.model, enabled: cfg.enabled, key: cfg.key ? '******' : '' } });
+  } catch (e) { res.status(500).json(fail('保存失败: ' + e.message)); }
+});
+
 // 一键加入错题（学生主动加入）
 app.post('/api/wrong/add', (req, res) => {
   try {

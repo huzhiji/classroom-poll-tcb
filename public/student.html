@@ -31,6 +31,14 @@
     .opt{font-size:14px;padding:11px 12px}
     .law-ana-box summary{font-size:13.5px;padding:10px 12px}
   }
+  .ai-box{background:#f6f8fb;border-left:3px solid #3b6cf6;padding:10px 12px;border-radius:6px;white-space:pre-wrap;line-height:1.6;margin:6px 0;font-size:13px}
+  .warn{color:#d9534f;font-size:13px;margin:6px 0}
+  .bars{margin:8px 0}
+  .bar-item{margin:5px 0}
+  .bar-label{font-size:12px;margin-bottom:2px}
+  .bar-track{background:#eef1f5;height:9px;border-radius:5px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:5px}
+  .report-meta{font-size:12px;color:#888;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -47,7 +55,8 @@
   <button data-tab="classroom">👥 课堂练习</button>
   <button data-tab="wrong">❌ 错题练习</button>
   <button data-tab="memory">🧠 记忆模式</button>
-  <button data-tab="mine">📈 我的记录</button>
+    <button data-tab="mine">📈 我的记录</button>
+    <button data-tab="report">📊 我的报告</button>
 </div>
 
 <main>
@@ -126,6 +135,15 @@
   <!-- 我的记录 -->
   <section id="tab-mine" class="hidden">
     <div class="card"><h2>我的答题记录</h2><div id="mine-body"></div></div>
+  </section>
+
+  <!-- 我的学习报告 -->
+  <section id="tab-report" class="hidden">
+    <div class="card">
+      <h2>📊 我的学习报告</h2>
+      <p class="muted">由老师生成的学习周报/月报，这里只展示你个人的掌握情况、薄弱点与提升建议。</p>
+      <div id="my-report-body" class="muted">暂无报告。请等待老师在「学习报告」中生成。</div>
+    </div>
   </section>
 </main>
 
@@ -1229,6 +1247,31 @@ async function submitHw(){
   if(h.startsWith('#exam=')){const id=h.slice(6);if(studentKey){enterExam(id);document.querySelector('.nav button[data-tab=exam]').click();}else{toast('请先登录/注册','err');openAuth();}}
   else if(h.startsWith('#room=')){$('#cr-room').value=h.slice(6).toUpperCase();document.querySelector('.nav button[data-tab=classroom]').click();}
 })();
+
+// ========== 我的学习报告 ==========
+function sCatBar(label, acc, total){
+  const p=Math.round((acc||0)*100);
+  const color=p>=80?'#2e9e5b':p>=60?'#e0a800':'#d9534f';
+  return `<div class="bar-item"><div class="bar-label">${label} <span class="muted">${p}% · ${total}题</span></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div></div>`;
+}
+async function loadMyReport(){
+  if(!studentKey){document.getElementById('my-report-body').className='muted';document.getElementById('my-report-body').textContent='请先登录/注册后查看你的报告。';return;}
+  try{
+    const d=await api('/api/reports/mine?key='+encodeURIComponent(studentKey));
+    const box=document.getElementById('my-report-body');
+    if(!d||!d.report||!d.student){box.className='muted';box.textContent='暂无报告。请等待老师在「学习报告」中生成。';return;}
+    const s=d.student, rp=d.report, o=s.overall, fmt=a=>Math.round((a||0)*100)+'%';
+    let h=`<div class="report-meta">${rp.type==='monthly'?'月报':'周报'} · ${rp.label}（${new Date(rp.periodStart).toLocaleDateString()} ~ ${new Date(rp.periodEnd).toLocaleDateString()}）</div>`;
+    h+=`<p>本周期共作答 <b>${o.total}</b> 题，正确率 <b>${fmt(o.accuracy)}</b>（${o.correct}/${o.total}）。</p>`;
+    h+=`<div class="bars">${s.byCategory.map(c=>sCatBar(c.label,c.accuracy,c.total)).join('')}</div>`;
+    if(s.weak&&s.weak.length) h+=`<div class="warn">⚠️ 薄弱板块：${s.weak.map(w=>`${w.label}(${fmt(w.accuracy)})`).join('、')}</div>`;
+    h+=`<div class="ai-box">${s.aiText||'（暂无分析）'}</div>`;
+    box.className='';box.innerHTML=h;
+  }catch(e){document.getElementById('my-report-body').textContent='加载失败：'+e.message;}
+}
+// 进入「我的报告」时刷新
+const _sShowTab=showTab;
+function showTab(name){_sShowTab(name);if(name==='report')loadMyReport();}
 </script>
 
 <button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
