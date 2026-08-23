@@ -104,10 +104,40 @@
   .exam-card-detail[open]>.exam-card-sum::before{transform:rotate(90deg)}
   .exam-card-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
   .exam-card-acts button{flex:0 0 auto}
+  /* 折叠态：考试类型标签 + 整体正确率胶囊（summary 标题旁常驻显示） */
+  .exam-type-tag{font-size:11px;padding:1px 7px;border-radius:999px;font-weight:600;flex:0 0 auto}
+  .exam-type-tag.exam{background:#eef2ff;color:#4338ca}
+  .exam-type-tag.topic{background:#ecfdf5;color:#047857}
+  .rate-pill{font-size:12px;padding:1px 8px;border-radius:999px;font-weight:600;flex:0 0 auto;white-space:nowrap}
+  .rate-pill.rate-ok{background:#dcfce7;color:#15803d}
+  .rate-pill.rate-mid{background:#fef3c7;color:#b45309}
+  .rate-pill.rate-low{background:#fee2e2;color:#b91c1c}
+  .rate-pill.rate-none{background:#f1f5f9;color:var(--muted)}
   .exam-q-preview{padding:4px 14px 14px;border-top:1px solid var(--border)}
   .exam-q-row{display:flex;gap:8px;padding:5px 0;font-size:13px;color:var(--text);border-bottom:1px dashed var(--border);line-height:1.5}
   .exam-q-row:last-child{border-bottom:none}
   .exam-q-row .no{color:var(--muted);flex:0 0 auto}
+  /* 考试统计：每题正确率常驻显示（不折叠），错误学生可展开 */
+  .exam-stats{padding:4px 14px 16px;border-top:1px solid var(--border)}
+  .exam-q-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  .exam-q-stat{border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:#fff}
+  .exam-q-stat[open]{background:#fbfdff}
+  .exam-q-sum{cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0;user-select:none}
+  .exam-q-sum .no{color:var(--muted);flex:0 0 auto}
+  .exam-q-sum .exam-q-t{flex:1 1 auto;min-width:0}
+  .exam-q-body{padding:8px 0 2px}
+  .exam-opt-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .opt-stat{font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;padding:2px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border)}
+  .opt-stat.opt-correct{color:#1d8a6f;background:rgba(95,179,163,.14)}
+  .wrong-box{margin-top:4px;font-size:12.5px}
+  .wrong-head{color:var(--err);font-weight:600;margin-bottom:4px}
+  .wrong-stu{display:inline-flex;align-items:center;gap:5px;margin:2px 6px 2px 0;padding:2px 8px;border-radius:14px;background:rgba(211,90,90,.1);color:#b53a3a;border:1px solid rgba(211,90,90,.25)}
+  .wrong-sel{font-size:11px;opacity:.85}
+  /* 正确率徽章语义色 */
+  .badge.green{background:rgba(95,179,163,.16);color:#1d8a6f}
+  .badge.yellow{background:rgba(230,174,73,.2);color:#b07d1f}
+  .badge.red{background:rgba(211,90,90,.16);color:var(--err)}
+  .badge.gray{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
 </style>
 </head>
 <body>
@@ -499,30 +529,71 @@ async function createExam(){
 }
 async function loadExams(){
   try{
-    const exams=await api('/api/exams');
-    const list=await api('/api/questions');
-    const map={};list.forEach(q=>map[q.id]=q);
+    const [exams, summary] = await Promise.all([api('/api/exams'), api('/api/exams/summary').catch(()=>({}))]);
     const box=$('#exam-list');
     if(!exams.length){box.innerHTML='<div class="muted" style="padding:14px">暂无考试。</div>';return;}
     box.innerHTML=exams.map(e=>{
-      const qs=(e.questionIds||[]).map(id=>map[id]).filter(Boolean);
       const link=location.origin+'/student.html#exam='+e.id;
-      const filled=qs.filter(q=>Array.isArray(q.correctAnswer)?q.correctAnswer.length>0:q.correctAnswer>=0).length;
-      const ansTxt = filled===qs.length ? `<span style="color:var(--ok)">答案 ${filled}/${qs.length} ✓</span>` : `<span style="color:${filled? '#d97706':'var(--muted)'}">答案 ${filled}/${qs.length}</span>`;
-      const preview = qs.length ? `<div class="exam-q-preview">${qs.map((q,i)=>`<div class="exam-q-row"><span class="no">${i+1}.</span><span>${esc(q.title)}</span></div>`).join('')}</div>` : '<div class="muted" style="padding:8px 0">该考试暂无题目。</div>';
-      return `<details class="exam-card-detail">
-        <summary class="exam-card-sum"><b>${esc(e.title)}</b>
-          <span class="muted">· ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()} · ${ansTxt}</span>
+      const qcount=(e.questionIds||[]).length;
+      const ov=summary[e.id];
+      // 折叠态（summary 标题旁）直接显示整体正确率；户亲考试 / 课堂练习题 标注类型
+      const typeTag = (e.mode==='topic')
+        ? `<span class="exam-type-tag topic">课堂练习题</span>`
+        : `<span class="exam-type-tag exam">户亲考试</span>`;
+      let ovHtml = `· ${qcount}题 · ${new Date(e.createdAt).toLocaleDateString()}`;
+      if(ov){
+        if(ov.percent===null) ovHtml += ` · <span class="rate-pill rate-none">整体 暂无作答</span>`;
+        else ovHtml += ` · <span class="rate-pill ${ov.percent>=80?'rate-ok':ov.percent>=50?'rate-mid':'rate-low'}">整体正确率 ${ov.percent}%（${ov.correct}/${ov.total}·${ov.attemptCount}人）</span>`;
+      }
+      return `<details class="exam-card-detail" data-exam="${e.id}">
+        <summary class="exam-card-sum"><b>${esc(e.title)}</b>${typeTag}
+          <span class="muted" id="exam-ov-${e.id}">${ovHtml}</span>
           <span class="exam-card-acts" onclick="event.preventDefault();event.stopPropagation()">
             <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
             <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
             <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button>
           </span>
         </summary>
-        ${preview}
+        <div class="exam-stats" id="exam-stats-${e.id}"><div class="muted" style="padding:8px 0">展开查看每题正确率与做错学生…</div></div>
       </details>`;
     }).join('');
+    // 展开时懒加载逐题真实作答统计（整体正确率已在折叠态显示）
+    box.querySelectorAll('.exam-card-detail').forEach(d=>{
+      d.addEventListener('toggle', async ()=>{
+        if(!d.open) return;
+        const id=d.getAttribute('data-exam');
+        const el=document.getElementById('exam-stats-'+id);
+        if(el.dataset.loaded) return;
+        el.dataset.loaded='1';
+        try{
+          const st=await api('/api/exams/'+id+'/stats');
+          renderExamStats(el, st, id);
+        }catch(err){ el.innerHTML='<div class="muted" style="padding:8px 0">统计加载失败：'+esc(err.message)+'</div>'; }
+      });
+    });
   }catch(e){toast(e.message,'err');}
+}
+// 渲染某场考试的真实作答统计：每题正确率（常驻）+ 可展开看错误学生。整体正确率已在折叠态 summary 显示，这里不再重复
+function renderExamStats(el, st, examId){
+  if(!st.questions.length){ el.innerHTML='<div class="muted" style="padding:8px 0">该考试暂无题目。</div>'; return; }
+  const rows = st.questions.map((q,i)=>{
+    const badge = q.percent===null
+      ? `<span class="badge gray">暂无作答</span>`
+      : `<span class="badge ${q.percent>=80?'green':q.percent>=50?'yellow':'red'}">正确率 ${q.percent}%（${q.correct}/${q.total}）</span>`;
+    const optStat = q.options.map(o=>`<span class="opt-stat ${o.isCorrect?'opt-correct':''}">${o.letter} ${o.count}人${o.pct?(' · '+o.pct+'%'):''}</span>`).join('');
+    const wrong = (q.wrongStudents||[]);
+    const wrongHtml = wrong.length
+      ? `<div class="wrong-box"><div class="wrong-head">做错的学生（${wrong.length}人）：</div>${wrong.map(w=>`<span class="wrong-stu">${esc(w.name)}<span class="wrong-sel">选 ${w.selectedTxt||'—'}</span></span>`).join('')}</div>`
+      : `<div class="wrong-box muted">无做错记录</div>`;
+    return `<details class="exam-q-stat">
+      <summary class="exam-q-sum"><span class="no">${i+1}.</span><span class="exam-q-t">${esc(q.title)}</span>${badge}</summary>
+      <div class="exam-q-body">
+        <div class="exam-opt-row">${optStat}</div>
+        ${wrongHtml}
+      </div>
+    </details>`;
+  }).join('');
+  el.innerHTML = `<div class="exam-q-list">${rows}</div>`;
 }
 function copyLink(l){navigator.clipboard.writeText(l).then(()=>toast('链接已复制','ok'),()=>prompt('复制以下链接发给学生：',l));}
 async function delExam(id){if(!confirm('确认删除该考试？'))return;try{await api('/api/exams/'+id,{method:'DELETE'});toast('已删除','ok');loadExams();}catch(e){toast(e.message,'err');}}

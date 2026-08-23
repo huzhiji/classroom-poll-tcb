@@ -66,6 +66,21 @@ app.delete('/api/questions/:id', (req, res) => {
 // ================= 考试 / 专题 =================
 app.get('/api/exams', (req, res) => res.json(store.listExams()));
 
+// 所有考试整体正确率摘要（供考试列表折叠态直接显示）：覆盖户亲考试(mode=exam)与课堂练习题(mode=topic)
+app.get('/api/exams/summary', (req, res) => {
+  try { res.json(store.getExamsSummary()); }
+  catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+// 考试真实作答统计（学生考试数据聚合）：每题正确率、选项分布、做错学生名单、全班整体正确率
+app.get('/api/exams/:id/stats', (req, res) => {
+  try {
+    const data = store.getExamStats(req.params.id);
+    if (data.error) return res.status(404).json(fail(data.error));
+    res.json(data);
+  } catch (e) { res.status(500).json(fail('统计失败: ' + e.message)); }
+});
+
 // 考试完成进度（按大类统计：已完成 / 共 / 百分比）—— 必须放在 /:id 之前，否则被 :id 捕获
 app.get('/api/exams/progress', (req, res) => {
   try {
