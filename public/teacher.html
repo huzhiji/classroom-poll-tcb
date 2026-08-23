@@ -66,6 +66,8 @@
   .law-q-stat{border:1px solid var(--border);border-radius:8px;margin:6px 0;padding:6px 10px;background:#fff}
   .law-q-stat summary{cursor:pointer;color:var(--text);font-size:13px;padding:2px 0;user-select:none}
   .law-q-stat .law-q-opts{margin-top:8px}
+  .law-q-ana{margin:8px 0 4px;padding:8px 10px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:6px;font-size:12.5px;line-height:1.6;color:var(--text)}
+  .law-q-ana .ana-label{display:inline-block;font-weight:700;color:var(--accent);margin-right:6px}
   .law-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
   .law-toolbar .btnrow{margin-left:auto}
   .law-sel-num{font-weight:700;color:var(--primary)}
@@ -122,10 +124,13 @@
   .exam-q-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
   .exam-q-stat{border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:#fff}
   .exam-q-stat[open]{background:#fbfdff}
-  .exam-q-sum{cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0;user-select:none}
-  .exam-q-sum .no{color:var(--muted);flex:0 0 auto}
-  .exam-q-sum .exam-q-t{flex:1 1 auto;min-width:0}
+  .exam-q-sum{cursor:pointer;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13px;padding:4px 0;user-select:none}
+  .exam-q-sum .no{color:var(--muted);flex:0 0 auto;font-weight:600}
+  .exam-q-sum .exam-q-t{flex:1 1 240px;min-width:0;line-height:1.45}
+  .exam-q-sum .badge{margin-left:auto;flex:0 0 auto}
   .exam-q-body{padding:8px 0 2px}
+  .exam-q-ana{margin:6px 0 2px;padding:8px 10px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:6px;font-size:12.5px;line-height:1.6;color:var(--text)}
+  .exam-q-ana .ana-label{display:inline-block;font-weight:700;color:var(--accent);margin-right:6px}
   .exam-opt-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
   .opt-stat{font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;padding:2px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border)}
   .opt-stat.opt-correct{color:#1d8a6f;background:rgba(95,179,163,.14)}
@@ -585,10 +590,13 @@ function renderExamStats(el, st, examId){
     const wrongHtml = wrong.length
       ? `<div class="wrong-box"><div class="wrong-head">做错的学生（${wrong.length}人）：</div>${wrong.map(w=>`<span class="wrong-stu">${esc(w.name)}<span class="wrong-sel">选 ${w.selectedTxt||'—'}</span></span>`).join('')}</div>`
       : `<div class="wrong-box muted">无做错记录</div>`;
+    const ans = (q.analysis||'').trim();
+    const ansHtml = ans ? `<div class="exam-q-ana"><span class="ana-label">解析</span>${esc(ans)}</div>` : '';
     return `<details class="exam-q-stat">
       <summary class="exam-q-sum"><span class="no">${i+1}.</span><span class="exam-q-t">${esc(q.title)}</span>${badge}</summary>
       <div class="exam-q-body">
         <div class="exam-opt-row">${optStat}</div>
+        ${ansHtml}
         ${wrongHtml}
       </div>
     </details>`;
@@ -829,7 +837,9 @@ async function loadLawStats(){
             return `<span class="law-stu-tag ${su.isCorrect?'ok':'no'}">${esc(su.name)}: ${esc(sel)}</span>`;
           }).join('')+'</div>';
         }
-        h+=`<details class="law-q-stat"><summary><b>${esc(q.title)}</b> · ${pct} <span class="muted">（${q.correct}/${q.total}）</span></summary>${opts}${stu}</details>`;
+        const ans=(q.analysis||'').trim();
+        const ansHtml=ans?`<div class="law-q-ana"><span class="ana-label">解析</span>${esc(ans)}</div>`:'';
+        h+=`<details class="law-q-stat"><summary><b>${esc(q.title)}</b> · ${pct} <span class="muted">（${q.correct}/${q.total}）</span></summary>${opts}${ansHtml}${stu}</details>`;
       });
     }
     box.innerHTML=h;
