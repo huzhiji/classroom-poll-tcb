@@ -69,11 +69,11 @@
   .law-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}
   .law-toolbar .btnrow{margin-left:auto}
   .law-sel-num{font-weight:700;color:var(--primary)}
-  /* 吸底发布操作条：常驻屏幕底部，滚动选题时无需回到顶部 */
-  .law-sticky-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+  /* 吸底发布操作条：滚动选题时恒在底部可见。用 sticky 而非 fixed，
+     避免祖先 .card 的 transform 把 fixed 相对该卡片定位而挤出视口 */
+  .law-sticky-bar{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
   .law-sticky-bar .hint{font-size:13px;color:var(--muted)}
   .law-sticky-bar .push-btn{margin-left:auto}
-  #tab-classroom{padding-bottom:64px}
   @media(max-width:640px){
     .law-sticky-bar{padding:12px 12px;box-shadow:0 -2px 10px rgba(0,0,0,.12)}
     .law-sticky-bar .hint{font-size:12px}
@@ -536,13 +536,6 @@ function updateLawSelCount(){
   const n=document.querySelectorAll('.law-chk:checked').length;
   const el=document.getElementById('law-sel-count');if(el)el.textContent=n;
 }
-// 吸底发布操作条：滚动选题时常驻屏幕底部，无需回到顶部点击
-function lawStickyBarHTML(){
-  return `<div class="law-sticky-bar">
-    <span class="hint">已选 <b id="law-sel-count">0</b> 题 · 滚动时此栏常驻</span>
-    <button class="btn push-btn" onclick="pushLawSelected()">📤 推送所选题目</button>
-  </div>`;
-}
 // 全选/清空 单个部分
 function toggleLawSec(cat,section,el){
   const rows=[...document.querySelectorAll('.law-chk')].filter(c=>c.dataset.cat===cat&&c.dataset.section===section);
@@ -646,7 +639,10 @@ async function loadLawAdmin(){
         }).join('');
         return `<div class="law-cat"><div class="law-cat-head">${esc(c.cat)} <span class="muted">${c.sections.reduce((n,s)=>n+s.questions.length,0)}题</span></div>${secs}</div>`;
       }).join('')||'<p class="muted">题库为空。</p>';
-      box.innerHTML += lawStickyBarHTML();
+      box.innerHTML += `<div class="law-sticky-bar">
+        <span class="hint">已选 <b id="law-sel-count">0</b> 题 · 滚动时此栏常驻底部</span>
+        <button class="btn push-btn" onclick="pushLawSelected()">📤 推送所选题目</button>
+      </div>`;
     }
     await renderLawPushList();
     await loadLawStats();
