@@ -74,6 +74,8 @@
   .law-sticky-bar{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 -2px 12px rgba(0,0,0,.08)}
   .law-sticky-bar .hint{font-size:13px;color:var(--muted)}
   .law-sticky-bar .push-btn{margin-left:auto}
+  .law-stat-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
+  .law-stat-tools .btn{margin-left:auto}
   @media(max-width:640px){
     .law-sticky-bar{padding:12px 12px;box-shadow:0 -2px 10px rgba(0,0,0,.12)}
     .law-sticky-bar .hint{font-size:12px}
@@ -93,6 +95,19 @@
     .law-toolbar .btnrow{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-left:0;margin-top:8px}
     .law-toolbar .btnrow button{flex:0 0 auto}
   }
+  /* 考试列表：默认折叠，summary 显示整体信息，点击展开看题目 */
+  #law-tree{padding-bottom:72px} /* 给吸底「推送所选题目」栏留出空间，避免遮挡最后题目 */
+  .exam-card-detail{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--surface);overflow:hidden}
+  .exam-card-sum{cursor:pointer;padding:12px 14px;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;user-select:none;list-style:none}
+  .exam-card-sum::-webkit-details-marker{display:none}
+  .exam-card-sum::before{content:'▸';transition:transform .18s;color:var(--muted);font-size:12px;margin-right:2px}
+  .exam-card-detail[open]>.exam-card-sum::before{transform:rotate(90deg)}
+  .exam-card-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .exam-card-acts button{flex:0 0 auto}
+  .exam-q-preview{padding:4px 14px 14px;border-top:1px solid var(--border)}
+  .exam-q-row{display:flex;gap:8px;padding:5px 0;font-size:13px;color:var(--text);border-bottom:1px dashed var(--border);line-height:1.5}
+  .exam-q-row:last-child{border-bottom:none}
+  .exam-q-row .no{color:var(--muted);flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -494,11 +509,18 @@ async function loadExams(){
       const link=location.origin+'/student.html#exam='+e.id;
       const filled=qs.filter(q=>Array.isArray(q.correctAnswer)?q.correctAnswer.length>0:q.correctAnswer>=0).length;
       const ansTxt = filled===qs.length ? `<span style="color:var(--ok)">答案 ${filled}/${qs.length} ✓</span>` : `<span style="color:${filled? '#d97706':'var(--muted)'}">答案 ${filled}/${qs.length}</span>`;
-      return `<div class="qitem"><div class="qtitle"><div><b>${esc(e.title)}</b> · ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()} · ${ansTxt}</div>
-        <div class="meta">${qs.slice(0,3).map(q=>esc(q.title)).join(' / ')}${qs.length>3?' …':''}</div></div>
-        <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
-        <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
-        <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button></div>`;
+      const preview = qs.length ? `<div class="exam-q-preview">${qs.map((q,i)=>`<div class="exam-q-row"><span class="no">${i+1}.</span><span>${esc(q.title)}</span></div>`).join('')}</div>` : '<div class="muted" style="padding:8px 0">该考试暂无题目。</div>';
+      return `<details class="exam-card-detail">
+        <summary class="exam-card-sum"><b>${esc(e.title)}</b>
+          <span class="muted">· ${qs.length}题 · ${new Date(e.createdAt).toLocaleDateString()} · ${ansTxt}</span>
+          <span class="exam-card-acts" onclick="event.preventDefault();event.stopPropagation()">
+            <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
+            <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
+            <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button>
+          </span>
+        </summary>
+        ${preview}
+      </details>`;
     }).join('');
   }catch(e){toast(e.message,'err');}
 }
@@ -554,6 +576,11 @@ function toggleAllLawAna(){
 function toggleAllLawSec(){
   const ds=[...document.querySelectorAll('.law-sec')];
   const open=!ds.some(d=>d.open);
+  ds.forEach(d=>d.open=open);
+}
+// 展开/收起统计区逐题正确率（默认折叠，summary 即整体正确率）
+function toggleAllLawStat(open){
+  const ds=[...document.querySelectorAll('.law-q-stat')];
   ds.forEach(d=>d.open=open);
 }
 // 批量设置某类可见性（答案/解析）到所有已渲染题目
@@ -643,6 +670,9 @@ async function loadLawAdmin(){
         <span class="hint">已选 <b id="law-sel-count">0</b> 题 · 滚动时此栏常驻底部</span>
         <button class="btn push-btn" onclick="pushLawSelected()">📤 推送所选题目</button>
       </div>`;
+      // 进入题库时默认全部折叠，避免一长串展开显得杂乱；用户可点「展开全部部分 / 解析」
+      box.querySelectorAll('.law-sec').forEach(d=>d.open=false);
+      box.querySelectorAll('.law-q-ana').forEach(d=>d.open=false);
     }
     await renderLawPushList();
     await loadLawStats();
@@ -689,7 +719,9 @@ async function loadLawStats(){
   const box=document.getElementById('law-stats');if(!box)return;
   try{
     const st=await api('/api/law/stats');
-    let h='';
+    let h=`<div class="law-stat-tools"><span class="muted sm">逐题正确率默认折叠（summary 即整体正确率）；点「展开」看每题选项分布与每名学生的错误选项。</span>
+      <button class="btn ghost xs" onclick="toggleAllLawStat(true)">展开全部</button>
+      <button class="btn ghost xs" onclick="toggleAllLawStat(false)">收起全部</button></div>`;
     if(!st.sections.length){h='<p class="muted">当前没有推送，或尚无作答数据。先勾选题目推送，学生作答后这里显示正确率、选项分布与每名学生正确率。</p>';}
     else{
       h+=`<table class="ev-table"><tr><th>类别 · 部分</th><th>题数</th><th>正确率</th><th>对/总</th></tr>`;
@@ -730,6 +762,8 @@ async function loadLawStats(){
       });
     }
     box.innerHTML=h;
+    // 默认全部折叠，仅 summary（整体正确率）常驻可见
+    box.querySelectorAll('.law-q-stat').forEach(d=>d.open=false);
   }catch(e){box.innerHTML='<p class="muted">统计加载失败</p>';}
 }
 
