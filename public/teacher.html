@@ -470,7 +470,11 @@
       <p class="muted">填写 OpenAI 兼容的接口（如通义千问 / DeepSeek / 本地模型）。留空则用内置规则分析，无需联网。</p>
       <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成（需你自备 key）。若未配置，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
       <p class="muted warn-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #e0a800;background:#fff8e6">
-        ⚠️ 已预填默认接口 <code>https://api.qnaigc.com/v1</code>（模型 <code>deepseek/deepseek-v4-pro-0813</code>）。<b>实测该账号当前被服务商禁用对话服务（返回 403 account_chat_banned）</b>，填 key 后调用仍会失败，需更换为<b>你本人可用</b>的 OpenAI 兼容账号。系统会在生成报告时自动检测：若大模型不可用，自动回退到内置规则分析，不影响报告发布。
+        ⚠️ 已预填默认接口 <code>https://api.qnaigc.com/v1</code>（七牛云 AI Token API，兼容 OpenAI）。实测当前账号调用返回 <code>403 account_chat_banned</code>，属<b>账号层面被风控封禁/未开通</b>（非 key 错误或网络问题）。常见原因与处理：
+        <br>① <b>风控封禁</b>：若领取过"邀请奖励/资源包"被判定机刷，需在七牛「解封申诉」提交非机刷证明（<a href="https://jsj.top/f/VlBX1F" target="_blank" rel="noopener">申诉入口</a>）；
+        <br>② <b>未实名/欠费</b>：登录七牛控制台完成实名认证、补齐欠费；
+        <br>③ <b>模型范围</b>：即使账号解封，还要在「API Key → 模型范围」里手动添加要用的模型 ID（否则报 not available in your assigned model groups）。
+        <br>模型名务必以七牛「<a href="https://www.qiniu.com/ai/models" target="_blank" rel="noopener">模型广场</a>」显示的 API model 参数为准（标准如 <code>deepseek-v3</code> / <code>deepseek-r1</code> / <code>qwen3-max</code> 等），<code>deepseek-v4-pro-0813</code> 未必是有效 ID。账号恢复正常后填 key 即可使用；若仍不可用，系统会自动回退内置规则分析，不影响报告发布。
       </p>
       <div class="row">
         <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"></div>
