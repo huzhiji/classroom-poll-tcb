@@ -467,20 +467,24 @@
 
     <div class="card">
       <h2>🤖 AI 分析配置 <span class="tag">可选</span></h2>
-      <p class="muted">填写 OpenAI 兼容的接口（如通义千问 / DeepSeek / 本地模型）。留空则用内置规则分析，无需联网。</p>
-      <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成（需你自备 key）。若未配置，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
+      <p class="muted">系统已默认指向<b>本地大模型（Ollama）</b>，无需联网、不依赖第三方账号，推荐首选。也可改为云端 OpenAI 兼容接口（通义/DeepSeek/七牛等）。留空/不可用则自动回退内置规则分析。</p>
+      <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成。若未配置或调用失败，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
+
+      <p class="muted ok-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #2e9e5b;background:#f1faf4">
+        ✅ <b>方案 A（推荐·本地模型，零成本）</b>：在本机/ECS 安装 Ollama 后，系统默认配置即可直接用，无需填 Key。
+        <br>① 安装并启动：<code>ollama serve</code>（默认监听 <code>127.0.0.1:11434</code>）
+        <br>② 拉取模型：<code>ollama pull qwen2.5:7b</code>（分析深度建议 7b/8b 起步；显存充足可 <code>qwen2.5:14b</code> 或 <code>deepseek-r1:8b</code>）
+        <br>③ 本页默认 endpoint=<code>http://127.0.0.1:11434/v1</code>、model=<code>qwen2.5:7b</code>，点「保存配置」即可（Key 留空）。
+        <br>注：Ollama 须与课堂答题系统<b>运行在同一台机器</b>（ECS 内回环地址）。
+      </p>
       <p class="muted warn-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #e0a800;background:#fff8e6">
-        ⚠️ 已预填默认接口 <code>https://api.qnaigc.com/v1</code>（七牛云 AI Token API，兼容 OpenAI）。实测当前账号调用返回 <code>403 account_chat_banned</code>，属<b>账号层面被风控封禁/未开通</b>（非 key 错误或网络问题）。常见原因与处理：
-        <br>① <b>风控封禁</b>：若领取过"邀请奖励/资源包"被判定机刷，需在七牛「解封申诉」提交非机刷证明（<a href="https://jsj.top/f/VlBX1F" target="_blank" rel="noopener">申诉入口</a>）；
-        <br>② <b>未实名/欠费</b>：登录七牛控制台完成实名认证、补齐欠费；
-        <br>③ <b>模型范围</b>：即使账号解封，还要在「API Key → 模型范围」里手动添加要用的模型 ID（否则报 not available in your assigned model groups）。
-        <br>模型名务必以七牛「<a href="https://www.qiniu.com/ai/models" target="_blank" rel="noopener">模型广场</a>」显示的 API model 参数为准（标准如 <code>deepseek-v3</code> / <code>deepseek-r1</code> / <code>qwen3-max</code> 等），<code>deepseek-v4-pro-0813</code> 未必是有效 ID。账号恢复正常后填 key 即可使用；若仍不可用，系统会自动回退内置规则分析，不影响报告发布。
+        ⚠️ <b>方案 B（云端·七牛云 AI Token API）</b>：默认接口曾预填 <code>https://api.qnaigc.com/v1</code>。实测该账号调用返回 <code>403 account_chat_banned</code>，属<b>账号层面被风控封禁/未开通</b>（非 key 错误或网络问题）。处理：①风控封禁需在七牛「解封申诉」提交非机刷证明（<a href="https://jsj.top/f/VlBX1F" target="_blank" rel="noopener">申诉入口</a>）；②完成实名认证/补齐欠费；③在「API Key→模型范围」添加模型 ID。模型名以七牛「<a href="https://www.qiniu.com/ai/models" target="_blank" rel="noopener">模型广场</a>」为准（标准如 <code>deepseek-v3</code>/<code>qwen3-max</code>）。账号恢复后填 Key 即可用；否则自动回退规则分析。
       </p>
       <div class="row">
-        <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"></div>
-        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="qwen-plus"></div>
+        <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="http://127.0.0.1:11434/v1"></div>
+        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="qwen2.5:7b"></div>
       </div>
-      <label>API Key</label><input id="ai-key" type="password" placeholder="sk-...">
+      <label>API Key（本地模型可留空）</label><input id="ai-key" type="password" placeholder="本地Ollama可留空；云端填 sk-...">
       <div class="btnrow">
         <button class="btn" onclick="saveAIConfig()">保存配置</button>
         <span id="ai-status" class="muted"></span>
