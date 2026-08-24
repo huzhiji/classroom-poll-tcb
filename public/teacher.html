@@ -469,6 +469,9 @@
       <h2>🤖 AI 分析配置 <span class="tag">可选</span></h2>
       <p class="muted">填写 OpenAI 兼容的接口（如通义千问 / DeepSeek / 本地模型）。留空则用内置规则分析，无需联网。</p>
       <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成（需你自备 key）。若未配置，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
+      <p class="muted warn-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #e0a800;background:#fff8e6">
+        ⚠️ 已预填默认接口 <code>https://api.qnaigc.com/v1</code>（模型 <code>deepseek/deepseek-v4-pro-0813</code>）。<b>实测该账号当前被服务商禁用对话服务（返回 403 account_chat_banned）</b>，填 key 后调用仍会失败，需更换为<b>你本人可用</b>的 OpenAI 兼容账号。系统会在生成报告时自动检测：若大模型不可用，自动回退到内置规则分析，不影响报告发布。
+      </p>
       <div class="row">
         <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"></div>
         <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="qwen-plus"></div>
@@ -1282,6 +1285,14 @@ async function openReport(id) {
     html += '<div class="bars">' + cs.byCategory.map((c) => catBar(c.label, c.accuracy, c.total)).join('') + '</div>';
     if (cs.topWeak.length) html += '<p class="warn">⚠️ 薄弱板块：' + cs.topWeak.map((c) => `${c.label}(${fmt(c.accuracy)})`).join('、') + '</p>';
     if (cs.lowStudents.length) html += '<p class="warn">需重点关注：' + cs.lowStudents.map((s) => `${s.name}(${fmt(s.accuracy)})`).join('、') + '</p>';
+    // 统计自检：原始提交条数 vs 去重后题数，差距过大说明存在重复提交/反复重练
+    const dc = rp.dataCheck || {};
+    if (dc.rawAttempts != null) {
+      const dupPct = Math.round((dc.duplicateRate || 0) * 100);
+      const flag = dupPct >= 30 ? 'warn' : 'muted';
+      html += `<p class="${flag}">📊 统计自检：去重后计入题数 ${dc.dedupedQuestions}，原始提交条数 ${dc.rawAttempts}（重复率约 ${dupPct}%）。` +
+        (dupPct >= 30 ? ' 重复提交偏多，正确率已按「每题取最近一次作答」计算，不代表首次掌握。' : ' 数据重复率正常。') + '</p>';
+    }
     document.getElementById('rd-class').innerHTML = html;
     document.getElementById('rd-ai').textContent = rp.aiText || '（无）';
     // 班级图表
