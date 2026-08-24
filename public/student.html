@@ -39,6 +39,15 @@
   .bar-track{background:#eef1f5;height:9px;border-radius:5px;overflow:hidden}
   .bar-fill{height:100%;border-radius:5px}
   .report-meta{font-size:12px;color:#888;margin-bottom:6px}
+  /* ---- 学习报告图表 ---- */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
+  .chart-box{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:10px}
+  .chart-title{font-size:13px;font-weight:600;color:#3b6cf6;margin-bottom:6px}
+  .chart-box canvas{max-height:240px}
+  .tag-warn{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(217,83,79,.14);color:#d9534f}
+  .tag-ok{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(46,158,91,.14);color:#2e9e5b}
+  .boost{background:rgba(59,108,246,.08);border-left:3px solid #3b6cf6;padding:8px 10px;border-radius:6px;font-size:13px;margin:6px 0;line-height:1.6}
+  @media(max-width:640px){.chart-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -178,6 +187,7 @@
 </div>
 
 <script src="/quotes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 const $=(s)=>document.querySelector(s);
 function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2200);}
@@ -1260,14 +1270,39 @@ async function loadMyReport(){
     const d=await api('/api/reports/mine?key='+encodeURIComponent(studentKey));
     const box=document.getElementById('my-report-body');
     if(!d||!d.report||!d.student){box.className='muted';box.textContent='暂无报告。请等待老师在「学习报告」中生成。';return;}
-    const s=d.student, rp=d.report, o=s.overall, fmt=a=>Math.round((a||0)*100)+'%';
+    const s=d.student, rp=d.report, o=s.overall, cs=rp.classSummary, fmt=a=>Math.round((a||0)*100)+'%';
     let h=`<div class="report-meta">${rp.type==='monthly'?'月报':'周报'} · ${rp.label}（${new Date(rp.periodStart).toLocaleDateString()} ~ ${new Date(rp.periodEnd).toLocaleDateString()}）</div>`;
-    h+=`<p>本周期共作答 <b>${o.total}</b> 题，正确率 <b>${fmt(o.accuracy)}</b>（${o.correct}/${o.total}）。</p>`;
+    h+=`<p>本周期共作答 <b>${o.total}</b> 题，正确率 <b>${fmt(o.accuracy)}</b>（${o.correct}/${o.total}）${s.weak&&s.weak.length?' · <span class="tag-warn">待加强</span>':' · <span class="tag-ok">良好</span>'}。</p>`;
+    h+=`<div class="chart-grid"><div class="chart-box"><div class="chart-title">我的正确率趋势（对照班级）</div><canvas id="my-trend"></canvas></div>`;
+    h+=`<div class="chart-box"><div class="chart-title">我的板块掌握度</div><canvas id="my-radar"></canvas></div></div>`;
     h+=`<div class="bars">${s.byCategory.map(c=>sCatBar(c.label,c.accuracy,c.total)).join('')}</div>`;
     if(s.weak&&s.weak.length) h+=`<div class="warn">⚠️ 薄弱板块：${s.weak.map(w=>`${w.label}(${fmt(w.accuracy)})`).join('、')}</div>`;
+    if(s.suggest&&s.suggest.length) h+=`<div class="boost">📌 提升重点：${s.suggest.map(g=>`${g.label}${g.questions&&g.questions.length?'（如：'+g.questions.slice(0,2).join('、')+'）':''}`).join('；')}</div>`;
     h+=`<div class="ai-box">${s.aiText||'（暂无分析）'}</div>`;
     box.className='';box.innerHTML=h;
+    const selfFull=[...(s.history||[]),{label:rp.label,accuracy:s.overall.accuracy}];
+    const classFull=[...(cs.trend||[]),{label:rp.label,accuracy:cs.overallAccuracy}];
+    if(typeof renderTrendChart==='function'){ renderTrendChart('my-trend',selfFull,classFull,'我的'); renderRadarChart('my-radar',s.byCategory); }
   }catch(e){document.getElementById('my-report-body').textContent='加载失败：'+e.message;}
+}
+// ---- 图表渲染（Chart.js，CDN 失败则静默跳过）----
+const _scharts = {};
+function _sdestroy(id){ if(_scharts[id]){ try{_scharts[id].destroy();}catch(e){} delete _scharts[id]; } }
+function renderTrendChart(canvasId, selfSeries, classSeries, name) {
+  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  _sdestroy(canvasId);
+  const toPts = (arr) => (arr || []).map((h) => ({ x: h.label, y: Math.round((h.accuracy || 0) * 100) }));
+  const ds = [{ label: name || '本人', data: toPts(selfSeries), borderColor: '#3b6cf6', backgroundColor: 'rgba(59,108,246,.12)', fill: true, tension: .3, pointRadius: 4 }];
+  if (classSeries && classSeries.length) ds.push({ label: '班级', data: toPts(classSeries), borderColor: '#9aa3b2', borderDash: [5, 4], fill: false, tension: .3, pointRadius: 3 });
+  _scharts[canvasId] = new Chart(cv, { type: 'line', data: { datasets: ds }, options: { responsive: true, plugins: { legend: { display: ds.length > 1 } }, scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } } } });
+}
+function renderRadarChart(canvasId, cats) {
+  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  _sdestroy(canvasId);
+  const labels = (cats || []).map((c) => c.label);
+  const data = (cats || []).map((c) => Math.round((c.accuracy || 0) * 100));
+  const colors = data.map((v) => v >= 80 ? '#2e9e5b' : v >= 60 ? '#e0a800' : '#d9534f');
+  _scharts[canvasId] = new Chart(cv, { type: 'radar', data: { labels, datasets: [{ label: '正确率', data, backgroundColor: 'rgba(59,108,246,.18)', borderColor: '#3b6cf6', pointBackgroundColor: colors }] }, options: { responsive: true, scales: { r: { min: 0, max: 100, ticks: { callback: (v) => v + '%', stepSize: 20 }, pointLabels: { font: { size: 11 } } } } } });
 }
 // 进入「我的报告」时刷新
 const _sShowTab=showTab;

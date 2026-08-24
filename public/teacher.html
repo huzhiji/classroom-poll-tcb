@@ -156,6 +156,17 @@
   table{border-collapse:collapse;width:100%;font-size:13px}
   th,td{border:1px solid var(--border,#e6e9ef);padding:6px 8px;text-align:left}
   th{background:var(--bg-soft,#f6f8fb)}
+  /* ---- 学习报告图表 ---- */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
+  .chart-box{background:#fff;border:1px solid var(--border,#e6e9ef);border-radius:10px;padding:10px}
+  .chart-title{font-size:13px;font-weight:600;color:var(--primary,#3b6cf6);margin-bottom:6px}
+  .chart-box canvas{max-height:240px}
+  .tag-warn{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(217,83,79,.14);color:#d9534f}
+  .tag-ok{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(46,158,91,.14);color:#2e9e5b}
+  .boost{background:rgba(59,108,246,.08);border-left:3px solid var(--accent,#3b6cf6);padding:8px 10px;border-radius:6px;font-size:13px;margin:6px 0;line-height:1.6}
+  .stu-row{padding:12px 0;border-bottom:1px solid var(--border,#eef1f5)}
+  .stu-head{font-size:14px;margin-bottom:4px}
+  @media(max-width:640px){.chart-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -457,6 +468,7 @@
     <div class="card">
       <h2>🤖 AI 分析配置 <span class="tag">可选</span></h2>
       <p class="muted">填写 OpenAI 兼容的接口（如通义千问 / DeepSeek / 本地模型）。留空则用内置规则分析，无需联网。</p>
+      <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成（需你自备 key）。若未配置，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
       <div class="row">
         <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"></div>
         <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="qwen-plus"></div>
@@ -507,6 +519,7 @@ ACDBA...
 <div class="toast" id="toast"></div>
 
 <script src="/quotes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 const $=(s)=>document.querySelector(s);
 function toast(msg,type){const t=$('#toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.className='toast',2200);}
@@ -1262,26 +1275,63 @@ async function openReport(id) {
     document.getElementById('rd-title').textContent = `${rp.type === 'monthly' ? '月报' : '周报'} · ${rp.label}（${new Date(rp.periodStart).toLocaleDateString()} ~ ${new Date(rp.periodEnd).toLocaleDateString()}）`;
     const cs = rp.classSummary;
     const fmt = (a) => Math.round((a || 0) * 100) + '%';
+    // 班级概览（文本 + 图表）
     let html = `<p>全班 <b>${cs.totalStudents}</b> 人，活跃 <b>${cs.activeStudents}</b> 人，整体正确率 <b>${fmt(cs.overallAccuracy)}</b>（${cs.correct}/${cs.total}）。</p>`;
+    html += '<div class="chart-grid"><div class="chart-box"><div class="chart-title">班级整体正确率趋势（进步/退步）</div><canvas id="chart-class-trend"></canvas></div>';
+    html += '<div class="chart-box"><div class="chart-title">班级各板块掌握度（雷达）</div><canvas id="chart-class-radar"></canvas></div></div>';
     html += '<div class="bars">' + cs.byCategory.map((c) => catBar(c.label, c.accuracy, c.total)).join('') + '</div>';
     if (cs.topWeak.length) html += '<p class="warn">⚠️ 薄弱板块：' + cs.topWeak.map((c) => `${c.label}(${fmt(c.accuracy)})`).join('、') + '</p>';
     if (cs.lowStudents.length) html += '<p class="warn">需重点关注：' + cs.lowStudents.map((s) => `${s.name}(${fmt(s.accuracy)})`).join('、') + '</p>';
     document.getElementById('rd-class').innerHTML = html;
     document.getElementById('rd-ai').textContent = rp.aiText || '（无）';
-    const stus = (rp.students || []).map((s) => {
-      let h = `<div class="stu-row"><div class="stu-head"><b>${s.name}</b> · 正确率 ${fmt(s.overall.accuracy)}（${s.overall.correct}/${s.overall.total}）</div>`;
+    // 班级图表
+    const classFull = [...(cs.trend || []), { label: rp.label, accuracy: cs.overallAccuracy }];
+    renderTrendChart('chart-class-trend', classFull, null, '班级整体');
+    renderRadarChart('chart-class-radar', cs.byCategory);
+    // 学员卡片
+    const stus = (rp.students || []).map((s, i) => {
+      let h = `<div class="stu-row"><div class="stu-head"><b>${s.name}</b> · 正确率 ${fmt(s.overall.accuracy)}（${s.overall.correct}/${s.overall.total}）${s.weak && s.weak.length ? ' · <span class="tag-warn">待加强</span>' : ' · <span class="tag-ok">良好</span>'}</div>`;
+      h += `<div class="chart-grid"><div class="chart-box"><div class="chart-title">我的正确率趋势</div><canvas id="stu-trend-${i}"></canvas></div>`;
+      h += `<div class="chart-box"><div class="chart-title">我的板块掌握度</div><canvas id="stu-radar-${i}"></canvas></div></div>`;
       h += '<div class="bars">' + s.byCategory.map((c) => catBar(c.label, c.accuracy, c.total)).join('') + '</div>';
       if (s.weak.length) h += '<div class="warn">薄弱：' + s.weak.map((w) => `${w.label}(${fmt(w.accuracy)})`).join('、') + '</div>';
+      if (s.suggest && s.suggest.length) h += '<div class="boost">📌 提升重点：' + s.suggest.map((g) => `${g.label}${g.questions && g.questions.length ? '（如：' + g.questions.slice(0, 2).join('、') + '）' : ''}`).join('；') + '</div>';
       h += '<div class="ai-box">' + (s.aiText || '') + '</div></div>';
       return h;
     }).join('');
     document.getElementById('rd-students').innerHTML = stus || '<div class="muted">无学员数据</div>';
+    // 渲染学员图表
+    (rp.students || []).forEach((s, i) => {
+      const selfFull = [...(s.history || []), { label: rp.label, accuracy: s.overall.accuracy }];
+      renderTrendChart('stu-trend-' + i, selfFull, classFull, s.name);
+      renderRadarChart('stu-radar-' + i, s.byCategory);
+    });
   } catch (e) { alert('打开失败: ' + e.message); }
 }
 function catBar(label, acc, total) {
   const p = Math.round((acc || 0) * 100);
   const color = p >= 80 ? '#2e9e5b' : p >= 60 ? '#e0a800' : '#d9534f';
   return `<div class="bar-item"><div class="bar-label">${label} <span class="muted">${p}% · ${total}题</span></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div></div>`;
+}
+// ---- 图表渲染（Chart.js，CDN 失败则静默跳过）----
+const _charts = {};
+function _destroy(id){ if(_charts[id]){ try{_charts[id].destroy();}catch(e){} delete _charts[id]; } }
+// series: [{label, accuracy}] 已是完整序列（含本期）
+function renderTrendChart(canvasId, selfSeries, classSeries, name) {
+  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  _destroy(canvasId);
+  const toPts = (arr) => (arr || []).map((h) => ({ x: h.label, y: Math.round((h.accuracy || 0) * 100) }));
+  const ds = [{ label: name || '本人', data: toPts(selfSeries), borderColor: '#3b6cf6', backgroundColor: 'rgba(59,108,246,.12)', fill: true, tension: .3, pointRadius: 4 }];
+  if (classSeries && classSeries.length) ds.push({ label: '班级', data: toPts(classSeries), borderColor: '#9aa3b2', borderDash: [5, 4], fill: false, tension: .3, pointRadius: 3 });
+  _charts[canvasId] = new Chart(cv, { type: 'line', data: { datasets: ds }, options: { responsive: true, plugins: { legend: { display: ds.length > 1 } }, scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } } } });
+}
+function renderRadarChart(canvasId, cats) {
+  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  _destroy(canvasId);
+  const labels = (cats || []).map((c) => c.label);
+  const data = (cats || []).map((c) => Math.round((c.accuracy || 0) * 100));
+  const colors = data.map((v) => v >= 80 ? '#2e9e5b' : v >= 60 ? '#e0a800' : '#d9534f');
+  _charts[canvasId] = new Chart(cv, { type: 'radar', data: { labels, datasets: [{ label: '正确率', data, backgroundColor: 'rgba(59,108,246,.18)', borderColor: '#3b6cf6', pointBackgroundColor: colors }] }, options: { responsive: true, scales: { r: { min: 0, max: 100, ticks: { callback: (v) => v + '%', stepSize: 20 }, pointLabels: { font: { size: 11 } } } } } });
 }
 // 进入报告页时刷新
 const _origShowTabReports = showTab;
