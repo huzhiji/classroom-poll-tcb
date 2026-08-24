@@ -187,7 +187,7 @@
 </div>
 
 <script src="/quotes.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/vendor/chart.umd.min.js"></script>
 <script>
 const $=(s)=>document.querySelector(s);
 function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2200);}
@@ -1285,11 +1285,28 @@ async function loadMyReport(){
     if(typeof renderTrendChart==='function'){ renderTrendChart('my-trend',selfFull,classFull,'我的'); renderRadarChart('my-radar',s.byCategory); }
   }catch(e){document.getElementById('my-report-body').textContent='加载失败：'+e.message;}
 }
-// ---- 图表渲染（Chart.js，CDN 失败则静默跳过）----
+// ---- 图表渲染（Chart.js 已本地化 vendor/chart.umd.min.js；不可用则文本条形图降级）----
 const _scharts = {};
 function _sdestroy(id){ if(_scharts[id]){ try{_scharts[id].destroy();}catch(e){} delete _scharts[id]; } }
+function _sbarFallback(canvasId, items) {
+  const cv = document.getElementById(canvasId); if (!cv) return;
+  const rows = (items || []).map((it) => {
+    const pct = Math.max(0, Math.min(100, Math.round((it.v || 0) * 100)));
+    const color = pct >= 80 ? '#2e9e5b' : pct >= 60 ? '#e0a800' : '#d9534f';
+    return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px">
+      <span style="width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.k}</span>
+      <span style="flex:1;background:#eef0f4;border-radius:4px;height:14px;overflow:hidden"><span style="display:block;width:${pct}%;background:${color};height:100%"></span></span>
+      <b style="width:42px;text-align:right">${pct}%</b></div>`;
+  }).join('');
+  cv.outerHTML = `<div id="${canvasId}" style="padding:6px 2px">${rows || '<span class="muted">暂无数据</span>'}</div>`;
+}
 function renderTrendChart(canvasId, selfSeries, classSeries, name) {
-  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  const cv = document.getElementById(canvasId); if (!cv) return;
+  if (typeof Chart === 'undefined') {
+    const items = (selfSeries || []).map((h) => ({ k: h.label, v: h.accuracy || 0 }));
+    _sbarFallback(canvasId, items);
+    return;
+  }
   _sdestroy(canvasId);
   const toPts = (arr) => (arr || []).map((h) => ({ x: h.label, y: Math.round((h.accuracy || 0) * 100) }));
   const ds = [{ label: name || '本人', data: toPts(selfSeries), borderColor: '#3b6cf6', backgroundColor: 'rgba(59,108,246,.12)', fill: true, tension: .3, pointRadius: 4 }];
@@ -1297,7 +1314,12 @@ function renderTrendChart(canvasId, selfSeries, classSeries, name) {
   _scharts[canvasId] = new Chart(cv, { type: 'line', data: { datasets: ds }, options: { responsive: true, plugins: { legend: { display: ds.length > 1 } }, scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } } } });
 }
 function renderRadarChart(canvasId, cats) {
-  const cv = document.getElementById(canvasId); if (!cv || typeof Chart === 'undefined') return;
+  const cv = document.getElementById(canvasId); if (!cv) return;
+  if (typeof Chart === 'undefined') {
+    const items = (cats || []).map((c) => ({ k: c.label, v: c.accuracy || 0 }));
+    _sbarFallback(canvasId, items);
+    return;
+  }
   _sdestroy(canvasId);
   const labels = (cats || []).map((c) => c.label);
   const data = (cats || []).map((c) => Math.round((c.accuracy || 0) * 100));
