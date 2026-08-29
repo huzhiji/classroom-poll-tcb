@@ -213,6 +213,27 @@
 
   <!-- ========== 早读管理 ========== -->
   <section id="tab-morning" class="hidden">
+    <div class="card" id="sl-teacher" style="border-left:3px solid var(--accent)">
+      <style>
+        #sl-teacher .sl-tstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 4px}
+        #sl-teacher .sl-tstat{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+        #sl-teacher .sl-tstat b{display:block;font-size:22px;color:var(--primary)}
+        #sl-teacher .sl-tstat small{color:var(--muted);font-size:12px}
+        #sl-teacher .sl-tmod{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+        #sl-teacher .sl-tmod .nm{flex:1}
+        #sl-teacher .sl-tmod .v{color:var(--muted);font-size:12px}
+      </style>
+      <h2>📜 申论语料记忆卡（班级概览）<span class="tag">金句 + 规范词</span></h2>
+      <p class="muted" style="margin:6px 0 12px">学生可在「早读」板块自学全量申论语料（写作金句整句背诵、规范词括号填空），系统按每人艾宾浩斯曲线每天推送复习。下方为全班进度概览（实时统计）。</p>
+      <div class="sl-tstats" id="sl-tStats">
+        <div class="sl-tstat"><b id="sl-tLearned">0</b><small>全班已学次数</small></div>
+        <div class="sl-tstat"><b id="sl-tDue">0</b><small>待复习次数</small></div>
+        <div class="sl-tstat"><b id="sl-tMastered">0</b><small>已掌握次数</small></div>
+        <div class="sl-tstat"><b id="sl-tStudents">0</b><small>参与学员</small></div>
+      </div>
+      <h3 style="margin:14px 0 8px">各模块进度</h3>
+      <div id="sl-tModules"></div>
+    </div>
     <div class="card">
       <h2>新建早读内容 <span class="tag">老师推送</span></h2>
       <label>早读标题</label><input id="nm-title" placeholder="如：每日金句 10 条">
@@ -546,7 +567,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   $('#tab-'+b.dataset.tab).classList.remove('hidden');
   if(b.dataset.tab==='dashboard')loadTeacherDashboard();
   if(b.dataset.tab==='courses')loadCourseList();
-  if(b.dataset.tab==='morning'){loadMorningList();loadCheckinStats();}
+  if(b.dataset.tab==='morning'){loadMorningList();loadCheckinStats();slLoadTeacher();}
   if(b.dataset.tab==='questions')loadQuestions();
   if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
   if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
@@ -1391,5 +1412,24 @@ function showTab(name){ _origShowTabReports(name); if(name==='reports'){ loadRep
     <a href="/student.html">学员端</a>
   </div>
 </footer>
+<script>
+// ===================== 申论语料记忆卡 · 教师端班级概览 =====================
+async function slLoadTeacher(){
+  try{
+    const d=await api('/api/shenlun/class-stats');
+    document.getElementById('sl-tLearned').textContent=d.overall.learned;
+    document.getElementById('sl-tDue').textContent=d.overall.due;
+    document.getElementById('sl-tMastered').textContent=d.overall.mastered;
+    document.getElementById('sl-tStudents').textContent=d.studentsWithProgress+' / '+d.students;
+    let html='';
+    (d.byModule||[]).forEach(m=>{
+      const label=m.sub?(m.module.replace(/^跟/,'')+' · '+m.sub):m.module;
+      const kind=m.kind==='guifan'?'规范词':'金句';
+      html+='<div class="sl-tmod"><div class="nm">'+label+' <span class="tag">'+kind+'</span></div><div class="v">已学 '+m.learned+(m.mastered?(' · 掌握'+m.mastered):'')+(m.due?(' · 待复习'+m.due):'')+'</div></div>';
+    });
+    document.getElementById('sl-tModules').innerHTML=html||'<p class="muted">暂无学员开始学习。</p>';
+  }catch(e){document.getElementById('sl-tModules').innerHTML='<p class="muted">加载失败：'+e.message+'</p>';}
+}
+</script>
 </body>
 </html>

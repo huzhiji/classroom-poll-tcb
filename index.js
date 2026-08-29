@@ -812,6 +812,57 @@ app.post('/api/spwords/check', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 申论语料库记忆卡（金句 + 规范词，艾宾浩斯） =================
+// 模块树（用于选择记忆模块）
+app.get('/api/shenlun/modules', (req, res) => {
+  try { res.json(store.getShenlunModules()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 今日任务（按学生 + 可选模块过滤）
+app.get('/api/shenlun/daily', (req, res) => {
+  try {
+    const key = String(req.query.key || '');
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const filter = {};
+    if (req.query.module) filter.module = req.query.module;
+    if (req.query.sub) filter.sub = req.query.sub;
+    res.json(store.getShenlunDaily(key, filter));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/shenlun/stats', (req, res) => {
+  try {
+    const key = String(req.query.key || '');
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json(store.getShenlunStats(key));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 提交复习：金句 grade(remember/fuzzy/forgot) + 规范词 answer(填空文本)
+app.post('/api/shenlun/review', (req, res) => {
+  try {
+    const { studentKey, results } = req.body || {};
+    if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
+    if (!Array.isArray(results) || !results.length) return res.status(400).json(fail('无提交内容'));
+    const r = store.reviewShenlun(studentKey, results);
+    if (r && r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 规范词单独填空检查（即时反馈，不计入复习进度）
+app.post('/api/shenlun/check', (req, res) => {
+  try {
+    const { studentKey, cardId, answer } = req.body || {};
+    if (!cardId || answer === undefined) return res.status(400).json(fail('参数不完整'));
+    const r = store.checkShenlunFill(studentKey, cardId, answer);
+    if (r && r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 班级概览（教师端查看全班申论语料进度）
+app.get('/api/shenlun/class-stats', (req, res) => {
+  try { res.json(store.getShenlunClassStats()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
 // ================= 法律常识课堂练习 =================
 app.get('/api/law/sections', (req, res) => {
   try { res.json(store.getLawSections()); }

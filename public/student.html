@@ -137,6 +137,93 @@
 
   <!-- 早读 -->
   <section id="tab-morning" class="hidden">
+    <div class="card" id="sl-mod" style="border-left:3px solid var(--accent)">
+      <style>
+        #sl-mod .sl-grid{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:6px}
+        @media(max-width:820px){#sl-mod .sl-grid{grid-template-columns:1fr}}
+        #sl-mod .sl-panel{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+        #sl-mod .sl-panel h3{font-size:14px;margin:0 0 10px;color:var(--ink)}
+        #sl-mod .sl-gtitle{font-weight:700;font-size:13px;color:var(--ink);margin:4px 0 6px;display:flex;justify-content:space-between}
+        #sl-mod .sl-gtitle span{color:var(--muted);font-weight:400}
+        #sl-mod .sl-mod{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:13px;color:var(--text)}
+        #sl-mod .sl-mod:hover{border-color:var(--primary);background:var(--bg-hover)}
+        #sl-mod .sl-mod.active{background:var(--primary-l);border-color:var(--primary);color:var(--ink);font-weight:600}
+        #sl-mod .sl-mod .cnt{color:var(--muted);font-size:12px}
+        #sl-mod .sl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+        #sl-mod .sl-stat{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+        #sl-mod .sl-stat b{display:block;font-size:20px;color:var(--primary)}
+        #sl-mod .sl-stat small{color:var(--muted);font-size:12px}
+        #sl-mod .sl-actions{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+        #sl-mod .sl-prog{height:8px;background:var(--bg-elevated);border-radius:6px;overflow:hidden;margin:8px 0}
+        #sl-mod .sl-prog>i{display:block;height:100%;background:var(--primary-grad);width:0;transition:width .2s}
+        #sl-mod .sl-flash{display:none}
+        #sl-mod .sl-flash.on{display:block}
+        #sl-mod .sl-q{font-size:16px;background:var(--bg-elevated);border-left:4px solid var(--primary);padding:14px 16px;border-radius:10px;margin-bottom:12px;white-space:pre-wrap;color:var(--text);line-height:1.8}
+        #sl-mod .sl-q .blank{color:var(--primary);font-weight:700;border-bottom:2px dashed var(--primary);padding:0 6px}
+        #sl-mod .sl-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+        #sl-mod .sl-grade{display:flex;gap:10px;flex-wrap:wrap}
+        #sl-mod .sl-grade button{padding:9px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-elevated);cursor:pointer;font-size:14px;color:var(--text)}
+        #sl-mod .sl-grade button.ok{border-color:var(--ok);color:var(--ok)}
+        #sl-mod .sl-grade button.warn{border-color:var(--warn);color:var(--warn)}
+        #sl-mod .sl-grade button.bad{border-color:var(--err);color:var(--err)}
+        #sl-mod .sl-fillrow{display:flex;gap:8px;margin:8px 0}
+        #sl-mod .sl-fillrow input{flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:var(--bg-page);color:var(--ink)}
+        #sl-mod .sl-fb{font-size:14px;margin-top:8px;padding:8px 10px;border-radius:8px;display:none}
+        #sl-mod .sl-fb.on{display:block}
+        #sl-mod .sl-fb.ok{background:var(--ok-l);color:var(--ok)}
+        #sl-mod .sl-fb.bad{background:var(--err-l);color:var(--err)}
+        #sl-mod .sl-summary{display:none}
+        #sl-mod .sl-summary.on{display:block}
+        #sl-mod .sl-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center}
+      </style>
+      <h2>📜 申论语料记忆卡 <span class="tag">金句 + 规范词</span></h2>
+      <p class="muted" style="margin:6px 0 12px">从《申论高分语料库》全量收录语料：写作金句整句背诵、规范词括号填空。分模块学习，系统按<strong>你本人</strong>的艾宾浩斯遗忘曲线每天推送复习——答对升级（间隔 1→2→4→7→15→30→90 天），答错重置为明天。</p>
+      <div id="sl-needlogin" class="sl-empty" style="display:none">请先在右上角登录 / 注册学员账号，系统才能按你本人记录记忆情况。</div>
+      <div id="sl-body" class="sl-grid">
+        <aside>
+          <div class="sl-panel">
+            <h3>选择记忆模块</h3>
+            <div class="hint">点模块可只学该模块；也可直接点「今日推送」学全部。</div>
+            <div id="sl-modTree"></div>
+          </div>
+          <div class="sl-panel">
+            <h3>我的记忆统计</h3>
+            <div class="sl-stats" id="sl-statsBox">
+              <div class="sl-stat"><b id="sl-sTotal">0</b><small>总卡数</small></div>
+              <div class="sl-stat"><b id="sl-sLearned">0</b><small>已学</small></div>
+              <div class="sl-stat"><b id="sl-sDue">0</b><small>待复习</small></div>
+              <div class="sl-stat"><b id="sl-sMastered">0</b><small>已掌握</small></div>
+            </div>
+          </div>
+        </aside>
+        <main>
+          <div class="sl-panel">
+            <h3>开始学习</h3>
+            <div class="sl-actions">
+              <button class="btn primary" onclick="slStartDaily(null)">▶ 今日推送（全部模块）</button>
+              <button class="btn" id="sl-modStudyBtn" disabled onclick="slStartDaily(slFilter)">▶ 学所选模块</button>
+              <button class="btn ghost" onclick="slReset()">↺ 重置</button>
+            </div>
+            <div class="hint">系统每天只推送「到期 + 少量新卡」，只针对你第一次学或常忘记的卡出题；已掌握的卡不再出现，避免题海。</div>
+            <div class="sl-prog"><i id="sl-progBar"></i></div>
+            <div id="sl-queueInfo" class="hint"></div>
+            <div class="sl-flash" id="sl-flash">
+              <div class="sl-meta" id="sl-flashMeta"></div>
+              <div class="sl-q" id="sl-flashQ"></div>
+              <div id="sl-fillArea"></div>
+              <div class="sl-fb" id="sl-fb"></div>
+              <div class="sl-grade" id="sl-gradeArea"></div>
+            </div>
+            <div class="sl-summary" id="sl-summary">
+              <h3>本次学习小结</h3>
+              <div id="sl-summaryBody"></div>
+              <button class="btn primary" onclick="slReset()">完成 / 再学一轮</button>
+            </div>
+            <div class="sl-empty" id="sl-emptyTip">还没有开始。点上方按钮，或先在左侧选择一个模块。</div>
+          </div>
+        </main>
+      </div>
+    </div>
     <div id="morning-body"></div>
     <div class="card hidden" id="mr-do"><div id="mr-do-body"></div></div>
   </section>
@@ -1328,7 +1415,7 @@ function renderRadarChart(canvasId, cats) {
 }
 // 进入「我的报告」时刷新
 const _sShowTab=showTab;
-function showTab(name){_sShowTab(name);if(name==='report')loadMyReport();}
+function showTab(name){_sShowTab(name);if(name==='report')loadMyReport();if(name==='morning')slRender();}
 </script>
 
 <button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -1336,5 +1423,114 @@ function showTab(name){_sShowTab(name);if(name==='report')loadMyReport();}
   <div class="brand">🎓 选调生学习系统</div>
   <div><a href="/student.html">学员端</a></div>
 </footer>
+<script>
+// ===================== 申论语料记忆卡（嵌入早读标签，复用门户 studentKey/api） =====================
+let slFilter=null, slQueue=[], slIdx=0, slResults=[];
+async function slRender(){
+  if(!studentKey){document.getElementById('sl-needlogin').style.display='block';document.getElementById('sl-body').style.display='none';return;}
+  document.getElementById('sl-needlogin').style.display='none';document.getElementById('sl-body').style.display='grid';
+  await slLoadModules(); await slLoadStats();
+}
+async function slLoadModules(){
+  const mods=await api('/api/shenlun/modules');
+  const groups={};
+  mods.forEach(m=>{(groups[m.kind]=groups[m.kind]||[]).push(m);});
+  const kindName={jinyu:'✍️ 写作金句（整句背诵）',guifan:'🔤 规范词（括号填空）'};
+  let html='';
+  Object.keys(groups).forEach(kind=>{
+    html+='<div class="sl-gtitle">'+((kindName[kind]||kind)+' <span>'+groups[kind].reduce((a,m)=>a+m.count,0)+' 卡</span></div>');
+    groups[kind].forEach(m=>{
+      const f=JSON.stringify({module:m.module,sub:m.sub});
+      const label=m.sub?(m.module.replace(/^跟/,'')+' · '+m.sub):m.module;
+      html+='<div class="sl-mod" data-f=\''+f+'\' onclick="slPickMod(this)">'+label+'<span class="cnt">'+m.count+'</span></div>';
+    });
+  });
+  document.getElementById('sl-modTree').innerHTML=html;
+  document.querySelectorAll('#sl-mod .sl-mod').forEach(el=>{if(el.dataset.f===JSON.stringify(slFilter))el.classList.add('active');});
+}
+function slPickMod(el){
+  document.querySelectorAll('#sl-mod .sl-mod').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active'); slFilter=JSON.parse(el.dataset.f);
+  document.getElementById('sl-modStudyBtn').disabled=false;
+}
+async function slLoadStats(){
+  const s=await api('/api/shenlun/stats?key='+encodeURIComponent(studentKey));
+  document.getElementById('sl-sTotal').textContent=s.total;
+  document.getElementById('sl-sLearned').textContent=s.learned;
+  document.getElementById('sl-sDue').textContent=s.due;
+  document.getElementById('sl-sMastered').textContent=s.mastered;
+}
+async function slStartDaily(filter){
+  if(!studentKey){toast('请先登录/注册学员账号','err');return;}
+  slReset(true);
+  let url='/api/shenlun/daily?key='+encodeURIComponent(studentKey);
+  if(filter&&filter.module)url+='&module='+encodeURIComponent(filter.module);
+  if(filter&&filter.sub)url+='&sub='+encodeURIComponent(filter.sub);
+  const d=await api(url);
+  slQueue=(d.dueCards||[]).concat(d.newCards||[]);
+  document.getElementById('sl-emptyTip').style.display=slQueue.length?'none':'block';
+  if(!slQueue.length){document.getElementById('sl-queueInfo').innerHTML='🎉 该范围今天没有待复习或新卡，已全部掌握或尚未到期。可换个模块，或明天再来。';return;}
+  document.getElementById('sl-queueInfo').innerHTML='本组共 <b>'+slQueue.length+'</b> 张（到期 '+d.dueCards.length+' + 新卡 '+d.newCards.length+'，今日新卡上限 '+d.newLimit+'）';
+  slIdx=0; slResults=[]; slRenderCard();
+}
+function slRenderCard(){
+  const c=slQueue[slIdx];
+  document.getElementById('sl-summary').classList.remove('on');
+  document.getElementById('sl-flash').classList.add('on');
+  document.getElementById('sl-progBar').style.width=Math.round(slIdx/slQueue.length*100)+'%';
+  const kindName=c.kind==='guifan'?'规范词填空':'金句背诵';
+  document.getElementById('sl-flashMeta').innerHTML='第 '+(slIdx+1)+'/'+slQueue.length+' 张 · '+kindName+' · '+c.module+(c.sub?(' · '+c.sub):'')+(c.level?(' · 第'+c.level+'级'):'');
+  const fb=document.getElementById('sl-fb'); fb.className='sl-fb'; fb.innerHTML='';
+  if(c.kind==='guifan'){
+    document.getElementById('sl-flashQ').innerHTML=slRenderContext(c.context);
+    document.getElementById('sl-fillArea').innerHTML='<div class="sl-fillrow"><input id="sl-fillInput" placeholder="在括号处填入规范词" onkeydown="if(event.key===\'Enter\')slSubmitFill()"><button class="btn primary" onclick="slSubmitFill()">提交</button></div>';
+    document.getElementById('sl-gradeArea').innerHTML='';
+  }else{
+    document.getElementById('sl-flashQ').textContent=c.text;
+    document.getElementById('sl-fillArea').innerHTML='';
+    document.getElementById('sl-gradeArea').innerHTML='<button class="sl-grade" onclick="slGrade(\'remember\')">✅ 记得</button><button class="sl-grade warn" onclick="slGrade(\'fuzzy\')">🤔 模糊</button><button class="sl-grade bad" onclick="slGrade(\'forgot\')">❌ 不记得</button>';
+  }
+}
+function slRenderContext(ctx){return (ctx||'').replace('（　　　）','<span class="blank">（　　　）</span>');}
+async function slSubmitFill(){
+  const c=slQueue[slIdx]; const val=document.getElementById('sl-fillInput').value;
+  const chk=await api('/api/shenlun/check',{method:'POST',body:JSON.stringify({studentKey,cardId:c.id,answer:val})});
+  const fb=document.getElementById('sl-fb');
+  if(chk.correct){fb.className='sl-fb ok';fb.innerHTML='✅ 正确！规范词：'+chk.answer;}
+  else{fb.className='sl-fb bad';fb.innerHTML='❌ 不对，正确规范词：<b>'+chk.answer+'</b>（你填：'+(val||'空')+'）';}
+  slResults.push({id:c.id,kind:'guifan',answer:val});
+  document.getElementById('sl-fillArea').innerHTML='';
+  document.getElementById('sl-gradeArea').innerHTML='<button class="btn primary" onclick="slNext()">下一张 →</button>';
+}
+function slGrade(g){
+  const c=slQueue[slIdx]; slResults.push({id:c.id,kind:'jinyu',grade:g});
+  const fb=document.getElementById('sl-fb');
+  if(g==='remember'){fb.className='sl-fb ok';fb.innerHTML='👍 已记为「记得」，间隔拉长。';}
+  else if(g==='fuzzy'){fb.className='sl-fb warn';fb.innerHTML='🤔 记为「模糊」，1 天后复习。';}
+  else{fb.className='sl-fb bad';fb.innerHTML='💡 记为「不记得」，明天重来。';}
+  document.getElementById('sl-gradeArea').innerHTML='<button class="btn primary" onclick="slNext()">下一张 →</button>';
+}
+function slNext(){slIdx++; if(slIdx>=slQueue.length)slFinish(); else slRenderCard();}
+async function slFinish(){
+  document.getElementById('sl-flash').classList.remove('on');
+  document.getElementById('sl-progBar').style.width='100%';
+  const r=await api('/api/shenlun/review',{method:'POST',body:JSON.stringify({studentKey,results:slResults})});
+  let ok=0,bad=0;(r.results||[]).forEach(x=>{if(x.isCorrect)ok++;else bad++;});
+  let html='<p>本次共评 <b>'+(r.results?r.results.length:0)+'</b> 张：答对 <b style="color:var(--ok)">'+ok+'</b>，需重来 <b style="color:var(--err)">'+bad+'</b>。</p>';
+  html+='<p>下一轮复习将按艾宾浩斯曲线自动出现在「今日推送」：答对升级（间隔 1→2→4→7→15→30→90 天），答错重置为明天。</p>';
+  const st=r.stats||{}; html+='<p>累计：已学 '+st.learned+' / 待复习 '+st.due+' / 已掌握 '+st.mastered+'（共 '+st.total+'）。</p>';
+  document.getElementById('sl-summaryBody').innerHTML=html;
+  document.getElementById('sl-summary').classList.add('on');
+  slLoadStats();
+}
+function slReset(silent){
+  slQueue=[];slIdx=0;slResults=[];
+  document.getElementById('sl-flash').classList.remove('on');
+  document.getElementById('sl-summary').classList.remove('on');
+  document.getElementById('sl-progBar').style.width='0';
+  document.getElementById('sl-queueInfo').innerHTML='';
+  if(!silent)document.getElementById('sl-emptyTip').style.display='block';
+}
+</script>
 </body>
 </html>
