@@ -382,6 +382,20 @@
         <button class="btn sm ghost" onclick="resetQuestion()">重置本题作答</button>
       </div>
     </div>
+    <div class="card" id="cr-bank-card">
+      <h2>📚 课堂习题 · 专题发布 <span class="tag">按专题勾选 → 发布</span></h2>
+      <p class="muted">按专题浏览课堂题库（党史 / 中国地理 / 中国航天 …），勾选题目后点「发布」，学生端「课堂 → 📚 课堂习题（专题练习）」即可看到并练习。同一专题重复发布会用新的选择替换原内容；点「取消发布」可下架该专题。</p>
+      <div class="mt-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn ghost sm" onclick="toggleAllCrSec()">展开/收起全部专题</button>
+        <button class="btn ghost sm" onclick="toggleAllCrAna()">展开/收起全部解析</button>
+        <span class="muted sm" id="cr-bank-sum"></span>
+      </div>
+      <div id="cr-bank-tree" class="mt-3"></div>
+      <div class="card mt-3" id="cr-push-card">
+        <h3 style="font-size:15px;margin:0 0 8px">当前已发布（学生端「课堂」可见）</h3>
+        <div id="cr-push-list" class="muted">加载中…</div>
+      </div>
+    </div>
     <div class="card">
       <h2>📘 法律常识课堂题目 <span class="tag">勾选题目 → 推送</span></h2>
       <p class="muted">按「类别 → 部分」浏览题库，勾选要发布的题目（可跨部分多选）；每题点「查看答案与解析」展开讲解。推送后学生端「课堂」可见。</p>
@@ -576,7 +590,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab==='questions')loadQuestions();
   if(b.dataset.tab==='exams'){loadQuestions();loadExams();}
   if(b.dataset.tab==='classroom'&&!$('#cr-panel').classList.contains('hidden'))loadRoomPick();
-  if(b.dataset.tab==='classroom')loadLawAdmin();
+  if(b.dataset.tab==='classroom'){loadLawAdmin();loadClassroomBankAdmin();}
   if(b.dataset.tab==='backup')loadSnapshots();
   if(b.dataset.tab==='reminder')previewReminder();
 });
@@ -727,6 +741,93 @@ async function saveAnswers(){
 async function loadExamPick(){
   const list=await api('/api/questions');
   $('#exam-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" value="${q.id}"><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';
+}
+
+// ---- 课堂习题 · 专题发布（课堂模块：按专题浏览题库 → 勾选 → 发布） ----
+async function loadClassroomBankAdmin(){
+  try{
+    const [bank, pushs]=await Promise.all([api('/api/classroom/bank'), api('/api/classroom/push')]);
+    const box=document.getElementById('cr-bank-tree');
+    if(box){
+      box.innerHTML=(bank||[]).map(t=>{
+        const rows=t.questions.map((q,i)=>`<div class="law-q">
+          <label class="law-q-row">
+            <input type="checkbox" class="cr-chk" data-topic="${esc(t.topic)}" data-qid="${esc(q.id)}" onchange="updateCrSelCount()">
+            <span class="law-q-title"><span class="no">${i+1}.</span> ${esc(q.title)}</span>
+          </label>
+          <div class="law-q-meta"><span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${lawTypeName(q.type)}</span></div>
+          <details class="law-q-ana"><summary>查看答案与解析</summary>
+            <div class="law-q-ans">答案：${esc(lawAnsTxt(q))}</div>
+            <div class="ana">${esc(q.analysis||'（暂无解析）')}</div>
+          </details>
+        </div>`).join('');
+        return `<details class="law-sec cr-sec">
+          <summary class="law-sec-head">${esc(t.topic)} <span class="muted">${t.count}题</span>
+            <span class="law-sec-act" onclick="event.preventDefault();event.stopPropagation();toggleCrTopic('${esc(t.topic)}',this)">全选本专题</span>
+          </summary>${rows}</details>`;
+      }).join('')||'<p class="muted">题库为空。</p>';
+      box.innerHTML+=`<div class="law-sticky-bar">
+        <span class="hint">已选 <b id="cr-sel-count">0</b> 题</span>
+        <button class="btn push-btn" onclick="pushClassroomSelected()">📤 发布所选题目</button>
+      </div>`;
+      box.querySelectorAll('.cr-sec').forEach(d=>d.open=false);
+      box.querySelectorAll('.law-q-ana').forEach(d=>d.open=false);
+    }
+    const sum=document.getElementById('cr-bank-sum');
+    if(sum) sum.textContent='题库共 '+(bank||[]).length+' 个专题 / '+(bank||[]).reduce((n,t)=>n+t.count,0)+' 题';
+    renderClassroomPushList(pushs);
+  }catch(e){toast(e.message,'err');}
+}
+function updateCrSelCount(){
+  const n=document.querySelectorAll('.cr-chk:checked').length;
+  const el=document.getElementById('cr-sel-count');if(el)el.textContent=n;
+}
+function toggleCrTopic(topic,el){
+  const rows=[...document.querySelectorAll('.cr-chk')].filter(c=>c.dataset.topic===topic);
+  const target=!rows.some(c=>c.checked);
+  rows.forEach(c=>c.checked=target);
+  updateCrSelCount();
+  el.textContent=target?'清空本专题':'全选本专题';
+}
+function toggleAllCrSec(){
+  const ds=[...document.querySelectorAll('#cr-bank-tree .cr-sec')];
+  const open=!ds.some(d=>d.open);
+  ds.forEach(d=>d.open=open);
+}
+function toggleAllCrAna(){
+  const ds=[...document.querySelectorAll('#cr-bank-tree .law-q-ana')];
+  const open=!ds.some(d=>d.open);
+  ds.forEach(d=>d.open=open);
+}
+async function renderClassroomPushList(pushs){
+  const list=pushs||await api('/api/classroom/push');
+  const box=document.getElementById('cr-push-list');if(!box)return;
+  if(!list||!list.length){box.innerHTML='<p class="muted">当前没有发布任何专题练习。</p>';return;}
+  box.innerHTML=list.map(p=>
+    `<div class="exam-card" style="margin-bottom:6px"><div class="info"><b>${esc(p.title)}</b><div class="meta">${p.count} 题</div></div><div class="acts"><button class="btn danger sm" onclick="removeClassroomPush('${p.id}')">取消发布</button></div></div>`
+  ).join('');
+}
+async function pushClassroomSelected(){
+  const chks=[...document.querySelectorAll('.cr-chk:checked')];
+  if(!chks.length){toast('请先勾选要发布的题目','err');return;}
+  const groups={};
+  chks.forEach(c=>{
+    const t=c.dataset.topic;
+    if(!groups[t])groups[t]={topic:t,qids:[]};
+    groups[t].qids.push(c.dataset.qid);
+  });
+  try{
+    await api('/api/classroom/push',{method:'POST',body:JSON.stringify({items:Object.values(groups)})});
+    toast('已发布 '+Object.keys(groups).length+' 个专题','ok');
+    await loadClassroomBankAdmin();
+  }catch(e){toast(e.message,'err');}
+}
+async function removeClassroomPush(id){
+  try{
+    await api('/api/classroom/push',{method:'POST',body:JSON.stringify({action:'remove',id})});
+    toast('已取消发布','ok');
+    await loadClassroomBankAdmin();
+  }catch(e){toast(e.message,'err');}
 }
 
 // ---- 法律常识课堂题目（教师端：题库浏览 + 逐题勾选发布 + 统计） ----

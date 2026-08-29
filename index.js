@@ -908,6 +908,26 @@ app.post('/api/law/submit', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 课堂练习（课堂模块：按专题浏览题库 → 教师勾选发布） =================
+app.get('/api/classroom/bank', (req, res) => {
+  try { res.json(store.getClassroomBank()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.get('/api/classroom/push', (req, res) => {
+  try { res.json(store.getClassroomPush()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+app.post('/api/classroom/push', (req, res) => {
+  try {
+    const { action, items, id } = req.body || {};
+    if (action === 'remove') return res.json(store.removeClassroomPush(id));
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) return res.status(400).json(fail('请先勾选要发布的题目'));
+    if (list.some((it) => !it.topic)) return res.status(400).json(fail('推送配置缺少专题名'));
+    res.json(store.addClassroomPush(list));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
 // ================= 仪表盘 =================
 app.get('/api/dashboard/student', (req, res) => {
   const key = req.query.key; if (!key) return res.status(400).json(fail('缺少学生标识'));

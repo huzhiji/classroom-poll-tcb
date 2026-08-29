@@ -99,6 +99,10 @@
       <div id="cr-live-body" class="muted">等待教师发布题目…</div>
       <div id="cr-live-stats" class="mt-3"></div>
     </div>
+    <div class="card" id="cr-topic-card">
+      <h2>📚 课堂习题（专题练习）</h2>
+      <div id="cr-topic-list" class="muted">老师尚未发布专题练习，请稍候。</div>
+    </div>
     <div class="card" id="law-card">
       <h2>📘 法律常识练习</h2>
       <div id="law-push-list" class="muted">老师尚未推送练习，请稍候。</div>
@@ -379,7 +383,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   if(b.dataset.tab==='mine')loadMine();
   if(b.dataset.tab==='memory')loadMemory();
   if(b.dataset.tab==='morning')loadMorning();
-  if(b.dataset.tab==='classroom')loadLawStudent();
+  if(b.dataset.tab==='classroom'){loadLawStudent();loadClassroomTopics();}
 });
 
 // ---- 考试列表（折叠视图） ----
@@ -401,8 +405,9 @@ async function loadExamList(){
     const ansCounts = prog.answeredCounts||{};
     const draftMap = (draftsRes&&draftsRes.drafts)||{};
     const byCat={};
-    exams.forEach(e=>{const c=(e&&e.category)||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
-    examDataCache={exams,byCat,doneSet,draftMap,byTop,ansCounts};
+    const visible=exams.filter(e=>e&&e.mode!=='classroom'); // 课堂练习集属「课堂」模块，不在考试列表显示
+    visible.forEach(e=>{const c=(e&&e.category)||'国省考真题';(byCat[c]=byCat[c]||[]).push(e);});
+    examDataCache={exams:visible,byCat,doneSet,draftMap,byTop,ansCounts};
     renderExamListView();
   }catch(e){toast(e.message,'err');}
 }
@@ -725,7 +730,15 @@ function backToExams(){
   if(hasAns){saveDraftNow(examIdCurrent).then(()=>_goList()).catch(()=>_goList());}
   else _goList();
 }
-function _goList(){$('#exam-list-card').classList.remove('hidden');$('#exam-do-card').classList.add('hidden');loadExamList();loadMine();}
+function _goList(){
+  if(practiceHost==='classroom'){ // 从「课堂」tab 进入的练习 → 返回课堂
+    practiceHost='exam';
+    const b=document.querySelector('.nav button[data-tab="classroom"]');
+    if(b) b.click();
+    return;
+  }
+  $('#exam-list-card').classList.remove('hidden');$('#exam-do-card').classList.add('hidden');loadExamList();loadMine();
+}
 async function submitExam(id){
   const answeredCount=examSeq.filter(qid=>{const a=examAnswers[qid];return a!==undefined&&!(Array.isArray(a)&&!a.length);}).length;
   const unanswered=examTotal-answeredCount;
@@ -742,9 +755,28 @@ async function submitExam(id){
       if(d.analysis)h+=`<div class="ana">解析：${esc(d.analysis)}</div>`;
       h+=`</div>`;
     });
-    h+=`<div class="center"><button class="btn ghost" onclick="backToExams()">返回考试列表</button></div>`;
+    h+=`<div class="center"><button class="btn ghost" onclick="backToExams()">${practiceHost==='classroom'?'返回课堂练习':'返回考试列表'}</button></div>`;
     $('#exam-do').innerHTML=h;window.scrollTo(0,0);
   }catch(e){toast(e.message,'err');}
+}
+
+// ---- 课堂习题专题练习（课堂模块：教师按专题发布 → 学生在此练习） ----
+let practiceHost='exam'; // 'exam' | 'classroom'：记录练习从哪个入口进入，用于「返回」时回到对应 tab
+async function loadClassroomTopics(){
+  const box=$('#cr-topic-list'); if(!box) return;
+  try{
+    const list=await api('/api/classroom/push');
+    if(!list||!list.length){box.innerHTML='<p class="muted">老师尚未发布专题练习，请稍候。</p>';return;}
+    box.innerHTML='<p class="muted">共 '+list.length+' 个专题练习：</p>'+
+      list.map(p=>`<div class="exam-card" style="margin-bottom:8px"><div class="info"><b>${esc(p.title)}</b><div class="meta">${p.count} 题</div></div><div class="acts"><button class="btn sm" onclick="startClassroomPractice('${p.id}')">开始练习</button></div></div>`).join('');
+  }catch(e){box.innerHTML='<p class="muted">加载失败：'+esc(e.message)+'</p>';}
+}
+// 复用考试答题引擎；返回时回到「课堂」tab
+function startClassroomPractice(id){
+  practiceHost='classroom';
+  const b=document.querySelector('.nav button[data-tab="exam"]');
+  if(b) b.click();
+  enterExam(id);
 }
 
 // ---- 课堂 ----
