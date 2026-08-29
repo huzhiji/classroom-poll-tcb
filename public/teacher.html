@@ -363,6 +363,11 @@
       <h2>课堂控制面板 <span class="tag" id="cr-id"></span></h2>
       <div class="linkbox" id="cr-link"></div>
       <label>从题库选择本堂题目（勾选后加载）</label>
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0 10px;flex-wrap:wrap">
+        <select id="cr-topic-filter" class="btn ghost sm" onchange="crFilterPick()"><option value="">全部专题</option></select>
+        <button class="btn ghost sm" onclick="crSelectFiltered()">全选当前筛选</button>
+        <span class="muted" id="cr-pick-count" style="font-size:12px"></span>
+      </div>
       <div class="qlist" id="cr-pick" style="max-height:260px"></div>
       <div class="mt-3"><button class="btn ghost sm" onclick="loadRoomQuestions()">加载选中题目到房间</button> <button class="btn danger sm" onclick="closeRoom()">关闭房间</button></div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
@@ -952,7 +957,30 @@ async function loadLawStats(){
 // ---- 课堂模式 ----
 let crRoomId=null,crQuestions=[],crIdx=-1;
 async function createRoom(){try{const d=await api('/api/create-room',{method:'POST',body:'{}'});crRoomId=d.roomId;$('#cr-create').classList.add('hidden');$('#cr-panel').classList.remove('hidden');$('#cr-id').textContent='房间号 '+crRoomId;$('#cr-link').innerHTML='学生进入：<b>'+location.origin+'/student.html#room='+crRoomId+'</b>';loadRoomPick();}catch(e){toast(e.message,'err');}}
-async function loadRoomPick(){const list=await api('/api/questions');$('#cr-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" class="crq" value="${q.id}" data-q='${esc(JSON.stringify({title:q.title,options:q.options,correctAnswer:q.correctAnswer}))}'><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';}
+let crAllQ=[];
+async function loadRoomPick(){
+  const list=await api('/api/questions');
+  crAllQ=Array.isArray(list)?list:[];
+  const topics=[...new Set(crAllQ.map(q=>q.topic||'未分类'))].sort((a,b)=>a.localeCompare(b,'zh'));
+  const sel=$('#cr-topic-filter');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">全部专题</option>'+topics.map(t=>`<option value="${esc(t)}">${esc(t)}（${crAllQ.filter(q=>(q.topic||'未分类')===t).length}）</option>`).join('');
+  sel.value=cur;
+  crFilterPick();
+}
+function crFilterPick(){
+  const f=$('#cr-topic-filter').value;
+  const list=f?crAllQ.filter(q=>(q.topic||'未分类')===f):crAllQ;
+  $('#cr-pick-count').textContent='共 '+list.length+' 题';
+  $('#cr-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" class="crq" value="${q.id}" data-q='${esc(JSON.stringify({title:q.title,options:q.options,correctAnswer:q.correctAnswer}))}'><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">该专题暂无题目</div>';
+}
+function crSelectFiltered(){
+  const f=$('#cr-topic-filter').value;
+  const list=f?crAllQ.filter(q=>(q.topic||'未分类')===f):crAllQ;
+  let n=0;
+  list.forEach(q=>{const cb=document.querySelector('.crq[value="'+q.id+'"]');if(cb){cb.checked=true;n++;}});
+  toast('已勾选 '+n+' 题','ok');
+}
 async function loadRoomQuestions(){
   const picked=[...document.querySelectorAll('.crq:checked')].map(c=>JSON.parse(c.dataset.q));
   if(!picked.length){toast('请勾选题目','err');return;}
