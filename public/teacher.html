@@ -383,8 +383,9 @@
       </div>
     </div>
     <div class="card" id="cr-bank-card">
-      <h2>📚 课堂习题 · 专题发布 <span class="tag">按专题勾选 → 发布</span></h2>
-      <p class="muted">按专题浏览课堂题库（党史 / 中国地理 / 中国航天 …），勾选题目后点「发布」，学生端「课堂 → 📚 课堂习题（专题练习）」即可看到并练习。同一专题重复发布会用新的选择替换原内容；点「取消发布」可下架该专题。</p>
+      <h2>📚 课堂题目 <span class="tag">按专题勾选 → 发布</span></h2>
+      <p class="muted">课堂习题与法律常识题库统一管理：按专题 / 类别浏览题库，勾选题目后点「发布」，学生端「课堂」即可看到并练习。同一专题重复发布会用新的选择替换原内容；点「取消发布 / 移除」可下架。</p>
+      <h3 style="font-size:15px;margin:14px 0 6px">课堂习题（按专题）</h3>
       <div class="mt-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn ghost sm" onclick="toggleAllCrSec()">展开/收起全部专题</button>
         <button class="btn ghost sm" onclick="toggleAllCrAna()">展开/收起全部解析</button>
@@ -392,12 +393,12 @@
       </div>
       <div id="cr-bank-tree" class="mt-3"></div>
       <div class="card mt-3" id="cr-push-card">
-        <h3 style="font-size:15px;margin:0 0 8px">当前已发布（学生端「课堂」可见）</h3>
+        <h3 style="font-size:15px;margin:0 0 8px">课堂习题 · 当前已发布</h3>
         <div id="cr-push-list" class="muted">加载中…</div>
       </div>
-    </div>
-    <div class="card">
-      <h2>📘 法律常识课堂题目 <span class="tag">勾选题目 → 推送</span></h2>
+
+      <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
+      <h3 style="font-size:15px;margin:0 0 6px">📘 法律常识（按类别 → 部分）</h3>
       <p class="muted">按「类别 → 部分」浏览题库，勾选要发布的题目（可跨部分多选）；每题点「查看答案与解析」展开讲解。推送后学生端「课堂」可见。</p>
       <div class="law-toolbar">
         <div class="law-batch">
@@ -417,7 +418,7 @@
       <div id="law-tree" class="mt-2"></div>
       <div id="law-push-list" class="mt-3"></div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-      <h2 style="font-size:15px">📊 正确率统计</h2>
+      <h3 style="font-size:15px">📊 法律常识 · 正确率统计</h3>
       <div id="law-stats" class="mt-2"></div>
     </div>
   </section>
