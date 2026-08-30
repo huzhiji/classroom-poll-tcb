@@ -112,6 +112,27 @@ app.delete('/api/exams/:id', (req, res) => {
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 
+// ================= 数据整理（重复性维护操作） =================
+// 合并重复试卷：把源卷的学生记录迁移到目标卷后再删除源卷，避免记录变孤儿
+// body: { from: 'e155', to: 'e164' }
+app.post('/api/admin/merge-exams', (req, res) => {
+  try {
+    const { from, to } = req.body || {};
+    if (!from || !to) return res.status(400).json(fail('缺少 from / to'));
+    const r = store.mergeExams(from, to);
+    if (r.error) return res.status(400).json(fail(r.error));
+    res.json(r);
+  } catch (e) { res.status(500).json(fail('合并失败: ' + e.message)); }
+});
+
+// 题目去重：题干+选项+答案+题型完全相同的只留一条，删除前自动重映射考试引用
+// body: { dryRun: true } 预演，不落盘；dryRun 省略或 false 则执行
+app.post('/api/admin/dedupe-questions', (req, res) => {
+  try {
+    res.json(store.dedupeQuestions(req.body || {}));
+  } catch (e) { res.status(500).json(fail('去重失败: ' + e.message)); }
+});
+
 // 提交考试答卷
 app.post('/api/exams/:id/submit', (req, res) => {
   try {
