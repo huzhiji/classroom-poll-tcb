@@ -915,6 +915,11 @@ app.get('/api/classroom/bank', (req, res) => {
   try { res.json(store.getClassroomBank()); }
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
+// 教师端「课堂题目」统一题库：课堂习题（按专题）+ 法律常识（按类别→部分）合并为一组分组
+app.get('/api/classroom/unified-bank', (req, res) => {
+  try { res.json(store.getUnifiedClassroomBank()); }
+  catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
 app.get('/api/classroom/push', (req, res) => {
   try { res.json(store.getClassroomPush()); }
   catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }

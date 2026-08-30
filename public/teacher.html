@@ -383,42 +383,33 @@
       </div>
     </div>
     <div class="card" id="cr-bank-card">
-      <h2>📚 课堂题目 <span class="tag">按专题勾选 → 发布</span></h2>
-      <p class="muted">课堂习题与法律常识题库统一管理：按专题 / 类别浏览题库，勾选题目后点「发布」，学生端「课堂」即可看到并练习。同一专题重复发布会用新的选择替换原内容；点「取消发布 / 移除」可下架。</p>
-      <h3 style="font-size:15px;margin:14px 0 6px">课堂习题（按专题）</h3>
-      <div class="mt-3" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button class="btn ghost sm" onclick="toggleAllCrSec()">展开/收起全部专题</button>
-        <button class="btn ghost sm" onclick="toggleAllCrAna()">展开/收起全部解析</button>
-        <span class="muted sm" id="cr-bank-sum"></span>
-      </div>
-      <div id="cr-bank-tree" class="mt-3"></div>
-      <div class="card mt-3" id="cr-push-card">
-        <h3 style="font-size:15px;margin:0 0 8px">课堂习题 · 当前已发布</h3>
-        <div id="cr-push-list" class="muted">加载中…</div>
-      </div>
-
-      <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
-      <h3 style="font-size:15px;margin:0 0 6px">📘 法律常识（按类别 → 部分）</h3>
-      <p class="muted">按「类别 → 部分」浏览题库，勾选要发布的题目（可跨部分多选）；每题点「查看答案与解析」展开讲解。推送后学生端「课堂」可见。</p>
+      <h2>📚 课堂题目 <span class="tag">勾选题目 → 发布</span></h2>
+      <p class="muted">课堂习题（按专题）与法律常识（按类别 → 部分）已合并为同一个题库。勾选要发布的题目后点「发布」；用「批量设置」可对勾选题目统一控制答案 / 解析是否向学生公布（未勾选任何题时作用于全部）。同一分组重复发布会用新的选择替换原内容；点「取消发布 / 移除」可下架。</p>
       <div class="law-toolbar">
         <div class="law-batch">
-          <span class="muted sm">批量设置可见性：</span>
-          <button class="btn ghost xs" onclick="setAllLawVis('ans',true)">答案可见</button>
-          <button class="btn ghost xs" onclick="setAllLawVis('ans',false)">答案隐藏</button>
-          <button class="btn ghost xs" onclick="setAllLawVis('ana',true)">解析可见</button>
-          <button class="btn ghost xs" onclick="setAllLawVis('ana',false)">解析隐藏</button>
+          <span class="muted sm">批量设置（作用于已勾选的题）：</span>
+          <button class="btn ghost xs" onclick="batchCrVis('ans',true)">答案可见</button>
+          <button class="btn ghost xs" onclick="batchCrVis('ans',false)">答案隐藏</button>
+          <button class="btn ghost xs" onclick="batchCrVis('ana',true)">解析可见</button>
+          <button class="btn ghost xs" onclick="batchCrVis('ana',false)">解析隐藏</button>
         </div>
         <div class="btnrow">
-          <button class="btn ghost sm" onclick="toggleAllLawSec()">展开/收起全部部分</button>
-          <button class="btn ghost sm" onclick="toggleAllLawAna()">展开/收起全部解析</button>
-          <button class="btn ghost sm" onclick="clearLawPushs()">停止全部推送</button>
+          <button class="btn ghost sm" onclick="toggleAllCrSec()">展开/收起全部分组</button>
+          <button class="btn ghost sm" onclick="toggleAllCrAna()">展开/收起全部解析</button>
+          <button class="btn ghost sm" onclick="selectAllCr(true)">全选</button>
+          <button class="btn ghost sm" onclick="selectAllCr(false)">清空选择</button>
+          <span class="muted sm" id="cr-bank-sum"></span>
         </div>
       </div>
-      <p class="muted sm" style="margin:2px 0 0">每题可单独开关「答案 / 解析」是否向学生公布；选项上的彩色标签 = 学生选择分布（绿=正确项，红=被选错的选项，数字=人数 / 占比）。默认各部分与解析均为折叠。</p>
-      <div id="law-tree" class="mt-2"></div>
-      <div id="law-push-list" class="mt-3"></div>
+      <p class="muted sm" style="margin:2px 0 0">每题可单独开关「答案 / 解析」是否向学生公布。默认各分组与解析均为折叠。</p>
+      <div id="cr-bank-tree" class="mt-3"></div>
+      <div class="card mt-3" id="cr-push-card">
+        <h3 style="font-size:15px;margin:0 0 8px">当前已发布（学生端「课堂」可见）</h3>
+        <div id="cr-push-list" class="muted">加载中…</div>
+        <div id="law-push-list" class="mt-3"></div>
+      </div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-      <h3 style="font-size:15px">📊 法律常识 · 正确率统计</h3>
+      <h3 style="font-size:15px">📊 正确率统计</h3>
       <div id="law-stats" class="mt-2"></div>
     </div>
   </section>
@@ -744,29 +735,53 @@ async function loadExamPick(){
   $('#exam-pick').innerHTML=list.length?list.map(q=>`<div class="qitem"><input type="checkbox" value="${q.id}"><div class="qtitle"><div>${esc(q.title)}</div><div class="meta">${q.type==='judge'?'判断':'选择'} · ${esc(q.topic)}</div></div></div>`).join(''):'<div class="muted" style="padding:14px">题库为空</div>';
 }
 
-// ---- 课堂习题 · 专题发布（课堂模块：按专题浏览题库 → 勾选 → 发布） ----
+// ---- 课堂题目（统一题库：课堂习题 + 法律常识，勾选 → 发布） ----
+let crVis = {};         // qid -> {ans, ana} 逐题「答案 / 解析」是否向学生公布
+let crGroupsCache = []; // 当前渲染的分组（发布时按 key 反查来源）
+
 async function loadClassroomBankAdmin(){
   try{
-    const [bank, pushs]=await Promise.all([api('/api/classroom/bank'), api('/api/classroom/push')]);
+    const [groups, clsPush, lawPush]=await Promise.all([
+      api('/api/classroom/unified-bank'),
+      api('/api/classroom/push'),
+      api('/api/law/push')
+    ]);
+    crGroupsCache = groups || [];
+    // 用已有发布配置初始化逐题可见性
+    const cfg={};
+    (clsPush||[]).forEach(p=>{(p.items||[]).forEach(it=>{cfg[String(it.qid)]={ans:it.showAnswer!==false, ana:it.showAnalysis!==false};});});
+    (lawPush||[]).forEach(p=>{
+      if(p.items&&p.items.length){p.items.forEach(it=>{cfg[String(it.qid)]={ans:it.showAnswer!==false, ana:it.showAnalysis!==false};});}
+      else if(p.qids&&p.qids.length){p.qids.forEach(qid=>{cfg[String(qid)]={ans:p.showAnswer!==false, ana:p.showAnalysis!==false};});}
+    });
     const box=document.getElementById('cr-bank-tree');
     if(box){
-      box.innerHTML=(bank||[]).map(t=>{
-        const rows=t.questions.map((q,i)=>`<div class="law-q">
-          <label class="law-q-row">
-            <input type="checkbox" class="cr-chk" data-topic="${esc(t.topic)}" data-qid="${esc(q.id)}" onchange="updateCrSelCount()">
-            <span class="law-q-title"><span class="no">${i+1}.</span> ${esc(q.title)}</span>
-          </label>
-          <div class="law-q-meta"><span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${lawTypeName(q.type)}</span></div>
-          <details class="law-q-ana"><summary>查看答案与解析</summary>
-            <div class="law-q-ans">答案：${esc(lawAnsTxt(q))}</div>
-            <div class="ana">${esc(q.analysis||'（暂无解析）')}</div>
-          </details>
-        </div>`).join('');
-        return `<details class="law-sec cr-sec">
-          <summary class="law-sec-head">${esc(t.topic)} <span class="muted">${t.count}题</span>
-            <span class="law-sec-act" onclick="event.preventDefault();event.stopPropagation();toggleCrTopic('${esc(t.topic)}',this)">全选本专题</span>
+      box.innerHTML=(crGroupsCache.map(g=>{
+        const rows=g.questions.map((q,i)=>{
+          if(crVis[q.id]===undefined) crVis[q.id]=cfg[q.id]?{ans:cfg[q.id].ans, ana:cfg[q.id].ana}:{ans:true, ana:true};
+          const v=crVis[q.id];
+          return `<div class="law-q">
+            <label class="law-q-row">
+              <input type="checkbox" class="cr-chk" data-source="${esc(g.source)}" data-key="${esc(g.key)}" data-qid="${esc(q.id)}" onchange="updateCrSelCount()">
+              <span class="law-q-title"><span class="no">${i+1}.</span> ${esc(q.title)}</span>
+            </label>
+            <div class="law-q-meta"><span class="badge ${q.type==='multi'?'multi':(q.type==='judge'?'judge':'')}">${lawTypeName(q.type)}</span></div>
+            <div class="law-q-vis">
+              <span class="lbl">向学生公布：</span>
+              <button type="button" class="vis-chip ${v.ans?'on':''}" data-qid="${esc(q.id)}" data-kind="ans" onclick="toggleCrVis('${esc(q.id)}','ans',this)">答案</button>
+              <button type="button" class="vis-chip ${v.ana?'on':''}" data-qid="${esc(q.id)}" data-kind="ana" onclick="toggleCrVis('${esc(q.id)}','ana',this)">解析</button>
+            </div>
+            <details class="law-q-ana"><summary>查看答案与解析</summary>
+              <div class="law-q-ans">答案：${esc(lawAnsTxt(q))}</div>
+              <div class="ana">${esc(q.analysis||'（暂无解析）')}</div>
+            </details>
+          </div>`;
+        }).join('');
+        return `<details class="law-sec cr-sec" data-key="${esc(g.key)}">
+          <summary class="law-sec-head">${esc(g.group)} <span class="muted">${g.count}题 · ${esc(g.sourceLabel)}</span>
+            <span class="law-sec-act" onclick="event.preventDefault();event.stopPropagation();toggleCrGroup('${esc(g.key)}',this)">全选本组</span>
           </summary>${rows}</details>`;
-      }).join('')||'<p class="muted">题库为空。</p>';
+      }).join(''))||'<p class="muted">题库为空。</p>';
       box.innerHTML+=`<div class="law-sticky-bar">
         <span class="hint">已选 <b id="cr-sel-count">0</b> 题</span>
         <button class="btn push-btn" onclick="pushClassroomSelected()">📤 发布所选题目</button>
@@ -775,20 +790,26 @@ async function loadClassroomBankAdmin(){
       box.querySelectorAll('.law-q-ana').forEach(d=>d.open=false);
     }
     const sum=document.getElementById('cr-bank-sum');
-    if(sum) sum.textContent='题库共 '+(bank||[]).length+' 个专题 / '+(bank||[]).reduce((n,t)=>n+t.count,0)+' 题';
-    renderClassroomPushList(pushs);
+    if(sum) sum.textContent='共 '+crGroupsCache.length+' 个分组 / '+crGroupsCache.reduce((n,g)=>n+g.count,0)+' 题';
+    renderClassroomPushList(clsPush);
   }catch(e){toast(e.message,'err');}
 }
 function updateCrSelCount(){
   const n=document.querySelectorAll('.cr-chk:checked').length;
   const el=document.getElementById('cr-sel-count');if(el)el.textContent=n;
 }
-function toggleCrTopic(topic,el){
-  const rows=[...document.querySelectorAll('.cr-chk')].filter(c=>c.dataset.topic===topic);
+// 全选 / 清空 单个分组
+function toggleCrGroup(key,el){
+  const rows=[...document.querySelectorAll('.cr-chk')].filter(c=>c.dataset.key===key);
   const target=!rows.some(c=>c.checked);
   rows.forEach(c=>c.checked=target);
   updateCrSelCount();
-  el.textContent=target?'清空本专题':'全选本专题';
+  el.textContent=target?'清空本组':'全选本组';
+}
+// 全选 / 清空 整个题库
+function selectAllCr(on){
+  document.querySelectorAll('.cr-chk').forEach(c=>c.checked=!!on);
+  updateCrSelCount();
 }
 function toggleAllCrSec(){
   const ds=[...document.querySelectorAll('#cr-bank-tree .cr-sec')];
@@ -800,26 +821,57 @@ function toggleAllCrAna(){
   const open=!ds.some(d=>d.open);
   ds.forEach(d=>d.open=open);
 }
+// 单题可见性开关
+function toggleCrVis(qid, kind, el){
+  if(!crVis[qid]) crVis[qid]={ans:true, ana:true};
+  crVis[qid][kind]=!crVis[qid][kind];
+  el.classList.toggle('on', crVis[qid][kind]);
+}
+// 批量设置可见性：作用于当前勾选的题；未勾选任何题时作用于全部
+function batchCrVis(kind, val){
+  const chks=[...document.querySelectorAll('.cr-chk')];
+  if(!chks.length){toast('题库为空','err');return;}
+  const picked=chks.filter(c=>c.checked);
+  const targets=picked.length?picked:chks;
+  targets.forEach(c=>{
+    const qid=c.dataset.qid;
+    if(!crVis[qid]) crVis[qid]={ans:true, ana:true};
+    crVis[qid][kind]=val;
+    const chip=document.querySelector('.vis-chip[data-qid="'+qid+'"][data-kind="'+kind+'"]');
+    if(chip) chip.classList.toggle('on', val);
+  });
+  const scope=picked.length?('勾选的 '+picked.length+' 题'):('全部 '+targets.length+' 题');
+  toast((kind==='ans'?'答案':'解析')+(val?'已设为可见':'已设为隐藏')+'（'+scope+'）','ok');
+}
 async function renderClassroomPushList(pushs){
   const list=pushs||await api('/api/classroom/push');
   const box=document.getElementById('cr-push-list');if(!box)return;
-  if(!list||!list.length){box.innerHTML='<p class="muted">当前没有发布任何专题练习。</p>';return;}
+  if(!list||!list.length){box.innerHTML='<p class="muted">当前没有发布任何课堂习题专题。</p>';return;}
   box.innerHTML=list.map(p=>
-    `<div class="exam-card" style="margin-bottom:6px"><div class="info"><b>${esc(p.title)}</b><div class="meta">${p.count} 题</div></div><div class="acts"><button class="btn danger sm" onclick="removeClassroomPush('${p.id}')">取消发布</button></div></div>`
+    `<div class="exam-card" style="margin-bottom:6px"><div class="info"><b>${esc(p.title)}</b><div class="meta">${p.count} 题 · 答案 ${p.ansVisible}/${p.count} 可见 · 解析 ${p.anaVisible}/${p.count} 可见</div></div><div class="acts"><button class="btn danger sm" onclick="removeClassroomPush('${p.id}')">取消发布</button></div></div>`
   ).join('');
 }
+// 统一发布：按 source 分别投递到「课堂习题」与「法律常识」后端
 async function pushClassroomSelected(){
   const chks=[...document.querySelectorAll('.cr-chk:checked')];
   if(!chks.length){toast('请先勾选要发布的题目','err');return;}
-  const groups={};
+  const cls={}, law={};
   chks.forEach(c=>{
-    const t=c.dataset.topic;
-    if(!groups[t])groups[t]={topic:t,qids:[]};
-    groups[t].qids.push(c.dataset.qid);
+    const g=crGroupsCache.find(x=>x.key===c.dataset.key);
+    if(!g) return;
+    const vis=crVis[c.dataset.qid]||{ans:true,ana:true};
+    if(g.source==='law'){
+      const k=g.cat+'|'+g.section;
+      (law[k]=law[k]||{cat:g.cat,section:g.section,configs:[]}).configs.push({qid:c.dataset.qid,showAnswer:vis.ans,showAnalysis:vis.ana});
+    }else{
+      (cls[g.topic]=cls[g.topic]||{topic:g.topic,configs:[]}).configs.push({qid:c.dataset.qid,showAnswer:vis.ans,showAnalysis:vis.ana});
+    }
   });
+  const clsArr=Object.values(cls), lawArr=Object.values(law);
   try{
-    await api('/api/classroom/push',{method:'POST',body:JSON.stringify({items:Object.values(groups)})});
-    toast('已发布 '+Object.keys(groups).length+' 个专题','ok');
+    if(clsArr.length) await api('/api/classroom/push',{method:'POST',body:JSON.stringify({items:clsArr})});
+    if(lawArr.length) await api('/api/law/push',{method:'POST',body:JSON.stringify({items:lawArr})});
+    toast('已发布 '+(clsArr.length+lawArr.length)+' 个分组（课堂习题 '+clsArr.length+' / 法律常识 '+lawArr.length+'）','ok');
     await loadClassroomBankAdmin();
   }catch(e){toast(e.message,'err');}
 }
@@ -830,6 +882,7 @@ async function removeClassroomPush(id){
     await loadClassroomBankAdmin();
   }catch(e){toast(e.message,'err');}
 }
+
 
 // ---- 法律常识课堂题目（教师端：题库浏览 + 逐题勾选发布 + 统计） ----
 const OPTL='ABCDEFGH';
