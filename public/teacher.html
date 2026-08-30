@@ -1148,17 +1148,36 @@ async function resetPass(){
 async function loadStudent(){
   const key=$('#rec-key').value.trim();if(!key){toast('请输入学生标识','err');return;}
   try{
-    const info=await api('/api/students/'+encodeURIComponent(key));
-    const stats=await api('/api/students/'+encodeURIComponent(key)+'/stats');
-    const records=await api('/api/students/'+encodeURIComponent(key)+'/records');
+    const enc=encodeURIComponent(key);
+    const [info, stats, records, sum]=await Promise.all([
+      api('/api/students/'+enc),
+      api('/api/students/'+enc+'/stats'),
+      api('/api/students/'+enc+'/records'),
+      api('/api/students/'+enc+'/answers/summary')
+    ]);
     let html=`<div class="flex-between" style="margin-bottom:10px"><b>学生：${esc(info.name||key)}</b>
-      <span><button class="btn ghost sm" onclick="editStuName('${esc(key)}')">修改姓名</button> <button class="btn danger sm" onclick="delStudent('${esc(key)}')">删除学生</button></span></div>`;
+      <span><button class="btn sm" onclick="exportStudentAnswers('${esc(key)}')">⬇ 导出完整答题档案</button> <button class="btn ghost sm" onclick="editStuName('${esc(key)}')">修改姓名</button> <button class="btn danger sm" onclick="delStudent('${esc(key)}')">删除学生</button></span></div>`;
     html+=`<div class="stat-grid">
       <div class="stat-box"><div class="num">${stats.overall.percent}%</div><div class="lbl">总体正确率</div></div>
       <div class="stat-box"><div class="num">${stats.overall.correct}/${stats.overall.total}</div><div class="lbl">答对/总题数</div></div>
       <div class="stat-box"><div class="num">${stats.examCount}</div><div class="lbl">参与考试数</div></div>
       <div class="stat-box"><div class="num text-err">${stats.wrongCount}</div><div class="lbl">待巩固错题</div></div>
     </div>`;
+    // 答题档案：总提交次数 + 逐次提交成绩（含第几次提交、用时）
+    html+=`<h2 style="font-size:15px;margin-top:16px">答题档案 · 共 ${sum.totalSubmissions} 次提交 / ${sum.totalRecords} 条作答，正确率 ${sum.accuracy}%</h2>`;
+    if(sum.byKind&&sum.byKind.length){
+      html+='<div class="stat-grid">';
+      sum.byKind.forEach(k=>{html+=`<div class="stat-box"><div class="num">${k.accuracy}%</div><div class="lbl">${esc(k.source||k.kind)}（${k.correct}/${k.answered}）</div></div>`;});
+      html+='</div>';
+    }
+    if(sum.submissions&&sum.submissions.length){
+      html+='<div class="qlist" style="max-height:260px">';
+      sum.submissions.forEach(s=>{
+        const dur=s.durationMs?(' · 用时 '+Math.round(s.durationMs/1000)+' 秒'):'';
+        html+=`<div class="qitem"><div class="qtitle"><div><b>${esc(s.refTitle||s.kind)}</b> · 第 ${s.attemptNo} 次提交 · ${new Date(s.ts).toLocaleString()}</div><div class="meta">${s.score} 分（${s.correctCount}/${s.total}）${dur}</div></div></div>`;
+      });
+      html+='</div>';
+    }
     const topics=Object.keys(stats.byTopic);
     if(topics.length){html+='<h2 style="font-size:15px;margin-top:16px">按专题正确率</h2><div class="stat-grid">';topics.forEach(t=>{const b=stats.byTopic[t];html+=`<div class="stat-box"><div class="num">${b.percent}%</div><div class="lbl">${esc(t)} (${b.correct}/${b.total})</div></div>`;});html+='</div>';}
     html+='<h2 style="font-size:15px;margin-top:16px">历史记录</h2><div class="qlist" style="max-height:300px">';
@@ -1167,6 +1186,13 @@ async function loadStudent(){
     html+='</div>';
     $('#rec-result').innerHTML=html;
   }catch(e){toast(e.message,'err');}
+}
+// 一键导出该生完整答题档案（JSON：学生信息 + 汇总 + 全部流水）
+function exportStudentAnswers(key){
+  const enc=encodeURIComponent(String(key||'').trim());
+  if(!enc){toast('缺少学生标识','err');return;}
+  toast('正在导出，请稍候…','ok');
+  window.open('/api/students/'+enc+'/answers/export','_blank');
 }
 async function editStuName(key){
   const nm=prompt('输入新的姓名：', key);

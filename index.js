@@ -115,9 +115,9 @@ app.delete('/api/exams/:id', (req, res) => {
 // 提交考试答卷
 app.post('/api/exams/:id/submit', (req, res) => {
   try {
-    const { studentKey, studentName, answers, questionIds } = req.body || {};
+    const { studentKey, studentName, answers, questionIds, durationMs } = req.body || {};
     if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
-    const result = store.submitExam({ examId: req.params.id, studentKey, studentName, answers, questionIds });
+    const result = store.submitExam({ examId: req.params.id, studentKey, studentName, answers, questionIds, durationMs });
     if (result.error) return res.status(404).json(fail(result.error));
     res.json(result);
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
@@ -373,6 +373,8 @@ app.post('/api/submit-answer', async (req, res) => {
     if (room.state !== 'answering') return res.json(fail('当前不在答题时间'));
     if (!room.students[studentId]) return res.json(fail('学生不存在'));
     room.students[studentId].answers[room.currentQuestion] = answer;
+    // 课堂房间实时答题留底（以前只存在房间对象里，学生档案没有）
+    try { store.recordRoomAnswer(room, roomId, studentId, answer); } catch (e) { /* 记录失败不影响答题 */ }
     await store.nextEventSeq(room);
     await store.saveRoom(room);
     res.json({ type: 'answer-submitted', questionIndex: room.currentQuestion, seq: room.eventSeq });
@@ -501,9 +503,9 @@ app.get('/api/memory/stats', (req, res) => {
 // 提交记忆复习（逐题更新间隔）
 app.post('/api/memory/review', (req, res) => {
   try {
-    const { studentKey, answers } = req.body || {};
+    const { studentKey, answers, durationMs } = req.body || {};
     if (!studentKey) return res.status(400).json(fail('缺少学生标识'));
-    const r = store.reviewMemory(studentKey, answers);
+    const r = store.reviewMemory(studentKey, answers, durationMs);
     if (r.error) return res.status(400).json(fail(r.error));
     res.json(r);
   } catch (e) { res.status(500).json(fail('提交失败: ' + e.message)); }
@@ -925,6 +927,48 @@ app.post('/api/classroom/push', (req, res) => {
     if (!list.length) return res.status(400).json(fail('请先勾选要发布的题目'));
     if (list.some((it) => !it.topic)) return res.status(400).json(fail('推送配置缺少专题名'));
     res.json(store.addClassroomPush(list));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
+// ================= 学生答题档案（每人一库，含第几次提交） =================
+// 明细流水（支持 kind/refId/qid/topic/from/to/onlyWrong/limit 过滤）
+app.get('/api/students/:key/answers', (req, res) => {
+  try {
+    const key = decodeURIComponent(String(req.params.key || '').trim());
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const q = req.query || {};
+    res.json(store.getStudentAnswerLog(key, {
+      kind: q.kind, refId: q.refId, qid: q.qid, topic: q.topic,
+      from: q.from, to: q.to,
+      onlyWrong: q.onlyWrong === '1' || q.onlyWrong === 'true',
+      limit: q.limit,
+    }));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 汇总（总提交次数、正确率、各模块/专题分布、逐次提交成绩）
+app.get('/api/students/:key/answers/summary', (req, res) => {
+  try {
+    const key = decodeURIComponent(String(req.params.key || '').trim());
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    res.json(store.getStudentAnswerSummary(key));
+  } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+// 完整档案导出（学生信息 + 汇总 + 全部流水），供教师下载存档
+app.get('/api/students/:key/answers/export', (req, res) => {
+  try {
+    const key = decodeURIComponent(String(req.params.key || '').trim());
+    if (!key) return res.status(400).json(fail('缺少学生标识'));
+    const summary = store.getStudentAnswerSummary(key);
+    const records = store.getStudentAnswerLog(key, {});
+    const payload = {
+      exportType: 'student-answer-archive', version: 1,
+      exportedAt: new Date().toISOString(),
+      summary, recordCount: records.length, records,
+    };
+    const name = String(summary.studentName || key).replace(/[^\w\u4e00-\u9fa5-]/g, '');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="student-' + encodeURIComponent(name) + '-answers.json"');
+    res.end(JSON.stringify(payload, null, 2));
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
 });
 

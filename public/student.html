@@ -686,6 +686,8 @@ async function addWrong(qid,btn){
   }catch(e){toast(e.message,'err');}
 }
 function renderExamQuestions(){
+  // 记录本次练习开始时间（同一场练习只记一次），用于上报作答耗时
+  if(window._practiceTsExam!==examIdCurrent){window._practiceTsExam=examIdCurrent;window._practiceStartTs=Date.now();}
   const questions=Array.isArray(examData.questions)?examData.questions:[];
   const qmap={};questions.forEach(q=>qmap[q.id]=q);
   let h=`<div class="exam-toolbar">
@@ -746,7 +748,8 @@ async function submitExam(id){
   const unanswered=examTotal-answeredCount;
   if(unanswered&&!confirm(`还有 ${unanswered} 题未作答，确认交卷？`))return;
   try{
-    const r=(await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentName,answers:examAnswers,questionIds:examSeq})}))||{};
+    const _dur=window._practiceStartTs?(Date.now()-window._practiceStartTs):undefined;
+    const r=(await api('/api/exams/'+id+'/submit',{method:'POST',body:JSON.stringify({studentKey,studentName:studentName,answers:examAnswers,questionIds:examSeq,durationMs:_dur})}))||{};
     const wrongAdded=Array.isArray(r.wrongAdded)?r.wrongAdded:[];
     const details=Array.isArray(r.details)?r.details:[];
     let h=`<div class="result-head"><div class="score">${typeof r.score==='number'?r.score:0}分</div><div class="muted">答对 ${r.correct||0} / 共 ${r.total||0} 题${wrongAdded.length?` · 新增 ${wrongAdded.length} 道错题`:''}</div></div>`;
@@ -984,7 +987,7 @@ async function startMemory(){
     const d=(dRaw&&typeof dRaw==='object')?dRaw:{};
     const questions=Array.isArray(d.questions)?d.questions:[];
     if(!questions.length){toast('今日没有待复习的题目 🎉','ok');return;}
-    memData=questions;memAnswers={};
+    memData=questions;memAnswers={};window._memStartTs=Date.now();
     let h=`<h2>今日复习（${questions.length} 题）</h2><hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">`;
     memData.forEach((q,i)=>{h+=`<div class="q" data-qid="${q.qid}"><div class="qt">${i+1}. ${esc(q.title)} <span class="badge ${q.type}">${q.type==='judge'?'判断':(isMultiQ(q)?'多选':'选择')}</span></div>`+optRowsHTML(q,q.qid,'pickMem')+wrongBtnHTML(q.qid)+`</div>`;});
     h+=`<div class="center" class="mt-4"><button class="btn" onclick="submitMemory()">提交复习</button></div>`;
@@ -994,7 +997,8 @@ async function startMemory(){
 function pickMem(qid,j,el,multi){pickGen(memAnswers,qid,j,el,multi);}
 async function submitMemory(){
   try{
-    const r=(await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers})}))||{};
+    const _mdur=window._memStartTs?(Date.now()-window._memStartTs):undefined;
+    const r=(await api('/api/memory/review',{method:'POST',body:JSON.stringify({studentKey,answers:memAnswers,durationMs:_mdur})}))||{};
     const results=Array.isArray(r.results)?r.results:[];
     const correct=results.length?results.filter(x=>x.isCorrect).length:0;
     let h=`<div class="result-head"><div class="score">${results.length?Math.round(correct/results.length*100):0}分</div><div class="muted">本次复习 ${results.length} 题</div></div>`;
