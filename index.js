@@ -327,7 +327,7 @@ app.post('/api/ai-chat', async (req, res) => {
       upstream = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ model: cfg.model || 'deepseek-ai/DeepSeek-R1', messages, stream: true, temperature: 0.7 }),
+        body: JSON.stringify({ model: cfg.model || 'deepseek-ai/DeepSeek-V3.2', messages, stream: true, temperature: 0.7 }),
         signal: ctrl.signal,
       });
     } catch (e) {

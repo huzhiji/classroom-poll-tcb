@@ -503,9 +503,9 @@
       <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成。若未配置或调用失败，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
 
       <p class="muted ok-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #2e9e5b;background:#f1faf4">
-        ✅ <b>方案 A（推荐·云端硅基流动，稳定低价）</b>：在硅基流动「<a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">控制台</a>」开通模型并创建 API Key 后，本页默认 endpoint=<code>https://api.siliconflow.cn/v1</code>、model=<code>deepseek-ai/DeepSeek-R1</code>，粘贴 Key 点「保存配置」即可（同时驱动 AI 助教对话）。
+        ✅ <b>方案 A（推荐·云端硅基流动，稳定低价）</b>：在硅基流动「<a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">控制台</a>」开通模型并创建 API Key 后，本页默认 endpoint=<code>https://api.siliconflow.cn/v1</code>、model=<code>deepseek-ai/DeepSeek-V3.2</code>，粘贴 Key 点「保存配置」即可（同时驱动 AI 助教对话）。
         <br>① 创建 API Key：控制台 → API 密钥 → 新建密钥，复制 <code>sk-...</code>
-        <br>② 模型：对话助手默认 <code>deepseek-ai/DeepSeek-R1</code>（推理强）；也可换 <code>Qwen/Qwen2.5-72B-Instruct</code> / <code>deepseek-ai/DeepSeek-V3</code> 等
+        <br>② 模型：对话助手默认 <code>deepseek-ai/DeepSeek-V3.2</code>（强且低价，非推理模型，已不含思考链）；若想向学生展示推理过程，可换 <code>deepseek-ai/DeepSeek-R1</code>（更贵）；也可换 <code>Qwen/Qwen3.5-122B-A10B</code> / <code>deepseek-ai/DeepSeek-V3</code> 等
         <br>③ 本页粘贴 Key 点「保存配置」；该 Key 同时用于周报/月报 AI 分析与 AI 助教。
         <br>注：API Base URL 为 <code>https://api.siliconflow.cn/v1</code>（OpenAI 兼容）。
       </p>
@@ -515,7 +515,7 @@
       </p>
       <div class="row">
         <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://api.siliconflow.cn/v1"></div>
-        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="deepseek-ai/DeepSeek-R1"></div>
+        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="deepseek-ai/DeepSeek-V3.2"></div>
       </div>
       <label>API Key（硅基流动/火山方舟必填，本地 Ollama 可留空）</label><input id="ai-key" type="password" placeholder="硅基流动填 sk-...；本地Ollama留空">
       <div class="btnrow">
