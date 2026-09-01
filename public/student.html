@@ -1595,16 +1595,32 @@ function slReset(silent){
 #ai-input textarea:focus{border-color:#6d5efc}
 #ai-send{background:#6d5efc;color:#fff;border:none;border-radius:10px;padding:0 16px;cursor:pointer;font-size:14px}
 #ai-send:disabled{opacity:.6;cursor:default}
+#ai-modelbar{padding:8px 12px;background:#fff;border-bottom:1px solid #eceef3}
+.ai-mdl-row{display:flex;gap:6px}
+.ai-mdl{flex:1;border:1px solid #d8dbe6;background:#f7f8fb;border-radius:9px;padding:7px 6px;font-size:12px;cursor:pointer;color:#444;text-align:center;line-height:1.3;transition:.15s}
+.ai-mdl:hover:not(.disabled){border-color:#b9b0ff}
+.ai-mdl.active{border-color:#6d5efc;background:#6d5efc;color:#fff}
+.ai-mdl.disabled{opacity:.45;cursor:not-allowed}
+.ai-mdl b{display:block;font-size:13px;font-weight:600}
+.ai-mdl small{font-size:11px;opacity:.85}
+.ai-pts-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px}
+.ai-pts{background:#fff4e0;color:#b26a00;border:1px solid #ffe0a3;border-radius:20px;padding:2px 10px;font-weight:600;white-space:nowrap}
+.ai-hint{color:#7a8092;line-height:1.35}
 </style>
 <div id="ai-fab" title="AI 助教">🤖</div>
 <div id="ai-panel">
   <div id="ai-head"><span class="t">🤖 AI 助教</span><button id="ai-clear" title="清空对话">🗑</button><button id="ai-close" title="关闭">✕</button></div>
+  <div id="ai-modelbar">
+    <div class="ai-mdl-row" id="ai-models"></div>
+    <div class="ai-pts-row"><span id="ai-points" class="ai-pts">积分：—</span><span id="ai-hint" class="ai-hint"></span></div>
+  </div>
   <div id="ai-msgs"></div>
   <div id="ai-input"><textarea id="ai-text" placeholder="问选调生备考的任何问题…（Enter 发送，Shift+Enter 换行）" rows="1"></textarea><button id="ai-send">发送</button></div>
 </div>
 <script>
 (function(){
   var fab=document.getElementById('ai-fab'),panel=document.getElementById('ai-panel'),msgs=document.getElementById('ai-msgs'),text=document.getElementById('ai-text'),sendBtn=document.getElementById('ai-send');
+  var selectedModel='Qwen/Qwen3.5-122B-A10B';
   function chatKey(){
     var k=localStorage.getItem('quiz_student_key')||'';
     if(k)return k.toLowerCase();
@@ -1628,6 +1644,31 @@ function slReset(silent){
       list.forEach(function(m){addBubble(m.role,m.content);});
     }).catch(function(){addBubble('bot','（历史加载失败，仍可直接提问）');});
   }
+  function renderModels(data, keepSel){
+    var wrap=document.getElementById('ai-models'); if(!wrap)return;
+    if(!keepSel) selectedModel=data.default||'Qwen/Qwen3.5-122B-A10B';
+    wrap.innerHTML='';
+    (data.models||[]).forEach(function(m){
+      var dis=(m.premium && (data.points||0)<m.cost) || (m.premium && data.isGuest);
+      var b=document.createElement('div');
+      b.className='ai-mdl'+(m.id===selectedModel?' active':'')+(dis?' disabled':'');
+      b.innerHTML='<b>'+m.label+'</b><small>'+(m.premium?('消耗 '+m.cost+' 积分/次'):'免费')+'</small>';
+      b.title=m.premium?(dis?'积分不足或需登录':'深度模型：复杂推理/长文写作/申论范文'):'通识模型：日常答疑/刷题干货';
+      if(!dis){ b.onclick=function(){ selectedModel=m.id; renderModels(data,true); updateHint(data); }; }
+      wrap.appendChild(b);
+    });
+    var pts=document.getElementById('ai-points'); if(pts) pts.textContent='积分：'+(typeof data.points==='number'?data.points:'—');
+    updateHint(data);
+  }
+  function updateHint(data){
+    var h=document.getElementById('ai-hint'); if(!h)return;
+    if(data&&data.isGuest&&selectedModel==='deepseek-ai/DeepSeek-V3.2'){ h.textContent='⭐ 深度模型需登录学员账号后使用。'; return; }
+    if(selectedModel==='deepseek-ai/DeepSeek-V3.2'){ h.textContent='⭐ 深度模型：复杂推理、长文写作、申论范文、易混概念深度辨析时选用。'; }
+    else { h.textContent='🆓 通识模型（免费）：日常答疑、刷题干货、快速查知识点足够用。'; }
+  }
+  function loadModels(keepSel){
+    fetch('/api/ai-models?key='+encodeURIComponent(chatKey())).then(function(x){return x.json();}).then(function(d){renderModels(d,keepSel);}).catch(function(){});
+  }
   var busy=false;
   function setBusy(b){busy=b;sendBtn.disabled=b;text.disabled=b;}
   function send(){
@@ -1635,7 +1676,7 @@ function slReset(silent){
     addBubble('user',v);text.value='';setBusy(true);
     var bot=addBubble('bot','');bot.innerHTML='<span class="ai-typing"></span><span class="ai-typing"></span><span class="ai-typing"></span>';
     var first=true;
-    fetch('/api/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:chatKey(),message:v})}).then(function(resp){
+    fetch('/api/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:chatKey(),message:v,model:selectedModel})}).then(function(resp){
       if(!resp.ok){return resp.json().then(function(e){throw new Error(e.message||'请求失败');});}
       var reader=resp.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
       function loop(){return reader.read().then(function(st){
@@ -1650,6 +1691,7 @@ function slReset(silent){
             if(j.type==='delta'){if(first){bot.textContent='';first=false;}bot.textContent+=j.content;scroll();}
             else if(j.type==='reasoning'){addReasoning(j.content);}
             else if(j.type==='error'){if(first)bot.textContent='';bot.textContent='⚠️ '+(j.message||'出错了');}
+            else if(j.type==='done'){ if(typeof j.points==='number'){var p=document.getElementById('ai-points'); if(p)p.textContent='积分：'+j.points;} loadModels(true); }
           }catch(_){}
         }
         return loop();
@@ -1657,7 +1699,7 @@ function slReset(silent){
       return loop();
     }).then(function(){if(first)bot.textContent='（无回复）';}).catch(function(e){bot.textContent='⚠️ '+(e.message||'网络错误');}).finally(function(){setBusy(false);});
   }
-  fab.onclick=function(){panel.classList.toggle('on');if(panel.classList.contains('on'))loadHistory();};
+  fab.onclick=function(){panel.classList.toggle('on');if(panel.classList.contains('on')){loadHistory();loadModels(false);}};
   document.getElementById('ai-close').onclick=function(){panel.classList.remove('on');};
   document.getElementById('ai-clear').onclick=function(){if(!confirm('确定清空当前对话历史？'))return;fetch('/api/ai-chat?key='+encodeURIComponent(chatKey()),{method:'DELETE'}).catch(function(){}).then(loadHistory);};
   sendBtn.onclick=send;

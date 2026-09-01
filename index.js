@@ -303,6 +303,39 @@ app.post('/api/ai-chat', async (req, res) => {
     const cfg = store.getAIConfig();
     if (!cfg.enabled || !cfg.endpoint) return res.status(503).json(fail('AI 未配置：请在教师端「AI 分析配置」中填入硅基流动 API Key 并启用'));
 
+    // 解析学生所选模型：学生端显式传 model；教师端/旧调用不传 → 用全局配置模型（不收费）
+    const reqModel = (req.body && req.body.model) || '';
+    let model = cfg.model || store.STUDENT_FREE_MODEL;
+    let premium = false, cost = 0, spent = 0;
+    if (reqModel && store.AI_MODEL_REGISTRY[reqModel]) {
+      model = reqModel;
+      premium = !!store.AI_MODEL_REGISTRY[reqModel].premium;
+      cost = store.AI_MODEL_REGISTRY[reqModel].cost || 0;
+    }
+    if (premium) {
+      if (!key || key === 'guest' || !store.getStudent(key)) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.write(`data: ${JSON.stringify({ type: 'error', message: '深度模型需登录学员账号后使用，请先登录。' })}\n\n`);
+        res.end(); return;
+      }
+      const bal = store.getPoints(key).balance;
+      if (bal < cost) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.write(`data: ${JSON.stringify({ type: 'error', message: `积分不足：使用「深度模型」需 ${cost} 积分，当前 ${bal} 积分。去做题或考试赚取积分吧。` })}\n\n`);
+        res.end(); return;
+      }
+      const sp = store.spendPoints(key, cost, '使用深度模型 ' + model);
+      if (!sp.ok) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.write(`data: ${JSON.stringify({ type: 'error', message: '积分扣减失败，请稍后重试。' })}\n\n`);
+        res.end(); return;
+      }
+      spent = cost;
+    }
+
     const userMsg = String(message).trim();
     const history = (store.getAIChat(key) || []).slice(-40).map(m => ({ role: m.role, content: m.content }));
     const messages = [{ role: 'system', content: AI_ASSISTANT_PROMPT }, ...history, { role: 'user', content: userMsg }];
@@ -327,17 +360,19 @@ app.post('/api/ai-chat', async (req, res) => {
       upstream = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ model: cfg.model || 'deepseek-ai/DeepSeek-V3.2', messages, stream: true, temperature: 0.7 }),
+        body: JSON.stringify({ model, messages, stream: true, temperature: 0.7 }),
         signal: ctrl.signal,
       });
     } catch (e) {
       clearTimeout(timeout);
+      if (spent) { try { store.refundPoints(key, spent, '深度模型调用失败退款'); } catch (_) {} }
       if (!aborted) res.write(`data: ${JSON.stringify({ type: 'error', message: '调用 AI 服务失败：' + e.message })}\n\n`);
       try { res.end(); } catch (_) {}
       return;
     }
     if (!upstream.ok) {
       clearTimeout(timeout);
+      if (spent) { try { store.refundPoints(key, spent, '深度模型调用失败退款'); } catch (_) {} }
       let detail = '';
       try { detail = await upstream.text(); } catch (_) {}
       if (!aborted) res.write(`data: ${JSON.stringify({ type: 'error', message: `AI 服务返回错误(${upstream.status})：${detail.slice(0, 200)}` })}\n\n`);
@@ -381,7 +416,7 @@ app.post('/api/ai-chat', async (req, res) => {
         { role: 'assistant', content: full, ts: Date.now() + 1 },
       ]);
     } catch (_) {}
-    try { if (!aborted) send({ type: 'done' }); res.end(); } catch (_) {}
+    try { if (!aborted) send({ type: 'done', model, points: (key && key !== 'guest') ? store.getPoints(key).balance : undefined }); res.end(); } catch (_) {}
   } catch (e) {
     try { res.status(500).json(fail('服务器错误: ' + e.message)); } catch (_) {}
   }
@@ -400,6 +435,20 @@ app.delete('/api/ai-chat', (req, res) => {
     store.clearAIChat(key);
     res.json({ ok: true });
   } catch (e) { res.status(500).json(fail('清除失败: ' + e.message)); }
+});
+
+// 学生端 AI 模型列表 + 当前积分（前端渲染选择器用）
+app.get('/api/ai-models', (req, res) => {
+  try { res.json(store.getAIModels(_chatKey(req))); }
+  catch (e) { res.status(500).json(fail('获取模型列表失败: ' + e.message)); }
+});
+
+// 学生积分明细
+app.get('/api/points', (req, res) => {
+  try {
+    const p = store.getPoints(_chatKey(req));
+    res.json({ balance: p.balance || 0, log: (p.log || []).slice(-30).reverse() });
+  } catch (e) { res.status(500).json(fail('获取积分失败: ' + e.message)); }
 });
 
 // 一键加入错题（学生主动加入）
