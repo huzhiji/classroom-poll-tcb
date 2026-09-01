@@ -281,6 +281,127 @@ app.post('/api/ai-config', (req, res) => {
   } catch (e) { res.status(500).json(fail('保存失败: ' + e.message)); }
 });
 
+// ================= AI 对话助手（硅基流动 / OpenAI 兼容，SSE 流式） =================
+const AI_ASSISTANT_PROMPT = `你是「大衍王朝」选调生学习系统的 AI 助教，专门服务备考选调生的考生。
+职责：
+1. 讲解行测、申论、公共基础知识、时政热点等选调生考试知识点；
+2. 分析错题、辨析易混概念、提供记忆口诀与生活化举例；
+3. 给出学习计划、答题技巧与备考建议。
+要求：回答专业、简洁、条理清晰，多用贴近生活的例子；不确定或不知道的信息如实说明，绝不编造政策条文与数据。`;
+
+function _chatKey(req) {
+  const k = (req.body && req.body.key) || (req.query && req.query.key) || '';
+  return String(k || '').trim() || 'guest';
+}
+
+// 流式对话：客户端以 POST {key,message} 发起，服务端通过 SSE（text/event-stream）逐字回传
+app.post('/api/ai-chat', async (req, res) => {
+  try {
+    const { message } = req.body || {};
+    const key = _chatKey(req);
+    if (!message || !String(message).trim()) return res.status(400).json(fail('请输入消息内容'));
+    const cfg = store.getAIConfig();
+    if (!cfg.enabled || !cfg.endpoint) return res.status(503).json(fail('AI 未配置：请在教师端「AI 分析配置」中填入硅基流动 API Key 并启用'));
+
+    const userMsg = String(message).trim();
+    const history = (store.getAIChat(key) || []).slice(-40).map(m => ({ role: m.role, content: m.content }));
+    const messages = [{ role: 'system', content: AI_ASSISTANT_PROMPT }, ...history, { role: 'user', content: userMsg }];
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // 关闭 nginx 缓冲，保证 SSE 实时下发
+    if (res.flushHeaders) res.flushHeaders();
+
+    let aborted = false;
+    const ctrl = new AbortController();
+    // 注意：必须用 res 的 close 事件判断客户端断开；req 的 close 在请求体读完即触发（正常），会误伤流式响应
+    res.on('close', () => { if (!res.writableEnded) { aborted = true; ctrl.abort(); } });
+    const timeout = setTimeout(() => ctrl.abort(), 180000);
+
+    const url = `${cfg.endpoint.replace(/\/$/, '')}/chat/completions`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (cfg.key) headers.Authorization = `Bearer ${cfg.key}`;
+    let upstream;
+    try {
+      upstream = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ model: cfg.model || 'deepseek-ai/DeepSeek-R1', messages, stream: true, temperature: 0.7 }),
+        signal: ctrl.signal,
+      });
+    } catch (e) {
+      clearTimeout(timeout);
+      if (!aborted) res.write(`data: ${JSON.stringify({ type: 'error', message: '调用 AI 服务失败：' + e.message })}\n\n`);
+      try { res.end(); } catch (_) {}
+      return;
+    }
+    if (!upstream.ok) {
+      clearTimeout(timeout);
+      let detail = '';
+      try { detail = await upstream.text(); } catch (_) {}
+      if (!aborted) res.write(`data: ${JSON.stringify({ type: 'error', message: `AI 服务返回错误(${upstream.status})：${detail.slice(0, 200)}` })}\n\n`);
+      try { res.end(); } catch (_) {}
+      return;
+    }
+
+    const reader = upstream.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buf = '', full = '', reasoning = '';
+    const send = (obj) => { if (!aborted) res.write(`data: ${JSON.stringify(obj)}\n\n`); };
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') continue;
+          try {
+            const j = JSON.parse(payload);
+            const d = j.choices && j.choices[0] && j.choices[0].delta;
+            if (!d) continue;
+            if (d.reasoning_content) { reasoning += d.reasoning_content; send({ type: 'reasoning', content: d.reasoning_content }); }
+            if (d.content) { full += d.content; send({ type: 'delta', content: d.content }); }
+          } catch (_) { /* 忽略不完整分片 */ }
+        }
+      }
+    } catch (e) {
+      if (!aborted) send({ type: 'error', message: '读取 AI 流失败：' + e.message });
+    } finally {
+      clearTimeout(timeout);
+    }
+    try {
+      store.appendAIChat(key, [
+        { role: 'user', content: userMsg, ts: Date.now() },
+        { role: 'assistant', content: full, ts: Date.now() + 1 },
+      ]);
+    } catch (_) {}
+    try { if (!aborted) send({ type: 'done' }); res.end(); } catch (_) {}
+  } catch (e) {
+    try { res.status(500).json(fail('服务器错误: ' + e.message)); } catch (_) {}
+  }
+});
+
+app.get('/api/ai-chat/history', (req, res) => {
+  try {
+    const key = _chatKey(req);
+    res.json({ messages: store.getAIChat(key) || [] });
+  } catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
+});
+
+app.delete('/api/ai-chat', (req, res) => {
+  try {
+    const key = _chatKey(req);
+    store.clearAIChat(key);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json(fail('清除失败: ' + e.message)); }
+});
+
 // 一键加入错题（学生主动加入）
 app.post('/api/wrong/add', (req, res) => {
   try {

@@ -1570,5 +1570,99 @@ function slReset(silent){
   if(!silent)document.getElementById('sl-emptyTip').style.display='block';
 }
 </script>
+<!-- ============ AI 助教悬浮聊天（硅基流动驱动） ============ -->
+<style>
+#ai-fab{position:fixed;right:22px;bottom:22px;z-index:9999;width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;border:none;cursor:pointer;
+  box-shadow:0 6px 20px rgba(109,94,252,.45);font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+#ai-fab:hover{transform:scale(1.08)}
+#ai-panel{position:fixed;right:22px;bottom:90px;z-index:9999;width:370px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 120px);
+  background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.22);display:none;flex-direction:column;overflow:hidden;font-family:inherit}
+#ai-panel.on{display:flex}
+#ai-head{background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
+#ai-head .t{font-weight:600;flex:1}
+#ai-head button{background:rgba(255,255,255,.18);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px}
+#ai-msgs{flex:1;overflow-y:auto;padding:14px;background:#f7f8fb;display:flex;flex-direction:column;gap:10px}
+.ai-msg{max-width:85%;padding:9px 12px;border-radius:12px;line-height:1.55;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ai-msg.user{background:#6d5efc;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.ai-msg.bot{background:#fff;color:#1f2430;border:1px solid #eceef3;align-self:flex-start;border-bottom-left-radius:4px}
+.ai-reason{font-size:12px;color:#7a8092;background:#eef0f6;border-left:3px solid #b9c0d4;padding:6px 9px;border-radius:6px;margin-bottom:6px;white-space:pre-wrap}
+.ai-reason summary{cursor:pointer;color:#6d5efc;outline:none}
+.ai-typing{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9aa0b4;margin:0 2px;animation:ai-blink 1s infinite}
+@keyframes ai-blink{0%,100%{opacity:.2}50%{opacity:1}}
+#ai-input{display:flex;gap:8px;padding:10px;border-top:1px solid #eceef3;background:#fff}
+#ai-input textarea{flex:1;resize:none;height:42px;max-height:120px;border:1px solid #d8dbe6;border-radius:10px;padding:10px;font-size:14px;font-family:inherit;outline:none}
+#ai-input textarea:focus{border-color:#6d5efc}
+#ai-send{background:#6d5efc;color:#fff;border:none;border-radius:10px;padding:0 16px;cursor:pointer;font-size:14px}
+#ai-send:disabled{opacity:.6;cursor:default}
+</style>
+<div id="ai-fab" title="AI 助教">🤖</div>
+<div id="ai-panel">
+  <div id="ai-head"><span class="t">🤖 AI 助教</span><button id="ai-clear" title="清空对话">🗑</button><button id="ai-close" title="关闭">✕</button></div>
+  <div id="ai-msgs"></div>
+  <div id="ai-input"><textarea id="ai-text" placeholder="问选调生备考的任何问题…（Enter 发送，Shift+Enter 换行）" rows="1"></textarea><button id="ai-send">发送</button></div>
+</div>
+<script>
+(function(){
+  var fab=document.getElementById('ai-fab'),panel=document.getElementById('ai-panel'),msgs=document.getElementById('ai-msgs'),text=document.getElementById('ai-text'),sendBtn=document.getElementById('ai-send');
+  function chatKey(){
+    var k=localStorage.getItem('quiz_student_key')||'';
+    if(k)return k.toLowerCase();
+    var g=localStorage.getItem('ai_guest_key');
+    if(!g){g='g_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('ai_guest_key',g);}
+    return g;
+  }
+  function esc(s){return (s||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function scroll(){msgs.scrollTop=msgs.scrollHeight;}
+  function addBubble(role,content){var d=document.createElement('div');d.className='ai-msg '+(role==='user'?'user':'bot');d.textContent=content;msgs.appendChild(d);scroll();return d;}
+  function addReasoning(t){
+    var boxes=msgs.querySelectorAll('.ai-reason');var box=boxes[boxes.length-1];
+    if(!box){box=document.createElement('details');box.className='ai-reason';box.open=false;box.innerHTML='<summary>💭 思考过程</summary><div></div>';msgs.appendChild(box);}
+    box.querySelector('div').innerHTML+=esc(t);scroll();
+  }
+  function loadHistory(){
+    msgs.innerHTML='';
+    fetch('/api/ai-chat/history?key='+encodeURIComponent(chatKey())).then(function(x){return x.json();}).then(function(r){
+      var list=r.messages||[];
+      if(!list.length){addBubble('bot','你好，我是你的选调生备考 AI 助教 🤖\n可以问我行测、申论、公基、时政等任何问题，也可以把错题发给我帮你分析。');return;}
+      list.forEach(function(m){addBubble(m.role,m.content);});
+    }).catch(function(){addBubble('bot','（历史加载失败，仍可直接提问）');});
+  }
+  var busy=false;
+  function setBusy(b){busy=b;sendBtn.disabled=b;text.disabled=b;}
+  function send(){
+    var v=text.value.trim();if(!v||busy)return;
+    addBubble('user',v);text.value='';setBusy(true);
+    var bot=addBubble('bot','');bot.innerHTML='<span class="ai-typing"></span><span class="ai-typing"></span><span class="ai-typing"></span>';
+    var first=true;
+    fetch('/api/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:chatKey(),message:v})}).then(function(resp){
+      if(!resp.ok){return resp.json().then(function(e){throw new Error(e.message||'请求失败');});}
+      var reader=resp.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+      function loop(){return reader.read().then(function(st){
+        if(st.done)return;
+        buf+=dec.decode(st.value,{stream:true});
+        var idx;
+        while((idx=buf.indexOf('\n'))>=0){
+          var line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
+          if(line.indexOf('data:')!==0)continue;
+          var p=line.slice(5).trim();if(p==='[DONE]')continue;
+          try{var j=JSON.parse(p);
+            if(j.type==='delta'){if(first){bot.textContent='';first=false;}bot.textContent+=j.content;scroll();}
+            else if(j.type==='reasoning'){addReasoning(j.content);}
+            else if(j.type==='error'){if(first)bot.textContent='';bot.textContent='⚠️ '+(j.message||'出错了');}
+          }catch(_){}
+        }
+        return loop();
+      });}
+      return loop();
+    }).then(function(){if(first)bot.textContent='（无回复）';}).catch(function(e){bot.textContent='⚠️ '+(e.message||'网络错误');}).finally(function(){setBusy(false);});
+  }
+  fab.onclick=function(){panel.classList.toggle('on');if(panel.classList.contains('on'))loadHistory();};
+  document.getElementById('ai-close').onclick=function(){panel.classList.remove('on');};
+  document.getElementById('ai-clear').onclick=function(){if(!confirm('确定清空当前对话历史？'))return;fetch('/api/ai-chat?key='+encodeURIComponent(chatKey()),{method:'DELETE'}).catch(function(){}).then(loadHistory);};
+  sendBtn.onclick=send;
+  text.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+})();
+</script>
 </body>
 </html>

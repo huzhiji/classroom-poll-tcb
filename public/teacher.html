@@ -499,25 +499,25 @@
 
     <div class="card">
       <h2>🤖 AI 分析配置 <span class="tag">可选</span></h2>
-      <p class="muted">系统已默认指向<b>火山方舟（Volcengine Ark）云端大模型</b>：国内稳定、无需本机装显卡/模型，填入 API Key 即用。也可切回本地 Ollama（免 key）。调用失败自动回退内置规则分析，不影响报告发布。</p>
+      <p class="muted">系统已默认指向<b>硅基流动（SiliconFlow）云端大模型</b>：OpenAI 兼容、国内稳定、价格低，填入 API Key 即用，同时驱动「AI 助教」对话与周报/月报分析。也可切到火山方舟（Ark）或本地 Ollama。调用失败自动回退内置规则分析，不影响报告发布。</p>
       <p class="muted" style="margin-top:6px">💡 说明：系统自动生成报告时，AI 分析文本由上方配置的接口生成。若未配置或调用失败，可在 WorkBuddy 对话中把报告数据交给我（AI 助手）润色，再把文字贴回报告备注。</p>
 
       <p class="muted ok-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #2e9e5b;background:#f1faf4">
-        ✅ <b>方案 A（推荐·云端火山方舟，稳定免运维）</b>：在火山方舟控制台「<a href="https://console.volcengine.com/ark" target="_blank" rel="noopener">模型推理</a>」开通任一模型并创建 API Key 后，本页默认 endpoint=<code>https://ark.cn-beijing.volces.com/api/v3</code>、model=<code>deepseek-v4-flash-260425</code>，粘贴 Key 点「保存配置」即可。
-        <br>① 开通模型：控制台 → 模型推理 → 开通模型（如 <code>deepseek-v4-flash-260425</code> / <code>doubao-seed-2-1-pro-260628</code>，<b>未开通会报 ModelNotOpen</b>）
-        <br>② 创建 API Key：控制台 → API Key 管理 → 复制 <code>ark-...</code> 密钥
-        <br>③ 本页粘贴 Key（Key 必填，云端不校验也可留空但建议填），点「保存配置」。
-        <br>注：API Base URL 为 <code>https://ark.cn-beijing.volces.com/api/v3</code>（OpenAI 兼容）。
+        ✅ <b>方案 A（推荐·云端硅基流动，稳定低价）</b>：在硅基流动「<a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">控制台</a>」开通模型并创建 API Key 后，本页默认 endpoint=<code>https://api.siliconflow.cn/v1</code>、model=<code>deepseek-ai/DeepSeek-R1</code>，粘贴 Key 点「保存配置」即可（同时驱动 AI 助教对话）。
+        <br>① 创建 API Key：控制台 → API 密钥 → 新建密钥，复制 <code>sk-...</code>
+        <br>② 模型：对话助手默认 <code>deepseek-ai/DeepSeek-R1</code>（推理强）；也可换 <code>Qwen/Qwen2.5-72B-Instruct</code> / <code>deepseek-ai/DeepSeek-V3</code> 等
+        <br>③ 本页粘贴 Key 点「保存配置」；该 Key 同时用于周报/月报 AI 分析与 AI 助教。
+        <br>注：API Base URL 为 <code>https://api.siliconflow.cn/v1</code>（OpenAI 兼容）。
       </p>
       <p class="muted warn-box" style="margin-top:8px;padding:8px 10px;border-left:3px solid #e0a800;background:#fff8e6">
         ⚠️ <b>方案 B（本地模型 Ollama，零成本但需本机有显卡）</b>：若不想用云端，把 endpoint 改为 <code>http://127.0.0.1:11434/v1</code>、model 改为 <code>qwen2.5:7b</code>，Key 留空即可（Ollama 须与系统同机运行：<code>ollama serve</code> + <code>ollama pull qwen2.5:7b</code>）。
         <br>注：原七牛云 AI Token API 实测账号被风控封禁（403 account_chat_banned），已弃用。
       </p>
       <div class="row">
-        <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://ark.cn-beijing.volces.com/api/v3"></div>
-        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="deepseek-v4-flash-260425"></div>
+        <div style="flex:2"><label>接口地址（endpoint）</label><input id="ai-endpoint" placeholder="https://api.siliconflow.cn/v1"></div>
+        <div style="flex:1"><label>模型名</label><input id="ai-model" placeholder="deepseek-ai/DeepSeek-R1"></div>
       </div>
-      <label>API Key（火山方舟必填，本地 Ollama 可留空）</label><input id="ai-key" type="password" placeholder="火山方舟填 ark-...；本地Ollama留空">
+      <label>API Key（硅基流动/火山方舟必填，本地 Ollama 可留空）</label><input id="ai-key" type="password" placeholder="硅基流动填 sk-...；本地Ollama留空">
       <div class="btnrow">
         <button class="btn" onclick="saveAIConfig()">保存配置</button>
         <span id="ai-status" class="muted"></span>
@@ -1639,6 +1639,100 @@ async function slLoadTeacher(){
     document.getElementById('sl-tModules').innerHTML=html||'<p class="muted">暂无学员开始学习。</p>';
   }catch(e){document.getElementById('sl-tModules').innerHTML='<p class="muted">加载失败：'+e.message+'</p>';}
 }
+</script>
+<!-- ============ AI 助教悬浮聊天（硅基流动驱动） ============ -->
+<style>
+#ai-fab{position:fixed;right:22px;bottom:22px;z-index:9999;width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;border:none;cursor:pointer;
+  box-shadow:0 6px 20px rgba(109,94,252,.45);font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+#ai-fab:hover{transform:scale(1.08)}
+#ai-panel{position:fixed;right:22px;bottom:90px;z-index:9999;width:370px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 120px);
+  background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.22);display:none;flex-direction:column;overflow:hidden;font-family:inherit}
+#ai-panel.on{display:flex}
+#ai-head{background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
+#ai-head .t{font-weight:600;flex:1}
+#ai-head button{background:rgba(255,255,255,.18);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px}
+#ai-msgs{flex:1;overflow-y:auto;padding:14px;background:#f7f8fb;display:flex;flex-direction:column;gap:10px}
+.ai-msg{max-width:85%;padding:9px 12px;border-radius:12px;line-height:1.55;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ai-msg.user{background:#6d5efc;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.ai-msg.bot{background:#fff;color:#1f2430;border:1px solid #eceef3;align-self:flex-start;border-bottom-left-radius:4px}
+.ai-reason{font-size:12px;color:#7a8092;background:#eef0f6;border-left:3px solid #b9c0d4;padding:6px 9px;border-radius:6px;margin-bottom:6px;white-space:pre-wrap}
+.ai-reason summary{cursor:pointer;color:#6d5efc;outline:none}
+.ai-typing{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9aa0b4;margin:0 2px;animation:ai-blink 1s infinite}
+@keyframes ai-blink{0%,100%{opacity:.2}50%{opacity:1}}
+#ai-input{display:flex;gap:8px;padding:10px;border-top:1px solid #eceef3;background:#fff}
+#ai-input textarea{flex:1;resize:none;height:42px;max-height:120px;border:1px solid #d8dbe6;border-radius:10px;padding:10px;font-size:14px;font-family:inherit;outline:none}
+#ai-input textarea:focus{border-color:#6d5efc}
+#ai-send{background:#6d5efc;color:#fff;border:none;border-radius:10px;padding:0 16px;cursor:pointer;font-size:14px}
+#ai-send:disabled{opacity:.6;cursor:default}
+</style>
+<div id="ai-fab" title="AI 助教">🤖</div>
+<div id="ai-panel">
+  <div id="ai-head"><span class="t">🤖 AI 助教</span><button id="ai-clear" title="清空对话">🗑</button><button id="ai-close" title="关闭">✕</button></div>
+  <div id="ai-msgs"></div>
+  <div id="ai-input"><textarea id="ai-text" placeholder="问选调生备考的任何问题…（Enter 发送，Shift+Enter 换行）" rows="1"></textarea><button id="ai-send">发送</button></div>
+</div>
+<script>
+(function(){
+  var fab=document.getElementById('ai-fab'),panel=document.getElementById('ai-panel'),msgs=document.getElementById('ai-msgs'),text=document.getElementById('ai-text'),sendBtn=document.getElementById('ai-send');
+  function chatKey(){
+    var k=localStorage.getItem('quiz_student_key')||'';
+    if(k)return k.toLowerCase();
+    var g=localStorage.getItem('ai_guest_key');
+    if(!g){g='g_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('ai_guest_key',g);}
+    return g;
+  }
+  function esc(s){return (s||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function scroll(){msgs.scrollTop=msgs.scrollHeight;}
+  function addBubble(role,content){var d=document.createElement('div');d.className='ai-msg '+(role==='user'?'user':'bot');d.textContent=content;msgs.appendChild(d);scroll();return d;}
+  function addReasoning(t){
+    var boxes=msgs.querySelectorAll('.ai-reason');var box=boxes[boxes.length-1];
+    if(!box){box=document.createElement('details');box.className='ai-reason';box.open=false;box.innerHTML='<summary>💭 思考过程</summary><div></div>';msgs.appendChild(box);}
+    box.querySelector('div').innerHTML+=esc(t);scroll();
+  }
+  function loadHistory(){
+    msgs.innerHTML='';
+    fetch('/api/ai-chat/history?key='+encodeURIComponent(chatKey())).then(function(x){return x.json();}).then(function(r){
+      var list=r.messages||[];
+      if(!list.length){addBubble('bot','你好，我是你的选调生备考 AI 助教 🤖\n可以问我行测、申论、公基、时政等任何问题，也可以把错题发给我帮你分析。');return;}
+      list.forEach(function(m){addBubble(m.role,m.content);});
+    }).catch(function(){addBubble('bot','（历史加载失败，仍可直接提问）');});
+  }
+  var busy=false;
+  function setBusy(b){busy=b;sendBtn.disabled=b;text.disabled=b;}
+  function send(){
+    var v=text.value.trim();if(!v||busy)return;
+    addBubble('user',v);text.value='';setBusy(true);
+    var bot=addBubble('bot','');bot.innerHTML='<span class="ai-typing"></span><span class="ai-typing"></span><span class="ai-typing"></span>';
+    var first=true;
+    fetch('/api/ai-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:chatKey(),message:v})}).then(function(resp){
+      if(!resp.ok){return resp.json().then(function(e){throw new Error(e.message||'请求失败');});}
+      var reader=resp.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
+      function loop(){return reader.read().then(function(st){
+        if(st.done)return;
+        buf+=dec.decode(st.value,{stream:true});
+        var idx;
+        while((idx=buf.indexOf('\n'))>=0){
+          var line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
+          if(line.indexOf('data:')!==0)continue;
+          var p=line.slice(5).trim();if(p==='[DONE]')continue;
+          try{var j=JSON.parse(p);
+            if(j.type==='delta'){if(first){bot.textContent='';first=false;}bot.textContent+=j.content;scroll();}
+            else if(j.type==='reasoning'){addReasoning(j.content);}
+            else if(j.type==='error'){if(first)bot.textContent='';bot.textContent='⚠️ '+(j.message||'出错了');}
+          }catch(_){}
+        }
+        return loop();
+      });}
+      return loop();
+    }).then(function(){if(first)bot.textContent='（无回复）';}).catch(function(e){bot.textContent='⚠️ '+(e.message||'网络错误');}).finally(function(){setBusy(false);});
+  }
+  fab.onclick=function(){panel.classList.toggle('on');if(panel.classList.contains('on'))loadHistory();};
+  document.getElementById('ai-close').onclick=function(){panel.classList.remove('on');};
+  document.getElementById('ai-clear').onclick=function(){if(!confirm('确定清空当前对话历史？'))return;fetch('/api/ai-chat?key='+encodeURIComponent(chatKey()),{method:'DELETE'}).catch(function(){}).then(loadHistory);};
+  sendBtn.onclick=send;
+  text.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+})();
 </script>
 </body>
 </html>
