@@ -1620,7 +1620,7 @@ function slReset(silent){
 <script>
 (function(){
   var fab=document.getElementById('ai-fab'),panel=document.getElementById('ai-panel'),msgs=document.getElementById('ai-msgs'),text=document.getElementById('ai-text'),sendBtn=document.getElementById('ai-send');
-  var selectedModel='Qwen/Qwen3.5-122B-A10B';
+  var selectedModel='deepseek-ai/DeepSeek-V4-Flash';
   function chatKey(){
     var k=localStorage.getItem('quiz_student_key')||'';
     if(k)return k.toLowerCase();
@@ -1646,7 +1646,7 @@ function slReset(silent){
   }
   function renderModels(data, keepSel){
     var wrap=document.getElementById('ai-models'); if(!wrap)return;
-    if(!keepSel) selectedModel=data.default||'Qwen/Qwen3.5-122B-A10B';
+    if(!keepSel) selectedModel=data.default||'deepseek-ai/DeepSeek-V4-Flash';
     wrap.innerHTML='';
     (data.models||[]).forEach(function(m){
       var dis=(m.premium && (data.points||0)<m.cost) || (m.premium && data.isGuest);
@@ -1662,9 +1662,9 @@ function slReset(silent){
   }
   function updateHint(data){
     var h=document.getElementById('ai-hint'); if(!h)return;
-    if(data&&data.isGuest&&selectedModel==='deepseek-ai/DeepSeek-V3.2'){ h.textContent='⭐ 深度模型需登录学员账号后使用。'; return; }
-    if(selectedModel==='deepseek-ai/DeepSeek-V3.2'){ h.textContent='⭐ 深度模型：复杂推理、长文写作、申论范文、易混概念深度辨析时选用。'; }
-    else { h.textContent='🆓 通识模型（免费）：日常答疑、刷题干货、快速查知识点足够用。'; }
+    if(data&&data.isGuest&&selectedModel==='deepseek-ai/DeepSeek-V4-Pro'){ h.textContent='⭐ 旗舰模型需登录学员账号后使用。'; return; }
+    if(selectedModel==='deepseek-ai/DeepSeek-V4-Pro'){ h.textContent='⭐ 旗舰模型：复杂推理、长文写作、申论范文、易混概念深度辨析时选用（消耗 10 积分）。'; }
+    else { h.textContent='🆓 极速模型（免费）：日常答疑、刷题干货、快速查知识点足够用。'; }
   }
   function loadModels(keepSel){
     fetch('/api/ai-models?key='+encodeURIComponent(chatKey())).then(function(x){return x.json();}).then(function(d){renderModels(d,keepSel);}).catch(function(){});
