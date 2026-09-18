@@ -608,6 +608,10 @@ h1,.page-title,.start-panel h2,.landing-hero h1{animation:titleSlide .6s var(--e
 .opt.correct{border-color:var(--ok);background:rgba(95,179,163,.12);color:#d9f0e2}
 .opt.wrong{border-color:var(--err);background:rgba(211,90,90,.12);color:#f3d6de}
 .opt .mk{float:right;font-weight:700}
+/* 逐选项解析：每个选项下方一句说明（为什么对 / 错在哪） */
+.opt .opt-why{clear:both;margin:8px 0 1px;padding-top:8px;border-top:1px dashed var(--border);font-size:13px;line-height:1.7;color:var(--muted);font-weight:400}
+.opt.correct .opt-why{color:#cfe9dd}
+.opt.wrong .opt-why{color:#e8cfd6}
 
 .result-head{
   text-align:center;padding:22px;
