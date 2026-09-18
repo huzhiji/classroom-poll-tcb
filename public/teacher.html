@@ -110,6 +110,12 @@
   .exam-type-tag{font-size:11px;padding:1px 7px;border-radius:999px;font-weight:600;flex:0 0 auto}
   .exam-type-tag.exam{background:#eef2ff;color:#4338ca}
   .exam-type-tag.topic{background:#ecfdf5;color:#047857}
+  .exam-type-tag.hot{background:#fee2e2;color:#b91c1c}
+  .exam-type-tag.base{background:#f1f5f9;color:#475569}
+  .stage-group{margin-bottom:14px;border:1px solid var(--bd,#e5e7eb);border-radius:10px;overflow:hidden;background:#fff}
+  .stage-head{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;padding:9px 14px;background:#f8fafc;border-bottom:1px solid var(--bd,#e5e7eb)}
+  .stage-head.hot{background:#fff1f2;color:#b91c1c}
+  .stage-head .muted{font-weight:400;font-size:12px}
   .rate-pill{font-size:12px;padding:1px 8px;border-radius:999px;font-weight:600;flex:0 0 auto;white-space:nowrap}
   .rate-pill.rate-ok{background:#dcfce7;color:#15803d}
   .rate-pill.rate-mid{background:#fef3c7;color:#b45309}
@@ -342,6 +348,11 @@
       <h2>创建考试 / 专题 <span class="tag">组卷</span></h2>
       <label>考试标题</label>
       <input id="exam-title" placeholder="如：第一章单元测试 / 民法典专题">
+      <label>学习阶段</label>
+      <select id="exam-stage">
+        <option value="基础">基础阶段（常规题库）</option>
+        <option value="强化">强化阶段（考前冲刺）</option>
+      </select>
       <label>从题库选题（勾选加入试卷）</label>
       <div class="qlist" id="exam-pick" style="max-height:300px"></div>
       <div class="mt-4"><button class="btn" onclick="createExam()">生成考试</button></div>
@@ -383,7 +394,7 @@
       </div>
     </div>
     <div class="card" id="cr-bank-card">
-      <h2>📚 课堂题目 <span class="tag">勾选题目 → 发布</span></h2>
+      <h2>📚 课堂题目 <span class="tag">勾选题目 → 发布</span> <span class="exam-type-tag base">基础阶段</span></h2>
       <p class="muted">课堂习题（按专题）与法律常识（按类别 → 部分）已合并为同一个题库。勾选要发布的题目后点「发布」；用「批量设置」可对勾选题目统一控制答案 / 解析是否向学生公布（未勾选任何题时作用于全部）。同一分组重复发布会用新的选择替换原内容；点「取消发布 / 移除」可下架。</p>
       <div class="law-toolbar">
         <div class="law-batch">
@@ -642,37 +653,55 @@ async function createExam(){
   if(!title){toast('请输入考试标题','err');return;}
   const ids=[...document.querySelectorAll('#exam-pick input:checked')].map(c=>c.value);
   if(!ids.length){toast('请至少勾选一道题','err');return;}
-  try{const e=await api('/api/exams',{method:'POST',body:JSON.stringify({title,questionIds:ids})});toast('考试已生成','ok');$('#exam-title').value='';loadExams();}catch(e){toast(e.message,'err');}
+  const stage=($('#exam-stage')&&$('#exam-stage').value)||'基础';
+  try{const e=await api('/api/exams',{method:'POST',body:JSON.stringify({title,questionIds:ids,stage})});toast('考试已生成（'+(e.stage||'基础')+'阶段）','ok');$('#exam-title').value='';loadExams();}catch(e){toast(e.message,'err');}
+}
+// 把试卷在基础/强化阶段之间移动
+async function toggleExamStage(id, cur){
+  const next = cur==='强化' ? '基础' : '强化';
+  if(!confirm('确认把该卷移到「'+next+'阶段」？')) return;
+  try{await api('/api/exams/'+id+'/stage',{method:'PUT',body:JSON.stringify({stage:next})});toast('已移到'+next+'阶段','ok');loadExams();}catch(e){toast(e.message,'err');}
 }
 async function loadExams(){
   try{
     const [exams, summary] = await Promise.all([api('/api/exams'), api('/api/exams/summary').catch(()=>({}))]);
     const box=$('#exam-list');
     if(!exams.length){box.innerHTML='<div class="muted" style="padding:14px">暂无考试。</div>';return;}
-    box.innerHTML=exams.map(e=>{
-      const link=location.origin+'/student.html#exam='+e.id;
-      const qcount=(e.questionIds||[]).length;
-      const ov=summary[e.id];
-      // 折叠态（summary 标题旁）直接显示整体正确率；户亲考试 / 课堂练习题 标注类型
-      const typeTag = (e.mode==='topic')
-        ? `<span class="exam-type-tag topic">课堂练习题</span>`
-        : `<span class="exam-type-tag exam">户亲考试</span>`;
-      let ovHtml = `· ${qcount}题 · ${new Date(e.createdAt).toLocaleDateString()}`;
-      if(ov){
-        if(ov.percent===null) ovHtml += ` · <span class="rate-pill rate-none">整体 暂无作答</span>`;
-        else ovHtml += ` · <span class="rate-pill ${ov.percent>=80?'rate-ok':ov.percent>=50?'rate-mid':'rate-low'}">整体正确率 ${ov.percent}%（${ov.correct}/${ov.total}·${ov.attemptCount}人）</span>`;
-      }
-      return `<details class="exam-card-detail" data-exam="${e.id}">
-        <summary class="exam-card-sum"><b>${esc(e.title)}</b>${typeTag}
-          <span class="muted" id="exam-ov-${e.id}">${ovHtml}</span>
-          <span class="exam-card-acts" onclick="event.preventDefault();event.stopPropagation()">
-            <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
-            <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
-            <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button>
-          </span>
-        </summary>
-        <div class="exam-stats" id="exam-stats-${e.id}"><div class="muted" style="padding:8px 0">展开查看每题正确率与做错学生…</div></div>
-      </details>`;
+    const groups=[['基础','基础阶段','常规题库'],['强化','强化阶段','考前冲刺']];
+    box.innerHTML=groups.map(([key,label,desc])=>{
+      const list=exams.filter(e=>(e.stage||'基础')===key);
+      const head=`<div class="stage-head ${key==='强化'?'hot':''}">${label}<span class="muted">${desc} · ${list.length} 套</span></div>`;
+      if(!list.length) return `<div class="stage-group">${head}<div class="muted" style="padding:8px 14px">暂无试卷。</div></div>`;
+      const cards=list.map(e=>{
+        const link=location.origin+'/student.html#exam='+e.id;
+        const qcount=(e.questionIds||[]).length;
+        const ov=summary[e.id];
+        // 折叠态（summary 标题旁）直接显示整体正确率；正式考试 / 课堂练习题 标注类型
+        const typeTag = (e.mode==='topic')
+          ? `<span class="exam-type-tag topic">课堂练习题</span>`
+          : `<span class="exam-type-tag exam">正式考试</span>`;
+        const stage = (e.stage||'基础');
+        const moveLabel = stage==='强化' ? '移到基础' : '移到强化';
+        let ovHtml = `· ${qcount}题 · ${new Date(e.createdAt).toLocaleDateString()}`;
+        if(ov){
+          if(ov.percent===null) ovHtml += ` · <span class="rate-pill rate-none">整体 暂无作答</span>`;
+          else ovHtml += ` · <span class="rate-pill ${ov.percent>=80?'rate-ok':ov.percent>=50?'rate-mid':'rate-low'}">整体正确率 ${ov.percent}%（${ov.correct}/${ov.total}·${ov.attemptCount}人）</span>`;
+        }
+        return `<details class="exam-card-detail" data-exam="${e.id}">
+          <summary class="exam-card-sum"><b>${esc(e.title)}</b>${typeTag}
+            <span class="exam-type-tag ${stage==='强化'?'hot':'base'}">${stage}阶段</span>
+            <span class="muted" id="exam-ov-${e.id}">${ovHtml}</span>
+            <span class="exam-card-acts" onclick="event.preventDefault();event.stopPropagation()">
+              <button class="btn ghost sm" onclick="copyLink('${link}')">复制链接</button>
+              <button class="btn sm" onclick="openAnswerFill('${e.id}','${esc(e.title)}')">答案</button>
+              <button class="btn ghost sm" onclick="toggleExamStage('${e.id}','${stage}')">${moveLabel}</button>
+              <button class="btn danger sm" onclick="delExam('${e.id}')">删除</button>
+            </span>
+          </summary>
+          <div class="exam-stats" id="exam-stats-${e.id}"><div class="muted" style="padding:8px 0">展开查看每题正确率与做错学生…</div></div>
+        </details>`;
+      }).join('');
+      return `<div class="stage-group">${head}${cards}</div>`;
     }).join('');
     // 展开时懒加载逐题真实作答统计（整体正确率已在折叠态显示）
     box.querySelectorAll('.exam-card-detail').forEach(d=>{

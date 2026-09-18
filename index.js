@@ -66,7 +66,7 @@ app.delete('/api/questions/:id', (req, res) => {
 // ================= 考试 / 专题 =================
 app.get('/api/exams', (req, res) => res.json(store.listExams()));
 
-// 所有考试整体正确率摘要（供考试列表折叠态直接显示）：覆盖户亲考试(mode=exam)与课堂练习题(mode=topic)
+// 所有考试整体正确率摘要（供考试列表折叠态直接显示）：覆盖正式考试(mode=exam)与课堂练习题(mode=topic)
 app.get('/api/exams/summary', (req, res) => {
   try { res.json(store.getExamsSummary()); }
   catch (e) { res.status(500).json(fail('读取失败: ' + e.message)); }
@@ -110,6 +110,30 @@ app.delete('/api/exams/:id', (req, res) => {
     if (!ok) return res.status(404).json(fail('考试不存在'));
     res.json({ deleted: true });
   } catch (e) { res.status(500).json(fail('服务器错误: ' + e.message)); }
+});
+
+// 学习阶段：把试卷归入「基础阶段 / 强化阶段」
+// body: { stage: '强化' }  —— 只接受 基础 / 强化，其它值回落 基础
+app.put('/api/exams/:id/stage', (req, res) => {
+  try {
+    const e = store.setExamStage(req.params.id, (req.body || {}).stage);
+    if (!e) return res.status(404).json(fail('考试不存在'));
+    res.json({ id: e.id, title: e.title, stage: e.stage });
+  } catch (err) { res.status(500).json(fail('服务器错误: ' + err.message)); }
+});
+
+// 批量设置阶段：body: { map: { e193:'强化', e194:'强化', ... } } 或 { ids:['e193'], stage:'强化' }
+app.post('/api/exams/stage/bulk', (req, res) => {
+  try {
+    const b = req.body || {};
+    let map = b.map;
+    if (!map && Array.isArray(b.ids)) {
+      map = {};
+      b.ids.forEach((id) => { map[id] = b.stage; });
+    }
+    const n = store.setExamStages(map || {});
+    res.json({ updated: n });
+  } catch (err) { res.status(500).json(fail('服务器错误: ' + err.message)); }
 });
 
 // ================= 数据整理（重复性维护操作） =================
