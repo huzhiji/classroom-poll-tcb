@@ -388,13 +388,7 @@ tr:hover td{background:var(--surface)}
 }
 
 /* ============ 8. 动画增强 ============ */
-/* 点击标签减暗(聚焦效果) */
-body.tab-focus::before{
-  content:'';position:fixed;inset:0;z-index:500;pointer-events:none;
-  background:rgba(10,13,18,.28);
-  animation:dimPulse .55s ease-out forwards;
-}
-@keyframes dimPulse{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
+/* （原「点击标签全屏压暗」动画已移除：全屏遮罩反复触发造成背景闪烁） */
 
 /* 卡片悬停浮起 */
 .card,.exam-card,.dash-card,.stat-box{transition:transform var(--t),box-shadow var(--t),border-color var(--t)}

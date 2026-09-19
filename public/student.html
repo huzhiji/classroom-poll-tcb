@@ -384,10 +384,6 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
   const tabId='#tab-'+b.dataset.tab;
   const tab=document.querySelector(tabId);tab.classList.remove('hidden');
-  // 进入动画:重置触发重新淡入
-  tab.style.animation='none';void tab.offsetWidth;tab.style.animation='fadeUp .45s var(--ease, ease) both';
-  // 减暗动画:点击内容标签时短暂压暗背景(聚焦效果)
-  document.body.classList.remove('tab-focus');void document.body.offsetWidth;document.body.classList.add('tab-focus');
   if(b.dataset.tab==='dashboard')loadDashboard();
   if(b.dataset.tab==='courses')loadCourses();
   if(b.dataset.tab==='exam')loadExamList();
@@ -450,14 +446,15 @@ function renderExamListView(){
 }
 // 顶层大类映射（与后端 examTop 保持一致）
 function examTopLocal(cat){
-  if(cat==='专项'||cat==='公共基础'||cat==='冲刺强化') return cat;
+  if(cat==='冲刺') return '冲刺强化';
+  if(cat==='冲刺强化'||cat==='专项'||cat==='公共基础') return cat;
   return '国省考真题';
 }
 function topLabel(t){
-  return {'国省考真题':'📘 国省考真题','专项':'📚 专项训练','公共基础':'📓 公共基础'}[t]||t;
+  return {'冲刺强化':'🎯 冲刺700题','国省考真题':'📘 国省考真题','专项':'📚 专项训练','公共基础':'📓 公共基础'}[t]||t;
 }
 const PROV_NAMES=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
-const CAT_LABEL={ '国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项':'📚 专项训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识真题','政治理论':'📜 政治理论','公共基础':'📓 公共基础' };
+const CAT_LABEL={ '冲刺':'🎯 冲刺700题','国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项':'📚 专项训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识真题','政治理论':'📜 政治理论','公共基础':'📓 公共基础' };
 // 渲染某分类下的试卷列表（省考真题按省份折叠；其余直接列出）
 function renderCatGroup(catKey, list, doneSet, draftMap, ansCounts){
   if(catKey==='省考真题'){
@@ -528,7 +525,7 @@ function tg(id){
 
 // 顶层大类图标 / 类别图标
 function topIcon(top){return {'国省考真题':'📘','常识判断':'🔆','公共基础':'📓','专题':'📚'}[top]||'📁';}
-function catIcon(cat){return {'国考真题':'📘','省考真题':'📗','选调真题':'📕','专项':'📚','国省考真题':'📙','常识判断':'🔆','政治理论':'📜','公共基础':'📓'}[cat]||'•';}
+function catIcon(cat){return {'冲刺':'🎯','国考真题':'📘','省考真题':'📗','选调真题':'📕','专项':'📚','国省考真题':'📙','常识判断':'🔆','政治理论':'📜','公共基础':'📓'}[cat]||'•';}
 
 // 折叠（手风琴）视图：国省考真题(常识/政治理论/其他) + 专项独立列表 + 公共基础
 function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
@@ -592,6 +589,39 @@ async function enterExam(id){
     _excludeAnswered=false;
     const total=examData.questions.length;
     const answered=examAnsweredQids.length;
+    // 冲刺卷（强化阶段）：不随机抽题，20 题一组按卷面顺序作答，做完一组接着做下一组（已答不重复）
+    if(ed.stage==='强化'||(ed.title||'').includes('冲刺')){
+      const gset=new Set(examAnsweredQids);
+      const g=Math.max(1,Math.ceil(total/20));
+      let nextGi=-1,doneAll=true,cards='';
+      for(let i=0;i<g;i++){
+        const ids=examData.questions.slice(i*20,i*20+20).map(q=>q.id);
+        const dn=ids.filter(q=>gset.has(q)).length;
+        const full=dn===ids.length;
+        if(!full&&nextGi<0)nextGi=i;
+        if(!full)doneAll=false;
+        const a=i*20+1,b=i*20+ids.length;
+        const tag=full?'<span class="tag-done">✓ 已完成</span>':(dn>0?`<span class="tag-draft">已做 ${dn}/${ids.length}</span>`:'');
+        const act=full?`<button class="btn ghost sm" onclick="enterExamGroup('${id}',${i})">重做本组</button>`
+                      :`<button class="btn sm" onclick="enterExamGroup('${id}',${i},true)">${dn>0?'继续本组':'开始作答'}</button>`;
+        cards+=`<div class="exam-card${full?' done':''}"><div class="info"><b>第 ${i+1} 组</b>${tag}<div class="meta">第 ${a}-${b} 题 · 共 ${ids.length} 题 · 按卷面顺序作答</div></div><div class="acts">${act}</div></div>`;
+      }
+      let h=`<div class="start-panel"><h2>${esc(ed.title)}</h2>
+        <p class="muted">共 ${total} 题 · 每 20 题一组、按卷面顺序作答（不随机抽题）· 做完一组，再进来会接着做新一组，已答过的题不重复</p>`;
+      if(!doneAll&&nextGi>=0){
+        const a=nextGi*20+1,b=Math.min((nextGi+1)*20,total);
+        h+=`<div class="draft-box" style="margin:14px 0"><div class="draft-tip">📈 当前进度：已做 ${answered} / ${total} 题</div>
+          <button class="btn" onclick="enterExamGroup('${id}',${nextGi},true)">接着做：第 ${nextGi+1} 组（第 ${a}-${b} 题中未答的）</button></div>`;
+      }else if(doneAll&&total){
+        h+=`<div class="draft-box" style="margin:14px 0"><div class="draft-tip">✅ 本卷 ${total} 题已全部完成</div>
+          <button class="btn" onclick="sprintRedoAll('${id}')">按顺序重做整卷</button>
+          <button class="btn ghost" onclick="backToExams()">返回列表</button></div>`;
+      }
+      h+=`<div style="margin-top:16px"><b style="font-size:14px">分组列表（${g} 组 · 每组 20 题）</b><div style="margin-top:8px">${cards}</div></div></div>`;
+      $('#exam-do').innerHTML=h;$('#exam-list-card').classList.add('hidden');$('#exam-do-card').classList.remove('hidden');
+      window.scrollTo(0,0);
+      return;
+    }
     let h=`<div class="start-panel">
       <h2>${esc(examData.title)}</h2>
       <p class="muted">共 ${total} 题 · 不限时 · 每次「开始练习」都会<b>重新随机抽取</b>一套（不沿用上次题目）</p>
@@ -632,18 +662,32 @@ async function enterExam(id){
   }catch(e){toast(e.message,'err');}
 }
 // 专项组模式：直接进入某一组（20题一组，按原顺序作答，无选题数面板）
-async function enterExamGroup(id, gi){
+// skipAnswered=true 时跳过该组内已答过的题（冲刺卷断点续做用）
+async function enterExamGroup(id, gi, skipAnswered){
   try{
     examIdCurrent=id;
     const ed=await api('/api/exams/'+id);
     if(!ed||typeof ed!=='object')throw new Error('考试不存在');
     if(!Array.isArray(ed.questions))ed.questions=[];
     examData=ed;
-    const seq=ed.questions.slice(gi*20,gi*20+20).map(q=>q.id);
+    let seq=ed.questions.slice(gi*20,gi*20+20).map(q=>q.id);
+    if(skipAnswered&&examAnsweredQids&&examAnsweredQids.length){
+      const as=new Set(examAnsweredQids);
+      const rem=seq.filter(q=>!as.has(q.id));
+      if(rem.length)seq=rem;
+    }
     if(!seq.length){toast('该组暂无题目','err');return;}
     examSeq=seq;examTotal=seq.length;examAnswers={};_ppCount=null;
     renderExamQuestions();
   }catch(e){toast(e.message,'err');}
+}
+// 冲刺卷全部做完后：按卷面原顺序重做整卷
+function sprintRedoAll(id){
+  const qs=(examData&&Array.isArray(examData.questions))?examData.questions:[];
+  if(!qs.length){toast('试卷数据未加载，请刷新重试','err');return;}
+  examIdCurrent=id;
+  examSeq=qs.map(q=>q.id);examTotal=examSeq.length;examAnswers={};_ppCount=null;
+  renderExamQuestions();
 }
 function pickCount(el,n){
   document.querySelectorAll('#pp-opts .pp-btn').forEach(b=>b.classList.remove('active'));
