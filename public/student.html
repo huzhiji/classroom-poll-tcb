@@ -428,7 +428,7 @@ function renderExamListView(){
   if(!examDataCache) return;
   const {byStage,stages,doneSet,draftMap,byTop,ansCounts}=examDataCache;
   const box=$('#exam-list');
-  const topsOrder=['冲刺强化','国省考真题','专项','公共基础'];
+  const topsOrder=['冲刺强化','时政','国省考真题','专项','公共基础'];
   box.innerHTML=(stages||[]).map(([key,label,desc])=>{
     const list=(byStage&&byStage[key])||[];
     if(!list.length) return '';
@@ -447,14 +447,15 @@ function renderExamListView(){
 // 顶层大类映射（与后端 examTop 保持一致）
 function examTopLocal(cat){
   if(cat==='冲刺') return '冲刺强化';
+  if(cat==='时政') return '时政';
   if(cat==='冲刺强化'||cat==='专项'||cat==='公共基础') return cat;
   return '国省考真题';
 }
 function topLabel(t){
-  return {'冲刺强化':'🎯 冲刺700题','国省考真题':'📘 国省考真题','专项':'📚 专项训练','公共基础':'📓 公共基础'}[t]||t;
+  return {'冲刺强化':'🎯 冲刺700题','时政':'📰 时事政治','国省考真题':'📘 国省考真题','专项':'📚 专项训练','公共基础':'📓 公共基础'}[t]||t;
 }
 const PROV_NAMES=['广东','山东','江苏','浙江','四川','上海','云南','辽宁','安徽','福建','甘肃','广西','贵州','海南','河北','河南','黑龙江','湖北','湖南','江西','内蒙古','宁夏','青海','山西','陕西','天津','新疆','重庆','深圳'];
-const CAT_LABEL={ '冲刺':'🎯 冲刺700题','国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项':'📚 专项训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识真题','政治理论':'📜 政治理论','公共基础':'📓 公共基础' };
+const CAT_LABEL={ '冲刺':'🎯 冲刺700题','时政':'📰 时事政治','国考真题':'📘 国考真题','省考真题':'📗 省考真题','选调真题':'📕 选调真题','专项':'📚 专项训练','国省考真题':'📙 其他真题','常识判断':'🔆 常识真题','政治理论':'📜 政治理论','公共基础':'📓 公共基础' };
 // 渲染某分类下的试卷列表（省考真题按省份折叠；其余直接列出）
 function renderCatGroup(catKey, list, doneSet, draftMap, ansCounts){
   if(catKey==='省考真题'){
@@ -525,7 +526,7 @@ function tg(id){
 
 // 顶层大类图标 / 类别图标
 function topIcon(top){return {'国省考真题':'📘','常识判断':'🔆','公共基础':'📓','专题':'📚'}[top]||'📁';}
-function catIcon(cat){return {'冲刺':'🎯','国考真题':'📘','省考真题':'📗','选调真题':'📕','专项':'📚','国省考真题':'📙','常识判断':'🔆','政治理论':'📜','公共基础':'📓'}[cat]||'•';}
+function catIcon(cat){return {'冲刺':'🎯','时政':'📰','国考真题':'📘','省考真题':'📗','选调真题':'📕','专项':'📚','国省考真题':'📙','常识判断':'🔆','政治理论':'📜','公共基础':'📓'}[cat]||'•';}
 
 // 折叠（手风琴）视图：国省考真题(常识/政治理论/其他) + 专项独立列表 + 公共基础
 function renderAccordion(tops,byCat,doneSet,draftMap,byTop,ansCounts){
