@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20261010">
+<link rel="stylesheet" href="/css/theme.css?v=20261011">
 <style>
   /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
   body{
@@ -59,7 +59,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="seal">衍</span> 选调生学习系统</h1>
+  <h1>选调生学习系统</h1>
   <div class="who" id="who">身份：<b id="who-name">未登录</b> <span id="who-email" class="muted"></span> <button onclick="openAuth()">登录/注册</button></div>
 </header>
 
@@ -1777,5 +1777,6 @@ function slReset(silent){
   text.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 })();
 </script>
+  <script src="/js/interactions.js" defer></script>
 </body>
 </html>

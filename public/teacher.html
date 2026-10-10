@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 教师端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20261010">
+<link rel="stylesheet" href="/css/theme.css?v=20261011">
 <style>
   /* ===== 教师端页面级覆盖 ===== */
   header h1{font-size:20px}
@@ -178,7 +178,7 @@
 <body>
 <header>
   <div>
-    <h1><span class="seal">衍</span> 选调生学习系统</h1>
+    <h1>选调生学习系统</h1>
     <div class="sub">教师工作台 · 班级概览 / 课程 / 早读 / 题库 / 考试 / 记录</div>
   </div>
   <nav class="nav">
@@ -1763,5 +1763,6 @@ async function slLoadTeacher(){
   text.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 })();
 </script>
+  <script src="/js/interactions.js" defer></script>
 </body>
 </html>
