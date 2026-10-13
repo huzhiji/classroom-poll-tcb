@@ -4,57 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>选调生学习系统 · 学生端</title>
-<link rel="stylesheet" href="/css/theme.css?v=20261011">
+<link rel="stylesheet" href="/css/theme.css?v=20261013">
 <style>
-  /* ===== 学生端页面级覆盖：麦田 + 墨韵遮罩(更亮) ===== */
-  body{
-    background:
-      radial-gradient(1200px 620px at 82% -12%, rgba(201,164,92,.08), transparent 58%),
-      linear-gradient(180deg, rgba(18,15,9,.46) 0%, rgba(11,10,6,.66) 100%),
-      url(/images/bg-hero.jpg) center/cover no-repeat fixed;
-  }
+  /* ===== 学生端页面级覆盖 ===== */
+  /* 纸面底纹与页面底色统一由 theme.css 提供；本页不再自带背景图与深色遮罩 */
   .who .muted{color:var(--text)}
   .nav{max-width:1120px;margin:16px auto 0;padding:0 16px}
   /* ---- 法律课堂练习：题目卡片 + 折叠解析 ---- */
   .q .qt .badge{margin-left:6px;vertical-align:2px}
-  .badge{display:inline-block;font-size:11px;line-height:1;padding:3px 6px;border-radius:6px;background:var(--primary-l);color:var(--primary);white-space:nowrap}
-  .badge.multi{background:rgba(211,90,90,.16);color:var(--err)}
-  .badge.judge{background:rgba(88,185,155,.18);color:var(--ok)}
-  .badge.err{background:rgba(211,90,90,.16);color:var(--err)}
-  .law-ana-box{margin-top:9px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
-  .law-ana-box summary{cursor:pointer;padding:8px 12px;font-size:13px;color:var(--primary);user-select:none;background:var(--surface-2)}
+  .badge{display:inline-block;font-size:13px;line-height:1;padding:3px 6px;border-radius:var(--radius-xs);background:var(--primary-l);color:var(--primary-d);white-space:nowrap}
+  .badge.multi{background:var(--warn-l);color:var(--warn)}
+  .badge.judge{background:var(--ok-l);color:var(--ok)}
+  .badge.err{background:var(--err-l);color:var(--err)}
+  .law-ana-box{margin-top:9px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg-elevated)}
+  .law-ana-box summary{cursor:pointer;padding:8px 12px;font-size:13px;color:var(--primary-d);user-select:none;background:var(--bg-inset)}
   .law-ana-box .ana{border:none;border-top:1px solid var(--border);border-radius:0}
-  .multi-tip{font-size:12px;color:var(--muted);margin:2px 0 8px}
+  .multi-tip{font-size:13px;color:var(--muted);margin:2px 0 8px}
   @media(max-width:640px){
     .q{padding:14px;margin-bottom:12px}
     .q .qt{font-size:15px;line-height:1.65}
     .opt{font-size:14px;padding:11px 12px}
     .law-ana-box summary{font-size:13.5px;padding:10px 12px}
   }
-  .ai-box{background:#f6f8fb;border-left:3px solid #3b6cf6;padding:10px 12px;border-radius:6px;white-space:pre-wrap;line-height:1.6;margin:6px 0;font-size:13px}
-  .warn{color:#d9534f;font-size:13px;margin:6px 0}
+  .ai-box{background:var(--bg-inset);border:1px solid var(--border);padding:10px 12px;border-radius:var(--radius-sm);white-space:pre-wrap;line-height:1.6;margin:6px 0;font-size:13px}
+  .warn{color:var(--warn);font-size:13px;margin:6px 0}
   .bars{margin:8px 0}
   .bar-item{margin:5px 0}
-  .bar-label{font-size:12px;margin-bottom:2px}
-  .bar-track{background:#eef1f5;height:9px;border-radius:5px;overflow:hidden}
-  .bar-fill{height:100%;border-radius:5px}
-  .report-meta{font-size:12px;color:#888;margin-bottom:6px}
+  .bar-label{font-size:13px;margin-bottom:2px}
+  .bar-track{background:var(--bg-inset);height:9px;border-radius:var(--radius-pill);overflow:hidden}
+  .bar-fill{height:100%;border-radius:var(--radius-pill)}
+  .report-meta{font-size:13px;color:var(--muted);margin-bottom:6px}
   /* ---- 学习报告图表 ---- */
   .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
-  .chart-box{background:#fff;border:1px solid #e6e9ef;border-radius:10px;padding:10px}
-  .chart-title{font-size:13px;font-weight:600;color:#3b6cf6;margin-bottom:6px}
+  .chart-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+  .chart-title{font-size:13px;font-weight:600;color:var(--primary-d);margin-bottom:6px}
   .chart-box canvas{max-height:240px}
-  .tag-warn{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(217,83,79,.14);color:#d9534f}
-  .tag-ok{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:rgba(46,158,91,.14);color:#2e9e5b}
-  .boost{background:rgba(59,108,246,.08);border-left:3px solid #3b6cf6;padding:8px 10px;border-radius:6px;font-size:13px;margin:6px 0;line-height:1.6}
+  .tag-warn{display:inline-block;font-size:13px;padding:1px 7px;border-radius:var(--radius-xs);background:var(--warn-l);color:var(--warn)}
+  .tag-ok{display:inline-block;font-size:13px;padding:1px 7px;border-radius:var(--radius-xs);background:var(--ok-l);color:var(--ok)}
+  .boost{background:var(--bg-inset);border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;margin:6px 0;line-height:1.6}
   @media(max-width:640px){.chart-grid{grid-template-columns:1fr}}
   /* ---- 学习阶段分块（基础阶段 / 强化阶段） ---- */
-  .stage-block{margin-bottom:16px;border:1px solid #e6e9ef;border-radius:10px;overflow:hidden;background:#fff}
-  .stage-block.hot{border-color:#fecaca}
-  .stage-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;padding:9px 14px;background:#f8fafc;border-bottom:1px solid #e6e9ef}
-  .stage-block.hot .stage-title{background:#fff1f2;color:#b91c1c}
-  .stage-title span{font-weight:400;font-size:12px;color:#888}
-  .stage-tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:600;vertical-align:middle}
+  .stage-block{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg-card)}
+  .stage-block.hot{border-color:var(--err-soft)}
+  .stage-title{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;padding:9px 14px;background:var(--bg-inset);border-bottom:1px solid var(--border)}
+  .stage-block.hot .stage-title{background:var(--err-l);color:var(--err)}
+  .stage-title span{font-weight:400;font-size:13px;color:var(--muted)}
+  .stage-tag{display:inline-block;font-size:13px;padding:1px 7px;border-radius:var(--radius-pill);background:var(--bg-inset);color:var(--muted);font-weight:600;vertical-align:middle}
+  /* ---- 移动端（契约 §6）：底部 tab、44px 点击区、iOS 输入 16px 防缩放 ---- */
+  @media(max-width:560px){
+    main{padding-left:var(--sp-4);padding-right:var(--sp-4)}
+    input,select,textarea{font-size:16px}
+    .law-ana-box summary{min-height:44px;display:flex;align-items:center}
+    .stage-title{min-height:44px}
+    .opt{min-height:44px}
+  }
 </style>
 </head>
 <body>
@@ -64,15 +67,15 @@
 </header>
 
 <div class="nav">
-  <button data-tab="dashboard" class="active">📊 学习仪表盘</button>
-  <button data-tab="courses">📚 课程</button>
-  <button data-tab="exam">📝 考试答题</button>
-  <button data-tab="morning">🌅 早读</button>
-  <button data-tab="classroom">👥 课堂练习</button>
-  <button data-tab="wrong">❌ 错题练习</button>
-  <button data-tab="memory">🧠 记忆模式</button>
-    <button data-tab="mine">📈 我的记录</button>
-    <button data-tab="report">📊 我的报告</button>
+  <button data-tab="dashboard" class="active"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-layout-dashboard"></use></svg> 学习仪表盘</button>
+  <button data-tab="courses"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-open"></use></svg> 课程</button>
+  <button data-tab="exam"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-file-text"></use></svg> 考试答题</button>
+  <button data-tab="morning"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-sunrise"></use></svg> 早读</button>
+  <button data-tab="classroom"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-users"></use></svg> 课堂练习</button>
+  <button data-tab="wrong"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-circle-x"></use></svg> 错题练习</button>
+  <button data-tab="memory"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-brain"></use></svg> 记忆模式</button>
+    <button data-tab="mine"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-chart-line"></use></svg> 我的记录</button>
+    <button data-tab="report"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bar-chart-3"></use></svg> 我的报告</button>
 </div>
 
 <main>
@@ -107,12 +110,12 @@
       <div id="cr-live-stats" class="mt-3"></div>
     </div>
     <div class="card" id="cr-topic-card">
-      <h2>📚 课堂题目 <span class="stage-tag">基础阶段</span></h2>
+      <h2><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-open"></use></svg> 课堂题目 <span class="stage-tag">基础阶段</span></h2>
       <h3 style="font-size:15px;margin:0 0 6px">课堂习题（专题练习）</h3>
       <div id="cr-topic-list" class="muted">老师尚未发布专题练习，请稍候。</div>
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
       <div id="law-card">
-        <h3 style="font-size:15px;margin:0 0 6px">📘 法律常识练习</h3>
+        <h3 style="font-size:15px;margin:0 0 6px"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-copy"></use></svg> 法律常识练习</h3>
         <div id="law-push-list" class="muted">老师尚未推送练习，请稍候。</div>
       </div>
     </div>
@@ -130,7 +133,7 @@
   <!-- 记忆模式 -->
   <section id="tab-memory" class="hidden">
     <div class="card">
-      <h2>记忆模式 <span class="badge" style="background:rgba(201,164,92,.14);color:var(--gold)">艾宾浩斯</span></h2>
+      <h2>记忆模式 <span class="badge" style="background:var(--gold-l);color:var(--ink)">艾宾浩斯</span></h2>
       <p class="muted">开启后，系统按遗忘规律自动安排每道题的复习时间，每天把该复习的题推给你，越记越牢（类似 Anki）。答错会自动缩短间隔、明天再来。</p>
       <div class="stat-grid" id="mem-stats" class="mt-3">
         <div class="stat-box"><div class="num" id="mem-due" class="text-err">0</div><div class="lbl">今日待复习</div></div>
@@ -161,11 +164,11 @@
         #sl-mod .sl-mod{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer;font-size:13px;color:var(--text)}
         #sl-mod .sl-mod:hover{border-color:var(--primary);background:var(--bg-hover)}
         #sl-mod .sl-mod.active{background:var(--primary-l);border-color:var(--primary);color:var(--ink);font-weight:600}
-        #sl-mod .sl-mod .cnt{color:var(--muted);font-size:12px}
+        #sl-mod .sl-mod .cnt{color:var(--muted);font-size:13px}
         #sl-mod .sl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
         #sl-mod .sl-stat{background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
         #sl-mod .sl-stat b{display:block;font-size:20px;color:var(--primary)}
-        #sl-mod .sl-stat small{color:var(--muted);font-size:12px}
+        #sl-mod .sl-stat small{color:var(--muted);font-size:13px}
         #sl-mod .sl-actions{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
         #sl-mod .sl-prog{height:8px;background:var(--bg-elevated);border-radius:6px;overflow:hidden;margin:8px 0}
         #sl-mod .sl-prog>i{display:block;height:100%;background:var(--primary-grad);width:0;transition:width .2s}
@@ -173,7 +176,7 @@
         #sl-mod .sl-flash.on{display:block}
         #sl-mod .sl-q{font-size:16px;background:var(--bg-elevated);border-left:4px solid var(--primary);padding:14px 16px;border-radius:10px;margin-bottom:12px;white-space:pre-wrap;color:var(--text);line-height:1.8}
         #sl-mod .sl-q .blank{color:var(--primary);font-weight:700;border-bottom:2px dashed var(--primary);padding:0 6px}
-        #sl-mod .sl-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+        #sl-mod .sl-meta{font-size:13px;color:var(--muted);margin-bottom:8px}
         #sl-mod .sl-grade{display:flex;gap:10px;flex-wrap:wrap}
         #sl-mod .sl-grade button{padding:9px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-elevated);cursor:pointer;font-size:14px;color:var(--text)}
         #sl-mod .sl-grade button.ok{border-color:var(--ok);color:var(--ok)}
@@ -189,7 +192,7 @@
         #sl-mod .sl-summary.on{display:block}
         #sl-mod .sl-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center}
       </style>
-      <h2>📜 申论语料记忆卡 <span class="tag">金句 + 规范词</span></h2>
+      <h2><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-marked"></use></svg> 申论语料记忆卡 <span class="tag">金句 + 规范词</span></h2>
       <p class="muted" style="margin:6px 0 12px">从《申论高分语料库》全量收录语料：写作金句整句背诵、规范词括号填空。分模块学习，系统按<strong>你本人</strong>的艾宾浩斯遗忘曲线每天推送复习——答对升级（间隔 1→2→4→7→15→30→90 天），答错重置为明天。</p>
       <div id="sl-needlogin" class="sl-empty" style="display:none">请先在右上角登录 / 注册学员账号，系统才能按你本人记录记忆情况。</div>
       <div id="sl-body" class="sl-grid">
@@ -213,9 +216,9 @@
           <div class="sl-panel">
             <h3>开始学习</h3>
             <div class="sl-actions">
-              <button class="btn primary" onclick="slStartDaily(null)">▶ 今日推送（全部模块）</button>
-              <button class="btn" id="sl-modStudyBtn" disabled onclick="slStartDaily(slFilter)">▶ 学所选模块</button>
-              <button class="btn ghost" onclick="slReset()">↺ 重置</button>
+              <button class="btn primary" onclick="slStartDaily(null)"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-play"></use></svg> 今日推送（全部模块）</button>
+              <button class="btn" id="sl-modStudyBtn" disabled onclick="slStartDaily(slFilter)"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-play"></use></svg> 学所选模块</button>
+              <button class="btn ghost" onclick="slReset()"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-rotate-ccw"></use></svg> 重置</button>
             </div>
             <div class="hint">系统每天只推送「到期 + 少量新卡」，只针对你第一次学或常忘记的卡出题；已掌握的卡不再出现，避免题海。</div>
             <div class="sl-prog"><i id="sl-progBar"></i></div>
@@ -249,7 +252,7 @@
   <!-- 我的学习报告 -->
   <section id="tab-report" class="hidden">
     <div class="card">
-      <h2>📊 我的学习报告</h2>
+      <h2><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bar-chart-3"></use></svg> 我的学习报告</h2>
       <p class="muted">由老师生成的学习周报/月报，这里只展示你个人的掌握情况、薄弱点与提升建议。</p>
       <div id="my-report-body" class="muted">暂无报告。请等待老师在「学习报告」中生成。</div>
     </div>
@@ -1143,7 +1146,7 @@ async function loadDashboard(){
       <div style="font-size:48px;margin-bottom:14px">🌾</div>
       <h2 style="font-size:32px">选调生学习系统</h2>
       <p style="opacity:.9;font-size:16px;margin:12px 0 24px">扎根基层 · 勤学善思 · 乡村振兴</p>
-      <button class="btn" style="padding:14px 32px;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.2)" onclick="openAuth()">登录 / 注册</button>
+      <button class="btn" style="padding:14px 32px;font-size:16px;box-shadow:var(--shadow-lg)" onclick="openAuth()">登录 / 注册</button>
     </div>`;
     return;
   }
@@ -1457,7 +1460,7 @@ async function submitHw(){
 // ========== 我的学习报告 ==========
 function sCatBar(label, acc, total){
   const p=Math.round((acc||0)*100);
-  const color=p>=80?'#2e9e5b':p>=60?'#e0a800':'#d9534f';
+  const color=p>=80?'#2F6B4F':p>=60?'#7A4A12':'#9E3B2A';
   return `<div class="bar-item"><div class="bar-label">${label} <span class="muted">${p}% · ${total}题</span></div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div></div>`;
 }
 async function loadMyReport(){
@@ -1488,10 +1491,10 @@ function _sbarFallback(canvasId, items) {
   const cv = document.getElementById(canvasId); if (!cv) return;
   const rows = (items || []).map((it) => {
     const pct = Math.max(0, Math.min(100, Math.round((it.v || 0) * 100)));
-    const color = pct >= 80 ? '#2e9e5b' : pct >= 60 ? '#e0a800' : '#d9534f';
+    const color = pct >= 80 ? '#2F6B4F' : pct >= 60 ? '#7A4A12' : '#9E3B2A';
     return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px">
       <span style="width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.k}</span>
-      <span style="flex:1;background:#eef0f4;border-radius:4px;height:14px;overflow:hidden"><span style="display:block;width:${pct}%;background:${color};height:100%"></span></span>
+      <span style="flex:1;background:#E1D5C0;border-radius:4px;height:14px;overflow:hidden"><span style="display:block;width:${pct}%;background:${color};height:100%"></span></span>
       <b style="width:42px;text-align:right">${pct}%</b></div>`;
   }).join('');
   cv.outerHTML = `<div id="${canvasId}" style="padding:6px 2px">${rows || '<span class="muted">暂无数据</span>'}</div>`;
@@ -1505,8 +1508,8 @@ function renderTrendChart(canvasId, selfSeries, classSeries, name) {
   }
   _sdestroy(canvasId);
   const toPts = (arr) => (arr || []).map((h) => ({ x: h.label, y: Math.round((h.accuracy || 0) * 100) }));
-  const ds = [{ label: name || '本人', data: toPts(selfSeries), borderColor: '#3b6cf6', backgroundColor: 'rgba(59,108,246,.12)', fill: true, tension: .3, pointRadius: 4 }];
-  if (classSeries && classSeries.length) ds.push({ label: '班级', data: toPts(classSeries), borderColor: '#9aa3b2', borderDash: [5, 4], fill: false, tension: .3, pointRadius: 3 });
+  const ds = [{ label: name || '本人', data: toPts(selfSeries), borderColor: '#2F6B4F', backgroundColor: 'rgba(47,107,79,.14)', fill: true, tension: .3, pointRadius: 4 }];
+  if (classSeries && classSeries.length) ds.push({ label: '班级', data: toPts(classSeries), borderColor: '#B5A488', borderDash: [5, 4], fill: false, tension: .3, pointRadius: 3 });
   _scharts[canvasId] = new Chart(cv, { type: 'line', data: { datasets: ds }, options: { responsive: true, plugins: { legend: { display: ds.length > 1 } }, scales: { y: { min: 0, max: 100, ticks: { callback: (v) => v + '%' } } } } });
 }
 function renderRadarChart(canvasId, cats) {
@@ -1519,17 +1522,17 @@ function renderRadarChart(canvasId, cats) {
   _sdestroy(canvasId);
   const labels = (cats || []).map((c) => c.label);
   const data = (cats || []).map((c) => Math.round((c.accuracy || 0) * 100));
-  const colors = data.map((v) => v >= 80 ? '#2e9e5b' : v >= 60 ? '#e0a800' : '#d9534f');
-  _scharts[canvasId] = new Chart(cv, { type: 'radar', data: { labels, datasets: [{ label: '正确率', data, backgroundColor: 'rgba(59,108,246,.18)', borderColor: '#3b6cf6', pointBackgroundColor: colors }] }, options: { responsive: true, scales: { r: { min: 0, max: 100, ticks: { callback: (v) => v + '%', stepSize: 20 }, pointLabels: { font: { size: 11 } } } } } });
+  const colors = data.map((v) => v >= 80 ? '#2F6B4F' : v >= 60 ? '#7A4A12' : '#9E3B2A');
+  _scharts[canvasId] = new Chart(cv, { type: 'radar', data: { labels, datasets: [{ label: '正确率', data, backgroundColor: 'rgba(47,107,79,.18)', borderColor: '#2F6B4F', pointBackgroundColor: colors }] }, options: { responsive: true, scales: { r: { min: 0, max: 100, ticks: { callback: (v) => v + '%', stepSize: 20 }, pointLabels: { font: { size: 11 } } } } } });
 }
 // 进入「我的报告」时刷新
 const _sShowTab=showTab;
 function showTab(name){_sShowTab(name);if(name==='report')loadMyReport();if(name==='morning')slRender();}
 </script>
 
-<button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<button class="to-top" type="button" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})"><svg class="ic ic-lg" aria-hidden="true"><use href="/icons.svg#i-arrow-up"></use></svg></button>
 <footer class="footer">
-  <div class="brand">🎓 选调生学习系统</div>
+  <div class="brand"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-graduation-cap"></use></svg> 选调生学习系统</div>
   <div><a href="/student.html">学员端</a></div>
 </footer>
 <script>
@@ -1643,44 +1646,53 @@ function slReset(silent){
 </script>
 <!-- ============ AI 助教悬浮聊天（硅基流动驱动） ============ -->
 <style>
-#ai-fab{position:fixed;right:22px;bottom:22px;z-index:9999;width:56px;height:56px;border-radius:50%;
-  background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;border:none;cursor:pointer;
-  box-shadow:0 6px 20px rgba(109,94,252,.45);font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
-#ai-fab:hover{transform:scale(1.08)}
-#ai-panel{position:fixed;right:22px;bottom:90px;z-index:9999;width:370px;max-width:calc(100vw - 32px);height:540px;max-height:calc(100vh - 120px);
-  background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.22);display:none;flex-direction:column;overflow:hidden;font-family:inherit}
+#ai-fab{position:fixed;right:22px;bottom:22px;z-index:var(--z-fab);width:48px;height:48px;border-radius:var(--radius-pill);
+  background:var(--primary);color:var(--on-accent);border:1px solid var(--primary-d);cursor:pointer;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;transition:transform var(--t),background-color var(--t)}
+#ai-fab:hover{transform:translateY(-1px)}
+#ai-panel{position:fixed;right:22px;bottom:90px;z-index:var(--z-ai);width:370px;max-width:calc(100vw - 32px);height:540px;max-height:min(540px,calc(100dvh - 140px));
+  background:var(--bg-card);border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden;font-family:var(--font-sans)}
 #ai-panel.on{display:flex}
-#ai-head{background:linear-gradient(135deg,#6d5efc,#a855f7);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
+#ai-head{background:var(--ink-1);color:var(--on-ink);border-bottom:2px solid var(--gold);padding:12px 14px;display:flex;align-items:center;gap:8px}
 #ai-head .t{font-weight:600;flex:1}
-#ai-head button{background:rgba(255,255,255,.18);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px}
-#ai-msgs{flex:1;overflow-y:auto;padding:14px;background:#f7f8fb;display:flex;flex-direction:column;gap:10px}
-.ai-msg{max-width:85%;padding:9px 12px;border-radius:12px;line-height:1.55;font-size:14px;white-space:pre-wrap;word-break:break-word}
-.ai-msg.user{background:#6d5efc;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-.ai-msg.bot{background:#fff;color:#1f2430;border:1px solid #eceef3;align-self:flex-start;border-bottom-left-radius:4px}
-.ai-reason{font-size:12px;color:#7a8092;background:#eef0f6;border-left:3px solid #b9c0d4;padding:6px 9px;border-radius:6px;margin-bottom:6px;white-space:pre-wrap}
-.ai-reason summary{cursor:pointer;color:#6d5efc;outline:none}
-.ai-typing{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9aa0b4;margin:0 2px;animation:ai-blink 1s infinite}
+#ai-head button{background:var(--primary-l);color:var(--on-ink);border:1px solid var(--hairline-ink);border-radius:var(--radius-xs);cursor:pointer;font-size:14px}
+#ai-msgs{flex:1;overflow-y:auto;padding:14px;background:var(--bg-page);display:flex;flex-direction:column;gap:10px}
+.ai-msg{max-width:88%;padding:8px 12px;border-radius:var(--radius-sm);line-height:var(--lh-sm);font-size:var(--fs-sm);white-space:pre-wrap;word-break:break-word}
+.ai-msg.user{background:var(--primary);color:var(--on-accent);align-self:flex-end;border-bottom-right-radius:var(--radius-xs)}
+.ai-msg.bot{background:var(--bg-elevated);color:var(--ink);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:var(--radius-xs)}
+.ai-reason{font-size:var(--fs-micro);color:var(--text);background:var(--bg-inset);border:1px solid var(--border);border-left:2px solid var(--border-strong);padding:6px 9px;border-radius:var(--radius-xs);margin-bottom:6px;white-space:pre-wrap}
+.ai-reason summary{cursor:pointer;color:var(--primary-d);outline:none}
+.ai-typing{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin:0 2px;animation:ai-blink 1s infinite}
 @keyframes ai-blink{0%,100%{opacity:.2}50%{opacity:1}}
-#ai-input{display:flex;gap:8px;padding:10px;border-top:1px solid #eceef3;background:#fff}
-#ai-input textarea{flex:1;resize:none;height:42px;max-height:120px;border:1px solid #d8dbe6;border-radius:10px;padding:10px;font-size:14px;font-family:inherit;outline:none}
-#ai-input textarea:focus{border-color:#6d5efc}
-#ai-send{background:#6d5efc;color:#fff;border:none;border-radius:10px;padding:0 16px;cursor:pointer;font-size:14px}
+#ai-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);background:var(--bg-elevated)}
+#ai-input textarea{flex:1;resize:none;height:42px;max-height:120px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:10px;font-size:var(--fs-sm);font-family:inherit;outline:none;background:var(--bg-elevated);color:var(--ink)}
+#ai-input textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ll)}
+#ai-send{background:var(--primary);color:var(--on-accent);border:1px solid var(--primary-d);border-radius:var(--radius-sm);padding:0 16px;cursor:pointer;font-size:var(--fs-sm)}
 #ai-send:disabled{opacity:.6;cursor:default}
-#ai-modelbar{padding:8px 12px;background:#fff;border-bottom:1px solid #eceef3}
+#ai-modelbar{padding:8px 12px;background:var(--bg-elevated);border-bottom:1px solid var(--border)}
 .ai-mdl-row{display:flex;gap:6px}
-.ai-mdl{flex:1;border:1px solid #d8dbe6;background:#f7f8fb;border-radius:9px;padding:7px 6px;font-size:12px;cursor:pointer;color:#444;text-align:center;line-height:1.3;transition:.15s}
-.ai-mdl:hover:not(.disabled){border-color:#b9b0ff}
-.ai-mdl.active{border-color:#6d5efc;background:#6d5efc;color:#fff}
+.ai-mdl{flex:1;border:1px solid var(--border-strong);background:var(--bg-inset);border-radius:var(--radius-sm);padding:7px 6px;font-size:var(--fs-micro);cursor:pointer;color:var(--text);text-align:center;line-height:1.3;transition:background-color var(--t),border-color var(--t),color var(--t)}
+.ai-mdl:hover:not(.disabled){border-color:var(--primary)}
+.ai-mdl.active{border-color:var(--primary);background:var(--primary);color:var(--on-accent)}
 .ai-mdl.disabled{opacity:.45;cursor:not-allowed}
-.ai-mdl b{display:block;font-size:13px;font-weight:600}
-.ai-mdl small{font-size:11px;opacity:.85}
-.ai-pts-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px}
-.ai-pts{background:#fff4e0;color:#b26a00;border:1px solid #ffe0a3;border-radius:20px;padding:2px 10px;font-weight:600;white-space:nowrap}
-.ai-hint{color:#7a8092;line-height:1.35}
+.ai-mdl b{display:block;font-size:var(--fs-xs);font-weight:600}
+.ai-mdl small{font-size:var(--fs-micro);opacity:.85}
+.ai-pts-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:var(--fs-micro)}
+.ai-pts{background:var(--warn-l);color:var(--warn);border:1px solid var(--err-soft);border-radius:var(--radius-pill);padding:2px 10px;font-weight:600;white-space:nowrap}
+.ai-hint{color:var(--muted);line-height:1.35}
+/* 移动端（契约 §6）：底部 tab、44px 点击区、iOS 输入 16px 防缩放 */
+@media(max-width:560px){
+  #ai-fab{bottom:calc(120px + env(safe-area-inset-bottom))}
+  #ai-panel{right:var(--sp-4);left:var(--sp-4);bottom:calc(120px + env(safe-area-inset-bottom));width:auto;max-width:none;max-height:min(540px,calc(100dvh - 180px))}
+  #ai-head button{width:44px;height:44px}
+  #ai-input textarea{font-size:16px}
+  #ai-send{min-height:44px;font-size:16px}
+  .ai-mdl{min-height:44px}
+}
 </style>
-<div id="ai-fab" title="AI 助教">🤖</div>
+<div id="ai-fab" title="AI 助教" aria-label="AI 助教"><svg class="ic ic-lg" aria-hidden="true"><use href="/icons.svg#i-bot"></use></svg></div>
 <div id="ai-panel">
-  <div id="ai-head"><span class="t">🤖 AI 助教</span><button id="ai-clear" title="清空对话">🗑</button><button id="ai-close" title="关闭">✕</button></div>
+  <div id="ai-head"><span class="t"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bot"></use></svg> AI 助教</span><button id="ai-clear" title="清空对话" aria-label="清空对话"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-trash"></use></svg></button><button id="ai-close" title="关闭" aria-label="关闭"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"></use></svg></button></div>
   <div id="ai-modelbar">
     <div class="ai-mdl-row" id="ai-models"></div>
     <div class="ai-pts-row"><span id="ai-points" class="ai-pts">积分：—</span><span id="ai-hint" class="ai-hint"></span></div>

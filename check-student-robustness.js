@@ -6,7 +6,9 @@ const FILE = path.join(__dirname, 'public', 'student.html');
 const html = fs.readFileSync(FILE, 'utf8');
 const marker = 'const $=(s)=>document.querySelector(s);';
 const mi = html.indexOf(marker);
-const end = html.lastIndexOf('</script>');
+// 取 marker 之后的**第一个** </script>：此前用 lastIndexOf 会把后续 script 块与 HTML 一并切进来，
+// 导致 vm 报 "Unexpected token '<'"，harness 在任何版本上都失败（2026-10-13 修复）。
+const end = html.indexOf('</script>', mi);
 const code = html.slice(mi, end);
 
 // ---------- mock DOM ----------
